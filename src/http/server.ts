@@ -21,6 +21,8 @@ export async function createServer(db: DB, mock: MockProvider | null) {
   await app.register(fastifyCookie);
   await app.register(fastifyStatic, { root: PUBLIC_DIR, prefix: '/' });
 
+  app.get('/health', () => ({ ok: true }));
+
   app.get('/vendor/jsQR.js', (_req, reply) => {
     reply.type('application/javascript');
     return fs.readFileSync(path.resolve('node_modules/jsqr/dist/jsQR.js'), 'utf8');
