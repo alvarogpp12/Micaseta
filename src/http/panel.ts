@@ -361,6 +361,39 @@ export function registerPanelRoutes(app: FastifyInstance, db: DB): void {
     return { ok: true, orderId: result.orderId, totalCents: result.totalCents, socioName: result.socioName };
   });
 
+  /** Página personal del socio (token = su QR firmado y revocable): su QR + pedir. */
+  app.get('/gapi/socio', async (req, reply) => {
+    const t = String((req.query as any).t ?? '');
+    const user = await verifyQrToken(db, t);
+    if (!user || user.role !== 'socio') return reply.code(404).send({ error: 'Acceso no válido' });
+    if (user.status !== 'activo') return reply.code(403).send({ error: 'Acceso suspendido' });
+    const caseta = user.caseta_id ? await accounts.getCaseta(db, user.caseta_id) : null;
+    const products = await orders.listProducts(db, user.caseta_id);
+    const pend = await one<{ total: number }>(
+      db,
+      'SELECT COALESCE(SUM(total_cents), 0)::int AS total FROM orders WHERE socio_id = $1 AND NOT settled',
+      [user.id],
+    );
+    return {
+      name: user.name,
+      caseta: caseta?.name ?? 'Micaseta',
+      qrToken: t,
+      products,
+      pendingCents: pend!.total,
+    };
+  });
+
+  /** El socio envía su propio pedido: pendiente hasta que el camarero lo sirve. */
+  app.post('/gapi/socio/pedido', async (req, reply) => {
+    const body = req.body as any;
+    const user = await verifyQrToken(db, String(body?.t ?? ''));
+    if (!user || user.role !== 'socio') return reply.code(404).send({ error: 'Acceso no válido' });
+    const items = Array.isArray(body?.items) ? body.items : [];
+    const result = await orders.createOrder(db, user, null, items);
+    if (!result.ok) return reply.code(422).send({ error: result.error });
+    return { ok: true, orderId: result.orderId, totalCents: result.totalCents };
+  });
+
   /** Imagen PNG del QR (el token firmado ES el secreto, se puede servir sin cookie). */
   app.get('/qr.png', async (req, reply) => {
     const t = String((req.query as any).t ?? '');
