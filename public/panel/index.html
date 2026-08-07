@@ -3,64 +3,91 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Micaseta · Panel</title>
+<title>Panel — Micaseta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  :root { --bg:#0f1115; --card:#1a1e26; --txt:#eef1f6; --mut:#8b93a3; --acc:#e0533d; --acc2:#f0a83d; --ok:#2ecc71; --bad:#e74c3c; --blue:#4f8cff; }
+  :root {
+    --bg:#f5f6fa; --surface:#ffffff; --border:#e6e8f0; --text:#101828; --muted:#667085;
+    --primary:#4353ff; --primary-dark:#3543d9; --primary-soft:#eef0ff;
+    --ok:#12b76a; --ok-soft:#e7f8f0; --danger:#f04438; --danger-soft:#feeceb; --gray-soft:#f2f4f7;
+    --radius:14px; --shadow:0 1px 2px rgba(16,24,40,.05), 0 1px 3px rgba(16,24,40,.06);
+  }
   * { box-sizing:border-box; margin:0; }
-  body { background:var(--bg); color:var(--txt); font-family:system-ui,-apple-system,sans-serif; min-height:100vh; padding-bottom:80px; }
-  header { padding:16px 18px 10px; display:flex; justify-content:space-between; align-items:center; }
-  header h1 { font-size:19px; } header h1 span { color:var(--acc2); }
-  header .out { color:var(--mut); font-size:13px; cursor:pointer; }
-  main { max-width:560px; margin:0 auto; padding:0 14px; }
-  nav { position:fixed; bottom:0; left:0; right:0; background:#161a21; border-top:1px solid #262b36; display:flex; z-index:10; }
-  nav button { flex:1; background:none; border:0; color:var(--mut); font-size:11px; padding:9px 2px 10px; cursor:pointer; }
-  nav button .ico { display:block; font-size:20px; margin-bottom:2px; }
-  nav button.on { color:var(--acc2); }
-  .card { background:var(--card); border-radius:14px; padding:16px; margin-bottom:12px; }
-  .kpis { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
-  .kpi { background:var(--card); border-radius:14px; padding:14px; }
-  .kpi .v { font-size:24px; font-weight:800; } .kpi .l { color:var(--mut); font-size:12.5px; margin-top:2px; }
-  h2 { font-size:16px; margin:16px 0 10px; }
-  label { display:block; color:var(--mut); font-size:13px; margin:10px 0 4px; }
-  input, select { width:100%; padding:12px; border-radius:10px; border:1px solid #333a48; background:#12151b; color:var(--txt); font-size:15px; }
-  .btn { width:100%; border:0; border-radius:10px; padding:13px; font-size:15px; font-weight:700; cursor:pointer; background:var(--acc); color:#fff; margin-top:12px; }
-  .btn.blue { background:var(--blue); } .btn.ok { background:var(--ok); color:#06290f; } .btn.ghost { background:#262b36; color:var(--txt); }
-  .btn.mini { width:auto; padding:8px 12px; font-size:13px; margin:0; }
-  .row { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:11px 0; border-bottom:1px solid #262b36; }
+  body { background:var(--bg); color:var(--text); font-family:Inter,-apple-system,"Segoe UI",system-ui,sans-serif; -webkit-font-smoothing:antialiased; padding-bottom:86px; }
+  .topbar { background:var(--surface); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:20; }
+  .topbar-in { max-width:640px; margin:0 auto; padding:13px 18px; display:flex; justify-content:space-between; align-items:center; }
+  .brand { display:flex; align-items:center; gap:10px; min-width:0; }
+  .wordmark { font-weight:800; font-size:16px; letter-spacing:-.03em; white-space:nowrap; }
+  .wordmark i { color:var(--primary); font-style:normal; }
+  .casetaname { color:var(--muted); font-size:14px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; border-left:1px solid var(--border); padding-left:10px; }
+  .out { color:var(--muted); font:600 13px Inter,sans-serif; cursor:pointer; background:none; border:1px solid var(--border); border-radius:8px; padding:7px 12px; }
+  main { max-width:640px; margin:0 auto; padding:18px 16px 0; }
+  nav { position:fixed; bottom:0; left:0; right:0; background:var(--surface); border-top:1px solid var(--border); z-index:20; }
+  .nav-in { max-width:640px; margin:0 auto; display:flex; }
+  nav button { flex:1; background:none; border:0; color:var(--muted); font:600 10.5px Inter,sans-serif; padding:9px 2px 10px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:3px; }
+  nav button svg { width:21px; height:21px; }
+  nav button.on { color:var(--primary); }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); padding:18px; margin-bottom:14px; }
+  .kpis { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px; }
+  .kpi { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); padding:15px 16px; }
+  .kpi .l { color:var(--muted); font:600 12px Inter,sans-serif; margin-bottom:6px; }
+  .kpi .v { font-size:22px; font-weight:800; letter-spacing:-.02em; }
+  h2 { font-size:15px; font-weight:700; letter-spacing:-.01em; margin:20px 0 10px; }
+  h2:first-child, .card h2:first-child { margin-top:0; }
+  label { display:block; font:600 12.5px Inter,sans-serif; color:#344054; margin:12px 0 5px; }
+  input, select { width:100%; padding:10px 12px; border-radius:9px; border:1px solid #d0d5dd; background:#fff; color:var(--text); font:400 15px Inter,sans-serif; outline:none; transition:border .15s, box-shadow .15s; }
+  input:focus, select:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(67,83,255,.12); }
+  .btn { border:0; border-radius:9px; padding:11px 16px; font:600 14.5px Inter,sans-serif; cursor:pointer; transition:background .15s; }
+  .btn-primary { background:var(--primary); color:#fff; width:100%; margin-top:14px; }
+  .btn-primary:hover { background:var(--primary-dark); }
+  .btn-sec { background:var(--surface); color:var(--text); border:1px solid var(--border); }
+  .btn-mini { padding:7px 11px; font-size:13px; border-radius:8px; white-space:nowrap; }
+  .btn-soft { background:var(--primary-soft); color:var(--primary); }
+  .btn-ok { background:var(--ok); color:#fff; }
+  .btn-block { display:block; width:100%; text-align:center; text-decoration:none; margin-top:10px; }
+  .row { display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--border); }
   .row:last-child { border-bottom:0; }
-  .row .who { min-width:0; } .row .who b { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .row .who small { color:var(--mut); }
-  .badge { padding:3px 9px; border-radius:99px; font-size:12px; font-weight:700; white-space:nowrap; }
-  .b-ok { background:#173; color:#7f7; } .b-bad { background:#511; color:#f99; } .b-mut { background:#262b36; color:var(--mut); }
-  .err { color:var(--bad); font-weight:600; font-size:14px; min-height:18px; margin-top:8px; }
-  .okmsg { color:var(--ok); font-weight:600; font-size:14px; margin-top:8px; }
-  .hidden { display:none; }
-  .money { font-weight:800; }
+  .avatar { width:38px; height:38px; border-radius:99px; background:var(--primary-soft); color:var(--primary); font:700 13px Inter,sans-serif; display:grid; place-items:center; flex-shrink:0; }
+  .who { flex:1; min-width:0; }
+  .who b { display:block; font-size:14.5px; letter-spacing:-.01em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .who small { color:var(--muted); font-size:12.5px; }
+  .chip { padding:3px 10px; border-radius:99px; font:600 12px Inter,sans-serif; white-space:nowrap; }
+  .c-ok { background:var(--ok-soft); color:#027a48; }
+  .c-bad { background:var(--danger-soft); color:#b42318; }
+  .c-mut { background:var(--gray-soft); color:var(--muted); }
+  .money { font-weight:700; font-size:14.5px; white-space:nowrap; }
+  .err { color:var(--danger); font:600 13px Inter,sans-serif; margin-top:8px; min-height:16px; }
+  .empty { color:var(--muted); font-size:14px; padding:6px 0; }
   .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-  .share { background:#12151b; border:1px dashed #333a48; border-radius:10px; padding:10px; font-size:12.5px; color:var(--mut); word-break:break-all; margin-top:10px; }
-  .mut { color:var(--mut); font-size:13.5px; }
-  dialog { background:var(--card); color:var(--txt); border:0; border-radius:16px; padding:20px; max-width:420px; width:92%; }
-  dialog::backdrop { background:rgba(0,0,0,.6); }
+  .share { background:var(--gray-soft); border-radius:9px; padding:10px 12px; font-size:12px; color:var(--muted); word-break:break-all; margin-top:12px; }
+  dialog { background:var(--surface); color:var(--text); border:0; border-radius:16px; padding:22px; max-width:400px; width:calc(100% - 40px); box-shadow:0 20px 50px rgba(16,24,40,.25); }
+  dialog::backdrop { background:rgba(16,24,40,.45); }
+  dialog h2 { margin-top:0; font-size:17px; }
+  dialog .mut { color:var(--muted); font-size:13.5px; line-height:1.5; margin:6px 0 12px; }
+  .qrframe { background:#fff; border:1px solid var(--border); border-radius:12px; padding:10px; }
+  .qrframe img { width:100%; display:block; }
 </style>
 </head>
 <body>
-<header>
-  <h1>🎪 <span id="casetaName">…</span></h1>
-  <span class="out" id="logout">salir</span>
-</header>
+<div class="topbar"><div class="topbar-in">
+  <div class="brand"><span class="wordmark">micaseta<i>.</i></span><span class="casetaname" id="casetaName"></span></div>
+  <button class="out" id="logout">Salir</button>
+</div></div>
 <main id="main"></main>
-<nav>
-  <button data-tab="resumen" class="on"><span class="ico">📊</span>Resumen</button>
-  <button data-tab="socios"><span class="ico">👥</span>Socios</button>
-  <button data-tab="invitaciones"><span class="ico">🎟</span>Invitar</button>
-  <button data-tab="carta"><span class="ico">🍾</span>Carta</button>
-  <button data-tab="staff"><span class="ico">🧑‍🍳</span>Equipo</button>
-</nav>
+<nav><div class="nav-in">
+  <button data-tab="resumen" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 13l4-4 4 4 5-6"/></svg>Resumen</button>
+  <button data-tab="socios"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Socios</button>
+  <button data-tab="invitaciones"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M15 5v14M3 10h12"/></svg>Invitar</button>
+  <button data-tab="carta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v20M16 2v20M3 7h5M3 12h5M3 17h5M16 7h5M16 12h5M16 17h5" opacity="0"/><path d="M4 4h16v16H4z" opacity="0"/><path d="M6 2v6a2 2 0 0 0 4 0V2M8 10v12"/><path d="M17 2c-2 2-2.5 5-2.5 7.5 0 2 1 3 2.5 3s2.5-1 2.5-3C19.5 7 19 4 17 2zM17 12.5V22"/></svg>Carta</button>
+  <button data-tab="staff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M15 8h4M15 12h4M5.5 16.5c.5-1.5 2-2.5 3.5-2.5s3 1 3.5 2.5"/></svg>Equipo</button>
+</div></nav>
 <dialog id="dlg"></dialog>
 <script>
 const $ = (s) => document.querySelector(s);
-const eur = (c) => (c/100).toFixed(2).replace('.', ',') + '€';
+const eur = (c) => (c/100).toFixed(2).replace('.', ',') + ' €';
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (ch) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+const initials = (n) => (n ?? '?').trim().split(/\s+/).slice(0,2).map(w => w[0]?.toUpperCase() ?? '').join('') || '?';
 let me = null, tab = 'resumen';
 
 async function api(path, opts={}) {
@@ -78,16 +105,19 @@ document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
 });
 $('#logout').onclick = async () => { await post('/papi/logout'); location.href = '/'; };
 
-function dlg(html) { $('#dlg').innerHTML = html + '<button class="btn ghost" onclick="document.getElementById(\'dlg\').close()">Cerrar</button>'; $('#dlg').showModal(); }
-
+function dlg(html) { $('#dlg').innerHTML = html + '<button class="btn btn-sec btn-block" onclick="document.getElementById(\'dlg\').close()">Cerrar</button>'; $('#dlg').showModal(); }
 function waShare(text, phone) {
-  const base = phone ? `https://wa.me/${phone.replace(/\D/g,'')}` : 'https://wa.me/';
+  const base = phone ? `https://wa.me/${String(phone).replace(/\D/g,'')}` : 'https://wa.me/';
   return `${base}?text=${encodeURIComponent(text)}`;
 }
+const shareBlock = (text, phone, url) => `
+  <a class="btn btn-primary btn-block" style="color:#fff" href="${waShare(text, phone)}" target="_blank">Enviar por WhatsApp</a>
+  <button class="btn btn-sec btn-block" onclick="navigator.clipboard.writeText(${JSON.stringify(url).replace(/"/g,'&quot;')});this.textContent='Copiado'">Copiar enlace</button>
+  <div class="share">${esc(url)}</div>`;
 
 async function render() {
   const m = $('#main');
-  m.innerHTML = '<p class="mut" style="padding:20px;text-align:center">Cargando…</p>';
+  m.innerHTML = '<p class="empty" style="text-align:center;padding:26px">Cargando…</p>';
   try {
     if (tab === 'resumen') await renderResumen(m);
     if (tab === 'socios') await renderSocios(m);
@@ -102,27 +132,28 @@ async function renderResumen(m) {
   const o = await api('/papi/overview');
   m.innerHTML = `
     <div class="kpis">
-      <div class="kpi"><div class="v">${eur(o.hoy.total)}</div><div class="l">Consumo de hoy · ${o.hoy.n} comandas</div></div>
-      <div class="kpi"><div class="v">${o.entradas}</div><div class="l">Entradas hoy</div></div>
-      <div class="kpi"><div class="v">${eur(o.pendienteCents)}</div><div class="l">Pendiente de liquidar</div></div>
-      <div class="kpi"><div class="v">${o.counts.socios} · ${o.counts.invitados}</div><div class="l">Socios · Invitados activos</div></div>
+      <div class="kpi"><div class="l">Consumo de hoy</div><div class="v">${eur(o.hoy.total)}</div></div>
+      <div class="kpi"><div class="l">Entradas hoy</div><div class="v">${o.entradas}</div></div>
+      <div class="kpi"><div class="l">Pendiente de liquidar</div><div class="v">${eur(o.pendienteCents)}</div></div>
+      <div class="kpi"><div class="l">Socios · Invitados</div><div class="v">${o.counts.socios} · ${o.counts.invitados}</div></div>
     </div>
-    <h2>💶 Cuentas por socio</h2>
-    <div class="card" id="cuentas">${o.cuentas.length ? '' : '<p class="mut">Aún no hay consumo. Da de alta socios y crea invitaciones 🎟</p>'}</div>`;
+    <h2>Cuentas por socio</h2>
+    <div class="card" id="cuentas">${o.cuentas.length ? '' : '<p class="empty">Aún no hay consumo registrado. Empieza dando de alta socios y creando invitaciones.</p>'}</div>`;
   const box = $('#cuentas');
   for (const c of o.cuentas) {
     const row = document.createElement('div'); row.className = 'row';
-    row.innerHTML = `<div class="who"><b>${esc(c.socio_name ?? 'Socio')}</b><small>${c.n_orders} comandas · total ${eur(c.total_cents)}</small></div>
+    row.innerHTML = `<div class="avatar">${initials(c.socio_name)}</div>
+      <div class="who"><b>${esc(c.socio_name ?? 'Socio')}</b><small>${c.n_orders} comandas · total ${eur(c.total_cents)}</small></div>
       <span class="money">${eur(c.pending_cents)}</span>
-      <button class="btn mini ghost">Ver</button>
-      ${c.pending_cents > 0 ? '<button class="btn mini ok">Liquidar</button>' : ''}`;
-    const [verBtn, liqBtn] = row.querySelectorAll('button');
-    verBtn.onclick = async () => {
+      <button class="btn btn-mini btn-sec">Ver</button>
+      ${c.pending_cents > 0 ? '<button class="btn btn-mini btn-ok">Liquidar</button>' : ''}`;
+    const btns = row.querySelectorAll('button');
+    btns[0].onclick = async () => {
       const det = await api(`/papi/cuentas/${c.socio_id}`);
       dlg(`<h2>Cuenta de ${esc(c.socio_name ?? '')}</h2>` + (det.length ? det.map(d =>
-        `<div class="row"><div class="who"><b>${esc(d.customer_name ?? '')}${d.es_socio ? ' ⭐' : ''}</b><small>${new Date(d.created_at).toLocaleString('es-ES',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</small></div><span>${d.settled ? '✅' : '🕓'} ${eur(d.total_cents)}</span></div>`).join('') : '<p class="mut">Sin comandas.</p>'));
+        `<div class="row"><div class="who"><b>${esc(d.customer_name ?? '')}${d.es_socio ? ' (socio)' : ''}</b><small>${new Date(d.created_at).toLocaleString('es-ES',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</small></div><span class="chip ${d.settled ? 'c-ok' : 'c-mut'}">${d.settled ? 'liquidada' : 'pendiente'}</span><span class="money">${eur(d.total_cents)}</span></div>`).join('') : '<p class="empty">Sin comandas.</p>'));
     };
-    if (liqBtn) liqBtn.onclick = async () => {
+    if (btns[1]) btns[1].onclick = async () => {
       if (!confirm(`¿Marcar como pagada la cuenta de ${c.socio_name} (${eur(c.pending_cents)})?`)) return;
       await post(`/papi/cuentas/${c.socio_id}/liquidar`); render();
     };
@@ -135,12 +166,12 @@ async function renderSocios(m) {
   const socios = await api('/papi/socios');
   m.innerHTML = `
     <div class="card">
-      <h2 style="margin-top:0">➕ Nuevo socio</h2>
-      <div class="grid2"><input id="s_name" placeholder="Nombre"><input id="s_phone" placeholder="Móvil (612345678)"></div>
-      <button class="btn" id="s_add">Dar de alta</button><div class="err" id="s_err"></div>
+      <h2>Nuevo socio</h2>
+      <div class="grid2"><div><label>Nombre</label><input id="s_name" placeholder="Juan Pérez"></div><div><label>Móvil</label><input id="s_phone" placeholder="612 345 678"></div></div>
+      <button class="btn btn-primary" id="s_add">Dar de alta</button><div class="err" id="s_err"></div>
     </div>
-    <h2>👥 Socios (${socios.length})</h2>
-    <div class="card" id="s_list">${socios.length ? '' : '<p class="mut">Todavía no hay socios.</p>'}</div>`;
+    <h2>Socios · ${socios.length}</h2>
+    <div class="card" id="s_list">${socios.length ? '' : '<p class="empty">Todavía no hay socios.</p>'}</div>`;
   $('#s_add').onclick = async () => {
     $('#s_err').textContent = '';
     try { await post('/papi/socios', { name:$('#s_name').value, phone:$('#s_phone').value }); render(); }
@@ -150,14 +181,17 @@ async function renderSocios(m) {
   for (const s of socios) {
     const row = document.createElement('div'); row.className = 'row';
     const suspended = s.status === 'suspendido';
-    row.innerHTML = `<div class="who"><b>${esc(s.name ?? '')}</b><small>+${s.phone}</small></div>
-      <span class="badge ${suspended ? 'b-bad' : 'b-ok'}">${suspended ? 'suspendido' : 'activo'}</span>
-      ${s.qrToken ? '<button class="btn mini blue">QR</button>' : ''}
-      <button class="btn mini ghost">${suspended ? 'Activar' : 'Baja'}</button>`;
+    row.innerHTML = `<div class="avatar">${initials(s.name)}</div>
+      <div class="who"><b>${esc(s.name ?? '')}</b><small>+${s.phone}</small></div>
+      <span class="chip ${suspended ? 'c-bad' : 'c-ok'}">${suspended ? 'suspendido' : 'activo'}</span>
+      ${s.qrToken ? '<button class="btn btn-mini btn-soft">QR</button>' : ''}
+      <button class="btn btn-mini btn-sec">${suspended ? 'Activar' : 'Baja'}</button>`;
     const btns = row.querySelectorAll('button');
     const qrBtn = s.qrToken ? btns[0] : null;
     const susBtn = btns[btns.length - 1];
-    if (qrBtn) qrBtn.onclick = () => dlg(`<h2>QR de ${esc(s.name ?? '')}</h2><p class="mut">Es su identificación para pedir en la caseta. Envíaselo.</p><img src="/qr.png?t=${encodeURIComponent(s.qrToken)}" style="width:100%;border-radius:12px;background:#fff;padding:8px"><a class="btn blue" style="display:block;text-align:center;text-decoration:none" href="${waShare('Tu QR de socio de la caseta 🎪 ' + location.origin + '/qr.png?t=' + s.qrToken, s.phone)}" target="_blank">Enviar por WhatsApp</a>`);
+    if (qrBtn) qrBtn.onclick = () => dlg(`<h2>QR de ${esc(s.name ?? '')}</h2><p class="mut">Su identificación para pedir en la caseta.</p>
+      <div class="qrframe"><img src="/qr.png?t=${encodeURIComponent(s.qrToken)}"></div>
+      <a class="btn btn-primary btn-block" style="color:#fff" href="${waShare('Tu código de socio de la caseta: ' + location.origin + '/qr.png?t=' + s.qrToken, s.phone)}" target="_blank">Enviar por WhatsApp</a>`);
     susBtn.onclick = async () => { await post(`/papi/socios/${s.id}/suspender`); render(); };
     box.appendChild(row);
   }
@@ -168,24 +202,24 @@ async function renderInvitaciones(m) {
   const [socios, invs] = await Promise.all([api('/papi/socios'), api('/papi/invitations')]);
   m.innerHTML = `
     <div class="card">
-      <h2 style="margin-top:0">🎟 Nueva invitación</h2>
+      <h2>Nueva invitación</h2>
       ${socios.length ? `
       <label>Socio que invita</label>
       <select id="i_socio">${socios.filter(s=>s.status==='activo').map(s => `<option value="${s.id}">${esc(s.name ?? s.phone)}</option>`).join('')}</select>
       <div class="grid2">
-        <div><label>Nombre del invitado</label><input id="i_name" placeholder="Ana"></div>
-        <div><label>Su móvil (opcional)</label><input id="i_phone" placeholder="698765432"></div>
+        <div><label>Nombre del invitado</label><input id="i_name" placeholder="Ana López"></div>
+        <div><label>Su móvil <span style="color:#98a2b3">(opcional)</span></label><input id="i_phone" placeholder="698 765 432"></div>
       </div>
       <div class="grid2">
-        <div><label>Solo un día (vacío = siempre)</label><input id="i_date" type="date"></div>
-        <div><label>Límite € (vacío = sin límite)</label><input id="i_limit" placeholder="50"></div>
+        <div><label>Solo un día <span style="color:#98a2b3">(vacío = siempre)</span></label><input id="i_date" type="date"></div>
+        <div><label>Límite € <span style="color:#98a2b3">(vacío = sin límite)</span></label><input id="i_limit" placeholder="50" inputmode="decimal"></div>
       </div>
-      <label>Acompañantes que puede traer</label><input id="i_comp" type="number" min="0" max="10" value="0">
-      <button class="btn" id="i_add">Crear y compartir</button><div class="err" id="i_err"></div>
-      ` : '<p class="mut">Primero da de alta un socio en la pestaña 👥 Socios.</p>'}
+      <label>Acompañantes permitidos</label><input id="i_comp" type="number" min="0" max="10" value="0">
+      <button class="btn btn-primary" id="i_add">Crear invitación</button><div class="err" id="i_err"></div>
+      ` : '<p class="empty">Primero da de alta un socio en la pestaña Socios.</p>'}
     </div>
-    <h2>Invitaciones (${invs.length})</h2>
-    <div class="card" id="i_list">${invs.length ? '' : '<p class="mut">Ninguna todavía.</p>'}</div>`;
+    <h2>Invitaciones · ${invs.length}</h2>
+    <div class="card" id="i_list">${invs.length ? '' : '<p class="empty">Ninguna todavía.</p>'}</div>`;
   if (socios.length) $('#i_add').onclick = async () => {
     $('#i_err').textContent = '';
     try {
@@ -193,26 +227,22 @@ async function renderInvitaciones(m) {
         socioId: $('#i_socio').value, guestName: $('#i_name').value, guestPhone: $('#i_phone').value,
         date: $('#i_date').value || null, limit: $('#i_limit').value || null, companions: $('#i_comp').value,
       });
-      dlg(`<h2>✅ Invitación creada</h2><p class="mut">Compártela: el invitado se registra con su selfie y recibe su QR al momento.</p>
-        <a class="btn blue" style="display:block;text-align:center;text-decoration:none" href="${waShare(r.shareText, r.guestPhone)}" target="_blank">📲 Enviar por WhatsApp</a>
-        <button class="btn ghost" onclick="navigator.clipboard.writeText(${JSON.stringify(r.shareUrl).replace(/"/g,'&quot;')});this.textContent='¡Copiado!'">Copiar link</button>
-        <div class="share">${esc(r.shareUrl)}</div>`);
+      dlg(`<h2>Invitación creada</h2><p class="mut">Compártela con el invitado: se registra con su selfie y recibe su QR al momento.</p>` + shareBlock(r.shareText, r.guestPhone, r.shareUrl));
       render();
     } catch (e) { $('#i_err').textContent = e.message; }
   };
   const box = $('#i_list');
   for (const i of invs) {
     const row = document.createElement('div'); row.className = 'row';
-    const st = { pendiente:'b-mut', aceptada:'b-ok', cancelada:'b-bad', rechazada:'b-bad' }[i.status] ?? 'b-mut';
-    row.innerHTML = `<div class="who"><b>${esc(i.guest_name ?? i.guest_label ?? (i.guest_phone ? '+'+i.guest_phone : 'Invitado'))}</b><small>de ${esc(i.socio_name ?? '')}</small></div>
-      <span class="badge ${st}">${i.status}</span>
-      <button class="btn mini blue">📲</button>
-      ${['pendiente','aceptada'].includes(i.status) ? '<button class="btn mini ghost">✕</button>' : ''}`;
+    const st = { pendiente:'c-mut', aceptada:'c-ok', cancelada:'c-bad', rechazada:'c-bad' }[i.status] ?? 'c-mut';
+    const gname = i.guest_name ?? i.guest_label ?? (i.guest_phone ? '+'+i.guest_phone : 'Invitado');
+    row.innerHTML = `<div class="avatar">${initials(gname)}</div>
+      <div class="who"><b>${esc(gname)}</b><small>invita ${esc(i.socio_name ?? '')}</small></div>
+      <span class="chip ${st}">${i.status}</span>
+      <button class="btn btn-mini btn-soft">Compartir</button>
+      ${['pendiente','aceptada'].includes(i.status) ? '<button class="btn btn-mini btn-sec">Cancelar</button>' : ''}`;
     const [shareBtn, cancelBtn] = row.querySelectorAll('button');
-    shareBtn.onclick = () => dlg(`<h2>Compartir invitación</h2>
-      <a class="btn blue" style="display:block;text-align:center;text-decoration:none" href="${waShare(i.shareText, i.guest_phone)}" target="_blank">📲 Enviar por WhatsApp</a>
-      <button class="btn ghost" onclick="navigator.clipboard.writeText(${JSON.stringify(i.shareUrl).replace(/"/g,'&quot;')});this.textContent='¡Copiado!'">Copiar link</button>
-      <div class="share">${esc(i.shareUrl)}</div>`);
+    shareBtn.onclick = () => dlg(`<h2>Compartir invitación</h2>` + shareBlock(i.shareText, i.guest_phone, i.shareUrl));
     if (cancelBtn) cancelBtn.onclick = async () => {
       if (!confirm('¿Cancelar esta invitación? Su QR dejará de funcionar al instante.')) return;
       await post(`/papi/invitations/${i.id}/cancelar`); render();
@@ -226,14 +256,14 @@ async function renderCarta(m) {
   const prods = await api('/papi/products');
   m.innerHTML = `
     <div class="card">
-      <h2 style="margin-top:0">➕ Producto</h2>
-      <div class="grid2"><input id="p_name" placeholder="Rebujito"><input id="p_price" placeholder="Precio (12)"></div>
+      <h2>Nuevo producto</h2>
+      <div class="grid2"><div><label>Nombre</label><input id="p_name" placeholder="Rebujito"></div><div><label>Precio €</label><input id="p_price" placeholder="12" inputmode="decimal"></div></div>
       <label>Categoría</label>
       <select id="p_cat"><option>bebida</option><option>copa</option><option>botella</option><option>comida</option><option>otro</option></select>
-      <button class="btn" id="p_add">Añadir a la carta</button><div class="err" id="p_err"></div>
+      <button class="btn btn-primary" id="p_add">Añadir a la carta</button><div class="err" id="p_err"></div>
     </div>
-    <h2>🍾 Carta (${prods.length})</h2>
-    <div class="card" id="p_list">${prods.length ? '' : '<p class="mut">Carta vacía. Añade rebujito, copas, raciones…</p>'}</div>`;
+    <h2>Carta · ${prods.length}</h2>
+    <div class="card" id="p_list">${prods.length ? '' : '<p class="empty">Carta vacía. Añade rebujito, copas, raciones…</p>'}</div>`;
   $('#p_add').onclick = async () => {
     $('#p_err').textContent = '';
     try { await post('/papi/products', { name:$('#p_name').value, price:$('#p_price').value, category:$('#p_cat').value }); render(); }
@@ -243,7 +273,7 @@ async function renderCarta(m) {
   for (const p of prods) {
     const row = document.createElement('div'); row.className = 'row';
     row.innerHTML = `<div class="who"><b>${esc(p.name)}</b><small>${esc(p.category)}</small></div>
-      <span class="money">${eur(p.price_cents)}</span><button class="btn mini ghost">✕</button>`;
+      <span class="money">${eur(p.price_cents)}</span><button class="btn btn-mini btn-sec">Quitar</button>`;
     row.querySelector('button').onclick = async () => { await post(`/papi/products/${p.id}/desactivar`); render(); };
     box.appendChild(row);
   }
@@ -254,22 +284,20 @@ async function renderStaff(m) {
   const staff = await api('/papi/staff');
   m.innerHTML = `
     <div class="card">
-      <h2 style="margin-top:0">➕ Camarero o puerta</h2>
-      <div class="grid2"><input id="t_name" placeholder="Nombre"><input id="t_phone" placeholder="Móvil"></div>
+      <h2>Nuevo miembro del equipo</h2>
+      <div class="grid2"><div><label>Nombre</label><input id="t_name" placeholder="Pepe Ruiz"></div><div><label>Móvil</label><input id="t_phone" placeholder="622 222 222"></div></div>
       <label>Puesto</label>
-      <select id="t_role"><option value="mesero">Camarero (comandas)</option><option value="puerta">Puerta (entradas)</option></select>
-      <button class="btn" id="t_add">Dar de alta</button><div class="err" id="t_err"></div>
-      <p class="mut" style="margin-top:10px">Recibirán un link para abrir el escáner de QR en su móvil. Sin instalar nada.</p>
+      <select id="t_role"><option value="mesero">Camarero — comandas</option><option value="puerta">Puerta — entradas</option></select>
+      <button class="btn btn-primary" id="t_add">Dar de alta</button><div class="err" id="t_err"></div>
+      <p class="empty" style="margin-top:10px">Recibirá un enlace que abre el escáner de QR en su móvil. No hay que instalar nada.</p>
     </div>
-    <h2>🧑‍🍳 Equipo (${staff.length})</h2>
-    <div class="card" id="t_list">${staff.length ? '' : '<p class="mut">Nadie todavía.</p>'}</div>`;
+    <h2>Equipo · ${staff.length}</h2>
+    <div class="card" id="t_list">${staff.length ? '' : '<p class="empty">Nadie todavía.</p>'}</div>`;
   $('#t_add').onclick = async () => {
     $('#t_err').textContent = '';
     try {
       const r = await post('/papi/staff', { name:$('#t_name').value, phone:$('#t_phone').value, role:$('#t_role').value });
-      dlg(`<h2>✅ Alta hecha</h2><p class="mut">Envíale su acceso al escáner:</p>
-        <a class="btn blue" style="display:block;text-align:center;text-decoration:none" href="${waShare('Tu acceso al escáner de la caseta 🎪 ' + r.loginUrl, $('#t_phone').value)}" target="_blank">📲 Enviar por WhatsApp</a>
-        <button class="btn ghost" onclick="navigator.clipboard.writeText(${JSON.stringify(r.loginUrl).replace(/"/g,'&quot;')});this.textContent='¡Copiado!'">Copiar link</button>`);
+      dlg(`<h2>Alta completada</h2><p class="mut">Envíale su acceso al escáner:</p>` + shareBlock('Tu acceso al escáner de la caseta: ' + r.loginUrl, $('#t_phone').value, r.loginUrl));
       render();
     } catch (e) { $('#t_err').textContent = e.message; }
   };
@@ -277,13 +305,12 @@ async function renderStaff(m) {
   for (const s of staff) {
     const row = document.createElement('div'); row.className = 'row';
     const suspended = s.status === 'suspendido';
-    row.innerHTML = `<div class="who"><b>${esc(s.name ?? '')}</b><small>${s.role === 'puerta' ? '🚪 puerta' : '🍽 camarero'} · +${s.phone}</small></div>
-      ${s.loginUrl ? '<button class="btn mini blue">Link</button>' : ''}
-      <button class="btn mini ghost">${suspended ? 'Activar' : 'Baja'}</button>`;
+    row.innerHTML = `<div class="avatar">${initials(s.name)}</div>
+      <div class="who"><b>${esc(s.name ?? '')}</b><small>${s.role === 'puerta' ? 'Puerta' : 'Camarero'} · +${s.phone}</small></div>
+      ${s.loginUrl ? '<button class="btn btn-mini btn-soft">Acceso</button>' : ''}
+      <button class="btn btn-mini btn-sec">${suspended ? 'Activar' : 'Baja'}</button>`;
     const btns = row.querySelectorAll('button');
-    if (s.loginUrl) btns[0].onclick = () => dlg(`<h2>Acceso de ${esc(s.name ?? '')}</h2>
-      <a class="btn blue" style="display:block;text-align:center;text-decoration:none" href="${waShare('Tu acceso al escáner de la caseta 🎪 ' + s.loginUrl, s.phone)}" target="_blank">📲 Enviar por WhatsApp</a>
-      <button class="btn ghost" onclick="navigator.clipboard.writeText(${JSON.stringify(s.loginUrl).replace(/"/g,'&quot;')});this.textContent='¡Copiado!'">Copiar link</button>`);
+    if (s.loginUrl) btns[0].onclick = () => dlg(`<h2>Acceso de ${esc(s.name ?? '')}</h2>` + shareBlock('Tu acceso al escáner de la caseta: ' + s.loginUrl, s.phone, s.loginUrl));
     btns[btns.length-1].onclick = async () => { await post(`/papi/socios/${s.id}/suspender`); render(); };
     box.appendChild(row);
   }

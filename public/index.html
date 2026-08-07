@@ -3,81 +3,124 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Micaseta · Gestión de casetas privadas</title>
+<title>Micaseta — Gestión de casetas privadas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  :root { --bg:#0f1115; --card:#1a1e26; --txt:#eef1f6; --mut:#8b93a3; --acc:#e0533d; --acc2:#f0a83d; --ok:#2ecc71; --bad:#e74c3c; }
+  :root {
+    --bg:#f5f6fa; --surface:#ffffff; --border:#e6e8f0; --text:#101828; --muted:#667085;
+    --primary:#4353ff; --primary-dark:#3543d9; --primary-soft:#eef0ff;
+    --ok:#12b76a; --ok-soft:#e7f8f0; --danger:#f04438;
+    --radius:14px; --shadow:0 1px 2px rgba(16,24,40,.05), 0 1px 3px rgba(16,24,40,.06);
+  }
   * { box-sizing:border-box; margin:0; }
-  body { background:var(--bg); color:var(--txt); font-family:system-ui,-apple-system,sans-serif; min-height:100vh; }
-  .wrap { max-width:480px; margin:0 auto; padding:28px 20px 60px; }
-  .hero { text-align:center; padding:26px 0 8px; }
-  .hero .logo { font-size:56px; }
-  .hero h1 { font-size:30px; margin:8px 0 6px; }
-  .hero h1 b { color:var(--acc2); }
-  .hero p { color:var(--mut); font-size:15.5px; line-height:1.5; }
-  .cta { display:block; width:100%; text-align:center; background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#fff; font-size:18px; font-weight:800; padding:17px; border:0; border-radius:14px; margin:22px 0 10px; cursor:pointer; }
-  .alt { display:block; width:100%; text-align:center; background:var(--card); color:var(--txt); font-size:15px; font-weight:600; padding:14px; border:0; border-radius:12px; cursor:pointer; }
-  .card { background:var(--card); border-radius:16px; padding:20px; margin-top:18px; }
-  .card h2 { font-size:18px; margin-bottom:14px; }
-  label { display:block; color:var(--mut); font-size:13px; margin:12px 0 5px; }
-  input { width:100%; padding:13px; border-radius:10px; border:1px solid #333a48; background:#12151b; color:var(--txt); font-size:15px; }
-  .btn { width:100%; border:0; border-radius:10px; padding:14px; font-size:16px; font-weight:700; cursor:pointer; background:var(--acc); color:#fff; margin-top:16px; }
-  .err { color:var(--bad); font-weight:600; font-size:14px; margin-top:10px; min-height:18px; }
+  body { background:var(--bg); color:var(--text); font-family:Inter,-apple-system,"Segoe UI",system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+  .topbar { background:var(--surface); border-bottom:1px solid var(--border); }
+  .topbar-in { max-width:960px; margin:0 auto; padding:14px 20px; display:flex; justify-content:space-between; align-items:center; }
+  .wordmark { font-weight:800; font-size:19px; letter-spacing:-.03em; }
+  .wordmark i { color:var(--primary); font-style:normal; }
+  .btn { display:inline-block; border:0; border-radius:10px; padding:12px 20px; font:600 15px Inter,sans-serif; cursor:pointer; text-align:center; text-decoration:none; transition:background .15s; }
+  .btn-primary { background:var(--primary); color:#fff; }
+  .btn-primary:hover { background:var(--primary-dark); }
+  .btn-sec { background:var(--surface); color:var(--text); border:1px solid var(--border); }
+  .btn-sec:hover { background:#fafbfc; }
+  .btn-block { display:block; width:100%; }
+  .wrap { max-width:960px; margin:0 auto; padding:0 20px 80px; }
+  .hero { max-width:560px; margin:0 auto; text-align:center; padding:64px 0 36px; }
+  .kicker { display:inline-block; background:var(--primary-soft); color:var(--primary); font:700 12px/1 Inter,sans-serif; letter-spacing:.08em; text-transform:uppercase; padding:7px 12px; border-radius:99px; margin-bottom:18px; }
+  h1 { font-size:clamp(30px,6vw,44px); font-weight:800; letter-spacing:-.035em; line-height:1.08; }
+  .sub { color:var(--muted); font-size:17px; line-height:1.6; margin:16px auto 28px; max-width:440px; }
+  .cta-row { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); padding:28px; max-width:420px; margin:0 auto 20px; }
+  .card h2 { font-size:19px; letter-spacing:-.02em; margin-bottom:6px; }
+  .card .hint { color:var(--muted); font-size:14px; margin-bottom:14px; }
+  label { display:block; font:600 13px Inter,sans-serif; color:#344054; margin:14px 0 6px; }
+  input { width:100%; padding:11px 13px; border-radius:9px; border:1px solid #d0d5dd; background:#fff; color:var(--text); font:400 15px Inter,sans-serif; outline:none; transition:border .15s, box-shadow .15s; }
+  input:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(67,83,255,.12); }
+  .err { color:var(--danger); font:600 13.5px Inter,sans-serif; margin-top:10px; min-height:18px; }
   .hidden { display:none; }
-  .feats { margin-top:26px; display:grid; gap:10px; }
-  .feat { background:var(--card); border-radius:12px; padding:13px 15px; font-size:14px; color:var(--mut); }
-  .feat b { color:var(--txt); }
-  .link { color:var(--acc2); cursor:pointer; text-decoration:underline; font-size:14px; }
-  .center { text-align:center; margin-top:12px; }
+  .features { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px; margin-top:44px; }
+  .feat { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; }
+  .feat .ic { width:38px; height:38px; border-radius:9px; background:var(--primary-soft); color:var(--primary); display:grid; place-items:center; margin-bottom:12px; }
+  .feat b { display:block; font-size:15px; letter-spacing:-.01em; margin-bottom:5px; }
+  .feat p { color:var(--muted); font-size:13.5px; line-height:1.55; }
+  footer { text-align:center; padding:36px 0 46px; color:var(--muted); font-size:13.5px; }
+  footer a { color:var(--primary); font-weight:600; text-decoration:none; }
 </style>
 </head>
 <body>
+<div class="topbar"><div class="topbar-in">
+  <span class="wordmark">micaseta<i>.</i></span>
+  <button class="btn btn-sec" id="navLogin">Entrar</button>
+</div></div>
+
 <div class="wrap">
   <div class="hero">
-    <div class="logo">🎪</div>
-    <h1>Mi<b>caseta</b></h1>
-    <p>La gestión de tu caseta, sin listas en papel: socios, invitados con QR, comandas a cuenta de cada socio y las cuentas claras al final.</p>
+    <span class="kicker">Gestión de casetas privadas</span>
+    <h1>Tu caseta, sin listas en papel</h1>
+    <p class="sub">Socios, invitados con acceso QR, comandas a cuenta de cada socio y las cuentas claras al cierre. Todo desde el móvil.</p>
+    <div class="cta-row">
+      <button class="btn btn-primary" id="ctaRegister">Registrar mi caseta</button>
+      <a class="btn btn-sec" href="#features">Cómo funciona</a>
+    </div>
   </div>
-
-  <button class="cta" id="ctaRegister">🎟 Registrar mi caseta</button>
-  <button class="alt" id="ctaLogin">Ya tengo cuenta — Entrar</button>
 
   <div class="card hidden" id="formRegister">
     <h2>Crea tu caseta</h2>
+    <p class="hint">Gratis. Menos de un minuto.</p>
     <label>Nombre de la caseta</label>
-    <input id="r_caseta" placeholder="Ej: Er Compás">
+    <input id="r_caseta" placeholder="Er Compás">
     <label>Tu nombre</label>
-    <input id="r_name" placeholder="Ej: Álvaro">
+    <input id="r_name" placeholder="Álvaro García">
     <label>Email</label>
-    <input id="r_email" type="email" placeholder="tu@email.com">
-    <label>Contraseña (mín. 8 caracteres)</label>
-    <input id="r_pass" type="password">
-    <button class="btn" id="doRegister">Crear caseta →</button>
+    <input id="r_email" type="email" placeholder="tu@email.com" autocomplete="email">
+    <label>Contraseña</label>
+    <input id="r_pass" type="password" placeholder="Mínimo 8 caracteres" autocomplete="new-password">
+    <button class="btn btn-primary btn-block" id="doRegister" style="margin-top:20px">Crear caseta</button>
     <div class="err" id="r_err"></div>
   </div>
 
   <div class="card hidden" id="formLogin">
     <h2>Entrar</h2>
+    <p class="hint">Accede al panel de tu caseta.</p>
     <label>Email</label>
-    <input id="l_email" type="email">
+    <input id="l_email" type="email" autocomplete="email">
     <label>Contraseña</label>
-    <input id="l_pass" type="password">
-    <button class="btn" id="doLogin">Entrar →</button>
+    <input id="l_pass" type="password" autocomplete="current-password">
+    <button class="btn btn-primary btn-block" id="doLogin" style="margin-top:20px">Entrar</button>
     <div class="err" id="l_err"></div>
   </div>
 
-  <div class="feats">
-    <div class="feat">🎟 <b>Invitaciones con QR</b> — cada socio invita con límites de día, consumo y acompañantes. El invitado se registra con su selfie y recibe su QR.</div>
-    <div class="feat">🍾 <b>Comandas a cuenta del socio</b> — el camarero escanea el QR, ve la foto y quién invita, y carga la comanda. El invitado no paga.</div>
-    <div class="feat">🚪 <b>Control de puerta</b> — foto y semáforo verde/rojo al escanear. Sin listas impresas.</div>
-    <div class="feat">📊 <b>Cuentas claras</b> — qué ha consumido cada socio y sus invitados, y liquidación al final.</div>
+  <div class="features" id="features">
+    <div class="feat">
+      <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18M3 15h18M9 3v18M15 3v18" opacity="0"/><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M15 5v14M15 9h6M15 15h6"/></svg></div>
+      <b>Invitaciones con QR</b>
+      <p>Cada socio invita con condiciones: día concreto, límite de consumo y acompañantes. El invitado se registra con su selfie y recibe su QR al momento.</p>
+    </div>
+    <div class="feat">
+      <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+      <b>Comandas a cuenta del socio</b>
+      <p>El camarero escanea el QR, ve la foto y quién invita, y carga la comanda. El invitado no paga: paga el socio al liquidar.</p>
+    </div>
+    <div class="feat">
+      <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg></div>
+      <b>Control de puerta</b>
+      <p>Foto y verificación en verde o rojo al escanear. Cancela una invitación y su QR deja de funcionar al instante.</p>
+    </div>
+    <div class="feat">
+      <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 13l4-4 4 4 5-6"/></svg></div>
+      <b>Cuentas claras</b>
+      <p>Consumo de cada socio y de sus invitados en tiempo real, con liquidación al cierre y el histórico guardado.</p>
+    </div>
   </div>
-  <p class="center"><span class="link" onclick="location.href='/staff/'">Soy camarero o puerta →</span></p>
+
+  <footer>¿Trabajas en la caseta? <a href="/staff/">Acceso para camareros y puerta</a></footer>
 </div>
 <script>
 const $ = (id) => document.getElementById(id);
-const show = (id) => { $('formRegister').classList.add('hidden'); $('formLogin').classList.add('hidden'); $(id).classList.remove('hidden'); $(id).scrollIntoView({behavior:'smooth'}); };
+const show = (id) => { $('formRegister').classList.add('hidden'); $('formLogin').classList.add('hidden'); $(id).classList.remove('hidden'); $(id).scrollIntoView({behavior:'smooth', block:'center'}); };
 $('ctaRegister').onclick = () => show('formRegister');
-$('ctaLogin').onclick = () => show('formLogin');
+$('navLogin').onclick = () => show('formLogin');
 
 async function post(path, body) {
   const r = await fetch(path, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
@@ -85,7 +128,6 @@ async function post(path, body) {
   if (!r.ok) throw new Error(data.error || 'Error');
   return data;
 }
-
 $('doRegister').onclick = async () => {
   $('r_err').textContent = '';
   try {
@@ -98,7 +140,6 @@ $('doLogin').onclick = async () => {
   try { await post('/papi/login', { email:$('l_email').value, password:$('l_pass').value }); location.href = '/panel/'; }
   catch (e) { $('l_err').textContent = e.message; }
 };
-// Si ya hay sesión, directo al panel
 fetch('/papi/me').then(r => { if (r.ok) location.href = '/panel/'; });
 </script>
 </body>
