@@ -28,7 +28,7 @@ graph TD
 | Cancelar invitaciones                        | ✅    | ✅    | ❌     | ❌     | ❌       |
 | Escanear QR de entrada                       | ✅    | ❌    | ✅     | ❌     | ❌       |
 | Escanear QR de consumo / tomar orden         | ✅    | ❌    | ❌     | ✅     | ❌       |
-| Cobrar (Apple Pay / datáfono ligado)         | ❌    | ❌    | ❌     | ✅     | ❌       |
+| Registrar comanda y marcar "cobrado"         | ❌    | ❌    | ❌     | ✅     | ❌       |
 | Recibir QR y presentarlo                     | ❌    | ❌    | ❌     | ❌     | ✅       |
 
 \* El admin puede invitar directamente para eventos especiales (VIPs, prensa, etc.).
@@ -58,22 +58,23 @@ graph TD
 - Al aceptar: envía foto de su rostro → queda registrado → recibe su QR
   (ligado a su número de teléfono).
 - Su QR es su identidad dentro del venue: entrada y consumo.
-- No puede invitar a nadie (salvo que el socio le haya dado cupo de acompañantes,
-  que entran junto con él en la puerta).
+- No puede invitar a nadie. Sus acompañantes reciben cada uno su propia
+  invitación por WhatsApp desde el sistema (dentro del cupo que dio el socio),
+  se registran con su foto y entran con su propio QR.
 
 ### Puerta
 - Su interfaz es únicamente el escáner de QR (webapp ligera desde el mismo teléfono).
 - Al escanear un QR de invitado ve: **foto del rostro**, nombre, socio que lo
-  invitó, si tiene acceso hoy, y con cuántas personas puede entrar.
-- Marca el ingreso (check-in) y el número real de acompañantes que entraron.
+  invitó y si tiene acceso hoy. Cada acompañante trae su propio QR y se escanea
+  igual, uno a uno.
+- Marca el ingreso (check-in) de cada persona.
 - Semáforo simple: 🟢 pasa / 🟡 revisar (restricción parcial) / 🔴 no pasa.
 
 ### Mesero
-- Escanea el QR del invitado o socio antes de tomar la orden.
-- Ve: foto, restricciones de consumo (monto disponible, categorías permitidas,
+- Escanea el QR del socio o invitado antes de tomar la comanda.
+- Ve: foto, restricciones de consumo (límite disponible, categorías permitidas,
   o "abierto").
-- Captura la orden en su teléfono (catálogo del admin) y cobra:
-  - Apple Pay / Google Pay (link o tap-to-pay),
-  - datáfono ligado al sistema,
-  - o "a cuenta del socio" si la invitación lo permite.
+- Captura la comanda en su teléfono (catálogo del admin), cobra con tarjeta en
+  el **datáfono del local** al momento, y marca "cobrado" en el sistema.
+- El sistema no procesa el pago: solo registra comanda, importe y estado.
 - Cada consumo queda ligado al invitado → socio → reporte final.
