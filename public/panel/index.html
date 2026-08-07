@@ -184,7 +184,7 @@ async function renderSocios(m) {
     row.innerHTML = `<div class="avatar">${initials(s.name)}</div>
       <div class="who"><b>${esc(s.name ?? '')}</b><small>+${s.phone}</small></div>
       <span class="chip ${suspended ? 'c-bad' : 'c-ok'}">${suspended ? 'suspendido' : 'activo'}</span>
-      ${s.qrToken ? '<button class="btn btn-mini btn-soft">QR</button>' : ''}
+      ${s.qrToken ? '<button class="btn btn-mini btn-soft">Acceso</button>' : ''}
       <button class="btn btn-mini btn-sec">${suspended ? 'Activar' : 'Baja'}</button>`;
     const btns = row.querySelectorAll('button');
     const qrBtn = s.qrToken ? btns[0] : null;
@@ -192,7 +192,8 @@ async function renderSocios(m) {
     if (qrBtn) qrBtn.onclick = () => {
       const socioUrl = location.origin + '/socio/?t=' + encodeURIComponent(s.qrToken);
       dlg(`<h2>Acceso de ${esc(s.name ?? '')}</h2><p class="mut">Su página personal: ahí tiene su QR y puede pedir desde el móvil a su cuenta.</p>
-      <div class="qrframe"><img src="/qr.png?t=${encodeURIComponent(s.qrToken)}" alt="QR del socio"></div>` +
+      <div class="qrframe"><img src="/qr.png?t=${encodeURIComponent(s.qrToken)}" alt="QR del socio"></div>
+      <a class="btn btn-sec btn-block" href="${socioUrl}" target="_blank">Abrir su página (probar)</a>` +
       shareBlock('Tu acceso de socio a la caseta. Dentro tienes tu QR y puedes pedir desde el móvil: ' + socioUrl, s.phone, socioUrl));
     };
     susBtn.onclick = async () => { await post(`/papi/socios/${s.id}/suspender`); render(); };
