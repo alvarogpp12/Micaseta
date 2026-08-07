@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { DB } from '../db/index.js';
 import { one } from '../db/index.js';
-import { config, normalizePhone, formatPhone } from '../config.js';
+import { config, normalizePhone, formatPhone, requestBaseUrl } from '../config.js';
 import * as accounts from '../services/accounts.js';
 import * as users from '../services/users.js';
 import * as invitations from '../services/invitations.js';
@@ -145,7 +145,8 @@ export function registerPanelRoutes(app: FastifyInstance, db: DB): void {
     const account = await auth(req, reply);
     if (!account) return;
     const list = await users.listByCaseta(db, account.caseta_id, ['mesero', 'puerta']);
-    return list.map((s) => ({ ...s, loginUrl: s.status === 'activo' ? staffLoginUrl(s as any) : null }));
+    const base = requestBaseUrl(req);
+    return list.map((s) => ({ ...s, loginUrl: s.status === 'activo' ? staffLoginUrl(s as any, base) : null }));
   });
 
   app.post('/papi/staff', async (req, reply) => {
@@ -162,7 +163,7 @@ export function registerPanelRoutes(app: FastifyInstance, db: DB): void {
       return reply.code(422).send({ error: 'Ese teléfono ya está en otra caseta' });
     }
     const member = await users.upsertByAdmin(db, phone, name, role, account.caseta_id);
-    return { ok: true, loginUrl: staffLoginUrl(member) };
+    return { ok: true, loginUrl: staffLoginUrl(member, requestBaseUrl(req)) };
   });
 
   // ---- Carta ----
@@ -211,10 +212,11 @@ export function registerPanelRoutes(app: FastifyInstance, db: DB): void {
     if (!account) return;
     const caseta = await accounts.getCaseta(db, account.caseta_id);
     const list = await invitations.listByCaseta(db, account.caseta_id);
+    const base = requestBaseUrl(req);
     return list.map((inv) => ({
       ...inv,
-      shareUrl: invitations.inviteUrl(inv.id),
-      shareText: invitations.inviteShareText(inv, caseta?.name ?? 'la caseta', inv.socio_name ?? 'Un socio'),
+      shareUrl: invitations.inviteUrl(inv.id, base),
+      shareText: invitations.inviteShareText(inv, caseta?.name ?? 'la caseta', inv.socio_name ?? 'Un socio', base),
     }));
   });
 
@@ -256,8 +258,8 @@ export function registerPanelRoutes(app: FastifyInstance, db: DB): void {
     return {
       ok: true,
       id: inv.id,
-      shareUrl: invitations.inviteUrl(inv.id),
-      shareText: invitations.inviteShareText(inv, caseta?.name ?? 'la caseta', socio.name ?? 'Un socio'),
+      shareUrl: invitations.inviteUrl(inv.id, requestBaseUrl(req)),
+      shareText: invitations.inviteShareText(inv, caseta?.name ?? 'la caseta', socio.name ?? 'Un socio', requestBaseUrl(req)),
       guestPhone: guestPhone ? formatPhone(guestPhone) : null,
     };
   });

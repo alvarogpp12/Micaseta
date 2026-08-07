@@ -58,18 +58,23 @@ export async function invitationFromToken(db: DB, token: string): Promise<Invita
   }
 }
 
-export function inviteUrl(invitationId: number): string {
-  return `${config.baseUrl}/invitacion/?t=${signInviteToken(invitationId)}`;
+export function inviteUrl(invitationId: number, baseUrl: string = config.baseUrl): string {
+  return `${baseUrl}/invitacion/?t=${signInviteToken(invitationId)}`;
 }
 
 /** Texto listo para compartir por WhatsApp (wa.me) con el link dentro. */
-export function inviteShareText(inv: Invitation, casetaName: string, socioName: string): string {
+export function inviteShareText(
+  inv: Invitation,
+  casetaName: string,
+  socioName: string,
+  baseUrl: string = config.baseUrl,
+): string {
   const lines = [
     `🎊 ${socioName} te invita a la caseta *${casetaName}*.`,
     describeInvitation(inv),
     '',
     `Regístrate aquí para recibir tu QR de acceso:`,
-    inviteUrl(inv.id),
+    inviteUrl(inv.id, baseUrl),
   ];
   return lines.join('\n');
 }

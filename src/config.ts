@@ -13,6 +13,7 @@ if (fs.existsSync(envFile)) {
 export const config = {
   port: Number(process.env.PORT ?? 3000),
   baseUrl: process.env.BASE_URL ?? 'http://localhost:3000',
+  baseUrlConfigured: !!process.env.BASE_URL,
   jwtSecret: process.env.JWT_SECRET ?? 'dev-secret-no-usar-en-produccion',
   adminPhones: (process.env.ADMIN_PHONES ?? '')
     .split(',')
@@ -41,4 +42,19 @@ export function normalizePhone(raw: string): string | null {
 
 export function formatPhone(phone: string): string {
   return '+' + phone;
+}
+
+/**
+ * URL pública real. Si BASE_URL no está configurada, se deduce de la petición
+ * (Vercel y cualquier proxy ponen x-forwarded-proto/host) — así los links de
+ * staff e invitaciones nunca salen con localhost.
+ */
+export function requestBaseUrl(req: { headers: Record<string, any> }): string {
+  if (config.baseUrlConfigured) return config.baseUrl;
+  const h = req.headers;
+  const first = (v: any) => (Array.isArray(v) ? v[0] : v)?.split(',')[0]?.trim();
+  const host = first(h['x-forwarded-host']) ?? first(h['host']);
+  if (!host) return config.baseUrl;
+  const proto = first(h['x-forwarded-proto']) ?? (host.startsWith('localhost') ? 'http' : 'https');
+  return `${proto}://${host}`;
 }

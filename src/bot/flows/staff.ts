@@ -4,9 +4,9 @@ import type { User } from '../../domain/types.js';
 import { config } from '../../config.js';
 
 /** Link mágico de acceso a la PWA de escaneo (30 días, ligado al usuario). */
-export function staffLoginUrl(user: User): string {
+export function staffLoginUrl(user: User, baseUrl: string = config.baseUrl): string {
   const token = jwt.sign({ s: user.id }, config.jwtSecret, { expiresIn: '30d' });
-  return `${config.baseUrl}/staff/login?token=${token}`;
+  return `${baseUrl}/staff/login?token=${token}`;
 }
 
 export async function sendStaffLink(ctx: BotContext, user: User): Promise<void> {
