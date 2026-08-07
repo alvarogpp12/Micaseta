@@ -43,10 +43,23 @@
   .err { color:#ff7a70; font:600 13.5px Inter,sans-serif; margin-top:10px; }
   .okmsg { color:#3ddc93; font:700 14px Inter,sans-serif; margin-top:12px; }
   label.small { display:block; color:var(--muted); font:600 12px Inter,sans-serif; margin:12px 0 6px; }
-  .cat { font:700 11.5px Inter,sans-serif; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; margin:16px 0 2px; padding-bottom:6px; border-bottom:1px solid var(--border); }
-  .pname { flex:1; min-width:0; padding-right:10px; overflow:hidden; text-overflow:ellipsis; }
-  #products { max-height:44vh; overflow-y:auto; margin:0 -6px; padding:0 6px; }
   #demoBtns button { text-align:left; font-size:14px; }
+  /* TPV del camarero: categorías → tocar producto para añadir → comanda */
+  .cats { display:flex; gap:8px; overflow-x:auto; padding-bottom:10px; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+  .cats::-webkit-scrollbar { display:none; }
+  .cats button { width:auto; margin:0; flex-shrink:0; padding:9px 14px; border-radius:99px; font:600 13.5px Inter,sans-serif; background:#232a3a; color:var(--muted); }
+  .cats button.on { background:var(--primary); color:#fff; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:9px; max-height:38vh; overflow-y:auto; padding:2px; }
+  .tile { margin:0; padding:12px 12px 10px; border-radius:11px; background:#1d2432; border:1px solid var(--border); color:var(--text); text-align:left; font:600 13.5px/1.3 Inter,sans-serif; display:flex; flex-direction:column; gap:5px; min-height:68px; position:relative; }
+  .tile:active { background:#28324a; border-color:var(--primary); }
+  .tile .price { color:var(--muted); font:500 12.5px Inter,sans-serif; margin-top:auto; }
+  .tile .n { position:absolute; top:7px; right:7px; background:var(--primary); color:#fff; min-width:22px; height:22px; border-radius:99px; display:grid; place-items:center; font:700 12px Inter,sans-serif; padding:0 6px; }
+  .ticket-box { margin-top:14px; border-top:1px solid var(--border); padding-top:12px; }
+  .ticket-title { font:700 11.5px Inter,sans-serif; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; margin-bottom:4px; }
+  .trow { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--border); }
+  .trow:last-child { border-bottom:0; }
+  .trow .tname { flex:1; min-width:0; font:500 14px Inter,sans-serif; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .trow .tsum { color:var(--muted); font-size:13px; white-space:nowrap; }
 </style>
 </head>
 <body>
@@ -82,10 +95,15 @@
       <button class="good" id="checkinBtn">Registrar entrada</button>
     </div>
     <div id="waiterActions" class="hidden">
-      <div id="limits" class="muted" style="margin:12px 0 4px"></div>
-      <div id="products"></div>
-      <div class="total" id="total">0,00 €</div>
-      <button class="good" id="orderBtn">Cargar a la cuenta del socio</button>
+      <div id="limits" class="muted" style="margin:12px 0 8px"></div>
+      <div class="cats" id="cats"></div>
+      <div class="grid" id="products"></div>
+      <div class="ticket-box">
+        <div class="ticket-title">Comanda</div>
+        <div id="ticket"><p class="muted" id="ticketEmpty">Toca un producto para añadirlo.</p></div>
+        <div class="total" id="total">0,00 €</div>
+        <button class="good" id="orderBtn">Cargar a la cuenta del socio</button>
+      </div>
     </div>
     <div id="resMsg"></div>
     <button class="ghost" id="againBtn">Escanear otro</button>
@@ -180,38 +198,69 @@ async function onScan(qr) {
   }
 }
 
-const CAT_LABELS = { cerveza:'Cervezas', vino:'Vinos y rebujito', refresco:'Refrescos', copa:'Copas', botella:'Botellas', comida:'Comida', general:'Otros' };
+const CAT_LABELS = { cerveza:'Cervezas', vino:'Vinos', refresco:'Refrescos', copa:'Copas', botella:'Botellas', comida:'Comida', general:'Otros' };
+let currentCat = null;
 
 function renderOrder(info) {
   $('limits').textContent = info.remainingCents === null
     ? 'Consumo sin límite (a cuenta del socio)'
     : `Disponible: ${eur(info.remainingCents)} de ${eur(info.spendLimitCents)}`;
+
+  // Pestañas de categoría
+  const cats = [...new Set(products.map(p => p.category))];
+  currentCat = cats[0] ?? null;
+  const catsBox = $('cats'); catsBox.innerHTML = '';
+  for (const c of cats) {
+    const b = document.createElement('button');
+    b.textContent = CAT_LABELS[c] ?? c;
+    b.dataset.cat = c;
+    if (c === currentCat) b.classList.add('on');
+    b.onclick = () => {
+      currentCat = c;
+      catsBox.querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.cat === c));
+      renderGrid();
+    };
+    catsBox.appendChild(b);
+  }
+  renderGrid();
+  renderTicket();
+}
+
+// Cuadrícula: tocar un producto lo añade a la comanda
+function renderGrid() {
   const box = $('products'); box.innerHTML = '';
-  if (products.length === 0) box.innerHTML = '<p class="muted">La carta está vacía: añádela desde el panel.</p>';
-  let lastCat = null;
-  for (const p of products) {
-    if (p.category !== lastCat) {
-      lastCat = p.category;
-      const h = document.createElement('div');
-      h.className = 'cat';
-      h.textContent = CAT_LABELS[p.category] ?? p.category;
-      box.appendChild(h);
-    }
-    const row = document.createElement('div'); row.className = 'row';
-    row.innerHTML = `<div class="pname">${p.name}<div class="muted">${eur(p.price_cents)}</div></div>
-      <div class="stepper"><button>−</button><b>0</b><button>＋</button></div>`;
+  if (products.length === 0) { box.innerHTML = '<p class="muted">La carta está vacía: añádela desde el panel.</p>'; return; }
+  for (const p of products.filter(x => x.category === currentCat)) {
+    const tile = document.createElement('button');
+    tile.className = 'tile';
+    tile.innerHTML = `<span>${p.name}</span><span class="price">${eur(p.price_cents)}</span>`;
+    if (qty[p.id]) tile.innerHTML += `<span class="n">${qty[p.id]}</span>`;
+    tile.onclick = () => { qty[p.id] = (qty[p.id] || 0) + 1; renderGrid(); renderTicket(); };
+    box.appendChild(tile);
+  }
+}
+
+// Comanda: lo seleccionado, con cantidades y quitar
+function renderTicket() {
+  const box = $('ticket'); box.innerHTML = '';
+  const selected = products.filter(p => qty[p.id] > 0);
+  if (selected.length === 0) {
+    box.innerHTML = '<p class="muted">Toca un producto para añadirlo.</p>';
+  }
+  for (const p of selected) {
+    const row = document.createElement('div'); row.className = 'trow';
+    row.innerHTML = `<div class="tname">${p.name}</div>
+      <span class="tsum">${qty[p.id]} × ${eur(p.price_cents)}</span>
+      <div class="stepper"><button>−</button><b>${qty[p.id]}</b><button>＋</button></div>`;
     const [minus, plus] = row.querySelectorAll('button');
-    const count = row.querySelector('b');
-    minus.onclick = () => { qty[p.id] = Math.max(0, (qty[p.id] || 0) - 1); count.textContent = qty[p.id]; updateTotal(); };
-    plus.onclick = () => { qty[p.id] = (qty[p.id] || 0) + 1; count.textContent = qty[p.id]; updateTotal(); };
+    minus.onclick = () => { qty[p.id] = Math.max(0, qty[p.id] - 1); renderGrid(); renderTicket(); };
+    plus.onclick = () => { qty[p.id]++; renderGrid(); renderTicket(); };
     box.appendChild(row);
   }
-  updateTotal();
-}
-function updateTotal() {
   let t = 0;
   for (const p of products) t += (qty[p.id] || 0) * p.price_cents;
   $('total').textContent = eur(t);
+  $('orderBtn').style.display = selected.length ? '' : 'none';
 }
 
 $('checkinBtn').onclick = async () => {
