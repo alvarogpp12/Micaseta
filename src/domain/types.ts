@@ -2,8 +2,24 @@ export type Role = 'admin' | 'socio' | 'mesero' | 'puerta' | 'invitado';
 export type UserStatus = 'activo' | 'pendiente' | 'suspendido';
 export type InvitationStatus = 'pendiente' | 'aceptada' | 'rechazada' | 'cancelada';
 
+export interface Caseta {
+  id: number;
+  name: string;
+  created_at: string | Date;
+}
+
+export interface Account {
+  id: number;
+  caseta_id: number;
+  name: string;
+  email: string;
+  password_hash: string;
+  created_at: string | Date;
+}
+
 export interface User {
   id: number;
+  caseta_id: number | null;
   phone: string;
   name: string | null;
   role: Role;
@@ -15,9 +31,11 @@ export interface User {
 
 export interface Invitation {
   id: number;
+  caseta_id: number | null;
   socio_id: number;
   guest_id: number | null;
-  guest_phone: string;
+  guest_phone: string | null;
+  guest_label: string | null;
   parent_id: number | null;
   status: InvitationStatus;
   access_mode: 'fecha' | 'siempre';
@@ -30,6 +48,7 @@ export interface Invitation {
 
 export interface Product {
   id: number;
+  caseta_id: number | null;
   name: string;
   price_cents: number;
   category: string;

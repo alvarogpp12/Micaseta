@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Invitación · Micaseta</title>
+<style>
+  :root { --bg:#0f1115; --card:#1a1e26; --txt:#eef1f6; --mut:#8b93a3; --acc:#e0533d; --acc2:#f0a83d; --ok:#2ecc71; --bad:#e74c3c; }
+  * { box-sizing:border-box; margin:0; }
+  body { background:var(--bg); color:var(--txt); font-family:system-ui,-apple-system,sans-serif; min-height:100vh; }
+  .wrap { max-width:440px; margin:0 auto; padding:30px 18px 60px; }
+  .hero { text-align:center; margin-bottom:18px; }
+  .hero .logo { font-size:48px; }
+  .hero h1 { font-size:22px; margin-top:6px; }
+  .hero h1 b { color:var(--acc2); }
+  .card { background:var(--card); border-radius:16px; padding:20px; margin-top:14px; }
+  .conds { white-space:pre-line; line-height:1.7; font-size:15px; }
+  label { display:block; color:var(--mut); font-size:13px; margin:12px 0 5px; }
+  input { width:100%; padding:13px; border-radius:10px; border:1px solid #333a48; background:#12151b; color:var(--txt); font-size:15px; }
+  .btn { width:100%; border:0; border-radius:12px; padding:15px; font-size:16px; font-weight:800; cursor:pointer; background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#fff; margin-top:14px; }
+  .btn.ghost { background:#262b36; color:var(--txt); font-weight:600; }
+  .err { color:var(--bad); font-weight:600; font-size:14px; margin-top:10px; min-height:18px; }
+  .selfie { width:130px; height:130px; border-radius:50%; object-fit:cover; display:block; margin:10px auto; background:#12151b; border:2px dashed #333a48; }
+  .qrbox { background:#fff; border-radius:16px; padding:14px; margin-top:14px; }
+  .qrbox img { width:100%; display:block; }
+  .mut { color:var(--mut); font-size:14px; line-height:1.5; }
+  .center { text-align:center; }
+  .hidden { display:none; }
+  .badge-dead { background:#511; color:#f99; border-radius:12px; padding:14px; text-align:center; font-weight:700; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero"><div class="logo">🎪</div><h1 id="title">Cargando…</h1></div>
+
+  <div id="dead" class="badge-dead hidden"></div>
+
+  <div id="invite" class="hidden">
+    <div class="card"><div class="conds" id="conds"></div></div>
+    <div class="card">
+      <h3 style="margin-bottom:4px">Regístrate para entrar</h3>
+      <p class="mut">Tu QR es personal: en la puerta y al pedir comprobarán que la foto eres tú.</p>
+      <label>Tu nombre</label>
+      <input id="g_name" placeholder="Nombre y apellido">
+      <div id="phoneWrap" class="hidden">
+        <label>Tu móvil (WhatsApp)</label>
+        <input id="g_phone" placeholder="612345678">
+      </div>
+      <label>Foto de tu rostro (selfie)</label>
+      <input id="g_file" type="file" accept="image/*" capture="user" style="display:none">
+      <img id="g_prev" class="selfie" alt="">
+      <button class="btn ghost" id="g_take">🤳 Hacer / elegir selfie</button>
+      <button class="btn" id="g_go">Aceptar invitación →</button>
+      <div class="err" id="g_err"></div>
+    </div>
+  </div>
+
+  <div id="done" class="hidden">
+    <div class="card center">
+      <h3 id="doneName"></h3>
+      <p class="mut">Este es tu acceso. Haz captura o vuelve a abrir este link cuando lo necesites.</p>
+      <div class="qrbox"><img id="qrImg" alt="Tu QR"></div>
+      <p class="mut" id="compHint" style="margin-top:12px"></p>
+    </div>
+  </div>
+</div>
+<script>
+const $ = (id) => document.getElementById(id);
+const t = new URLSearchParams(location.search).get('t') ?? '';
+let photoB64 = null;
+
+async function load() {
+  const r = await fetch('/gapi/invitacion?t=' + encodeURIComponent(t));
+  if (!r.ok) { $('title').textContent = 'Invitación no encontrada'; $('dead').textContent = 'Este link no es válido.'; $('dead').classList.remove('hidden'); return; }
+  const inv = await r.json();
+  $('title').innerHTML = `<b>${inv.socio}</b> te invita a<br>${inv.caseta}`;
+  if (inv.status === 'cancelada' || inv.status === 'rechazada') {
+    $('dead').textContent = 'Esta invitación ya no está activa 😕';
+    $('dead').classList.remove('hidden');
+    return;
+  }
+  if (inv.registered && inv.qrToken) return showQr(inv.guestName, inv.qrToken, inv.maxCompanions);
+  $('conds').textContent = inv.conditions;
+  if (inv.needsPhone) $('phoneWrap').classList.remove('hidden');
+  if (inv.guestName) $('g_name').value = inv.guestName;
+  $('invite').classList.remove('hidden');
+}
+
+function showQr(name, qrToken, maxComp) {
+  $('invite').classList.add('hidden');
+  $('done').classList.remove('hidden');
+  $('doneName').textContent = `✅ ¡Listo, ${name}!`;
+  $('qrImg').src = '/qr.png?t=' + encodeURIComponent(qrToken);
+  if (maxComp > 0) $('compHint').textContent = `Puedes traer hasta ${maxComp} acompañantes: pide al socio que cree sus invitaciones.`;
+}
+
+$('g_take').onclick = () => $('g_file').click();
+$('g_file').addEventListener('change', () => {
+  const f = $('g_file').files[0]; if (!f) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    // Redimensionar en cliente para no subir fotos enormes
+    const img = new Image();
+    img.onload = () => {
+      const max = 800, scale = Math.min(1, max / Math.max(img.width, img.height));
+      const cv = document.createElement('canvas');
+      cv.width = Math.round(img.width * scale); cv.height = Math.round(img.height * scale);
+      cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+      const dataUrl = cv.toDataURL('image/jpeg', 0.85);
+      photoB64 = dataUrl.split(',')[1];
+      $('g_prev').src = dataUrl;
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(f);
+});
+
+$('g_go').onclick = async () => {
+  $('g_err').textContent = '';
+  if (!photoB64) { $('g_err').textContent = 'Falta tu selfie 🤳'; return; }
+  const body = { t, name: $('g_name').value, photoBase64: photoB64 };
+  const phoneEl = $('g_phone');
+  if (!$('phoneWrap').classList.contains('hidden')) body.phone = phoneEl.value;
+  const r = await fetch('/gapi/invitacion/registro', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) { $('g_err').textContent = data.error || 'Error'; return; }
+  showQr(data.name, data.qrToken, 0);
+};
+
+load();
+</script>
+</body>
+</html>

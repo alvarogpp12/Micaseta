@@ -11,6 +11,7 @@ import * as users from '../services/users.js';
 import * as invitations from '../services/invitations.js';
 import * as orders from '../services/orders.js';
 import { verifyQrToken } from '../services/qr.js';
+import { registerPanelRoutes } from './panel.js';
 import type { MockProvider } from '../providers/mock.js';
 import type { CloudProvider } from '../providers/cloud.js';
 
@@ -23,7 +24,7 @@ export interface ServerDeps {
 }
 
 export async function createServer({ db, mock, cloud }: ServerDeps) {
-  const app = Fastify({ logger: false });
+  const app = Fastify({ logger: false, bodyLimit: 8 * 1024 * 1024 }); // selfies en base64
 
   await app.register(fastifyCookie);
   // En Vercel los estáticos los sirve la CDN (outputDirectory: public);
@@ -33,6 +34,9 @@ export async function createServer({ db, mock, cloud }: ServerDeps) {
   }
 
   app.get('/health', () => ({ ok: true }));
+
+  // Panel web de la caseta + registro público de invitados
+  registerPanelRoutes(app, db);
 
   // ---- Webhook de la WhatsApp Cloud API (Meta) ----
 

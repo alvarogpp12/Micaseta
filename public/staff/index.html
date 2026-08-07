@@ -63,7 +63,7 @@
       <div id="limits" class="muted" style="margin:10px 0"></div>
       <div id="products"></div>
       <div class="total" id="total">0,00€</div>
-      <button class="good" id="orderBtn">💳 Comanda cobrada (datáfono)</button>
+      <button class="good" id="orderBtn">🖊 Cargar a la cuenta del socio</button>
     </div>
     <div id="resMsg"></div>
     <button class="ghost" id="againBtn">↩︎ Escanear otro</button>
@@ -180,7 +180,7 @@ $('orderBtn').onclick = async () => {
   if (items.length === 0) return;
   try {
     const r = await api('/api/orders', { method: 'POST', body: JSON.stringify({ qr: current.qr, items }) });
-    $('resMsg').innerHTML = `<p style="color:var(--ok);font-weight:700;margin-top:10px">✅ Comanda #${r.orderId} registrada · ${eur(r.totalCents)}</p>`;
+    $('resMsg').innerHTML = `<p style="color:var(--ok);font-weight:700;margin-top:10px">✅ ${eur(r.totalCents)} a la cuenta de ${r.socioName ?? 'socio'} (comanda #${r.orderId})</p>`;
     $('waiterActions').classList.add('hidden');
   } catch (e) { $('resMsg').innerHTML = `<p class="err">${e.message}</p>`; }
 };

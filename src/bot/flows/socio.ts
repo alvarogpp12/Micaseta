@@ -28,6 +28,7 @@ function describeInvitation(inv: Invitation): string {
 
 /** Envía la invitación por WhatsApp al invitado (o acompañante). */
 export async function sendInvitationMessage(ctx: BotContext, inv: Invitation): Promise<void> {
+  if (!inv.guest_phone) return; // invitaciones por link se comparten desde el panel
   const socio = (await users.findById(ctx.db, inv.socio_id))!;
   await ctx.wa.sendText(
     inv.guest_phone,
@@ -63,7 +64,7 @@ export async function handleSocio(ctx: BotContext): Promise<void> {
         const lines: string[] = [];
         for (const [idx, inv] of list.entries()) {
           const guest = inv.guest_id ? await users.findById(ctx.db, inv.guest_id) : null;
-          const who = guest?.name ?? formatPhone(inv.guest_phone);
+          const who = guest?.name ?? inv.guest_label ?? (inv.guest_phone ? formatPhone(inv.guest_phone) : 'Invitado');
           lines.push(`${idx + 1}️⃣ ${who} (${inv.status})`);
         }
         return ctx.reply(`¿Cuál cancelo?\n\n${lines.join('\n')}\n\n0️⃣ Volver`);
@@ -169,7 +170,7 @@ export async function handleSocio(ctx: BotContext): Promise<void> {
         });
         await sendInvitationMessage(ctx, inv);
         ctx.reset();
-        return ctx.reply(`✅ Invitación enviada a ${formatPhone(inv.guest_phone)}.\n\n${MENU}`);
+        return ctx.reply(`✅ Invitación enviada a ${inv.guest_phone ? formatPhone(inv.guest_phone) : 'tu invitado'}.\n\n${MENU}`);
       }
       ctx.reset();
       return ctx.reply('Invitación descartada.\n\n' + MENU);

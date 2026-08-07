@@ -1,11 +1,15 @@
+import jwt from 'jsonwebtoken';
 import { one, type DB } from '../db/index.js';
 import type { AccessInfo, Invitation, User } from '../domain/types.js';
-import { todayStr } from '../domain/types.js';
+import { todayStr, euros } from '../domain/types.js';
+import { config } from '../config.js';
 import * as users from './users.js';
 
 export interface NewInvitation {
   socioId: number;
-  guestPhone: string;
+  casetaId?: number | null;
+  guestPhone?: string | null;
+  guestLabel?: string | null;
   accessMode: 'fecha' | 'siempre';
   validDate?: string | null;
   spendLimitCents?: number | null;
@@ -17,11 +21,13 @@ export async function createInvitation(db: DB, inv: NewInvitation): Promise<Invi
   const row = await one<Invitation>(
     db,
     `INSERT INTO invitations
-     (socio_id, guest_phone, parent_id, access_mode, valid_date, spend_limit_cents, max_companions)
-     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+     (caseta_id, socio_id, guest_phone, guest_label, parent_id, access_mode, valid_date, spend_limit_cents, max_companions)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
     [
+      inv.casetaId ?? null,
       inv.socioId,
-      inv.guestPhone,
+      inv.guestPhone ?? null,
+      inv.guestLabel ?? null,
       inv.parentId ?? null,
       inv.accessMode,
       inv.validDate ?? null,
@@ -35,6 +41,100 @@ export async function createInvitation(db: DB, inv: NewInvitation): Promise<Invi
 export function getInvitation(db: DB, id: number): Promise<Invitation | null> {
   return one<Invitation>(db, 'SELECT * FROM invitations WHERE id = $1', [id]);
 }
+
+// ---- Links de invitación (el socio los comparte por su propio WhatsApp) ----
+
+/** Token firmado que identifica la invitación en el link público. */
+export function signInviteToken(invitationId: number): string {
+  return jwt.sign({ i: invitationId }, config.jwtSecret);
+}
+
+export async function invitationFromToken(db: DB, token: string): Promise<Invitation | null> {
+  try {
+    const payload = jwt.verify(token, config.jwtSecret) as { i: number };
+    return getInvitation(db, payload.i);
+  } catch {
+    return null;
+  }
+}
+
+export function inviteUrl(invitationId: number): string {
+  return `${config.baseUrl}/invitacion/?t=${signInviteToken(invitationId)}`;
+}
+
+/** Texto listo para compartir por WhatsApp (wa.me) con el link dentro. */
+export function inviteShareText(inv: Invitation, casetaName: string, socioName: string): string {
+  const lines = [
+    `🎊 ${socioName} te invita a la caseta *${casetaName}*.`,
+    describeInvitation(inv),
+    '',
+    `Regístrate aquí para recibir tu QR de acceso:`,
+    inviteUrl(inv.id),
+  ];
+  return lines.join('\n');
+}
+
+export function describeInvitation(inv: Invitation): string {
+  const parts: string[] = [];
+  parts.push(inv.access_mode === 'siempre' ? '📅 Acceso: cualquier día' : `📅 Acceso: solo el ${inv.valid_date}`);
+  parts.push(
+    inv.spend_limit_cents === null
+      ? '🥂 Consumo: sin límite (a cuenta del socio)'
+      : `🥂 Consumo: hasta ${euros(inv.spend_limit_cents)} (a cuenta del socio)`,
+  );
+  if (inv.max_companions > 0) parts.push(`👥 Acompañantes: hasta ${inv.max_companions}`);
+  return parts.join('\n');
+}
+
+/**
+ * Registro del invitado desde el link web: nombre + selfie → usuario activo con QR.
+ * Idempotente: si ya estaba registrado, actualiza foto/nombre y devuelve el usuario.
+ */
+export async function registerGuestFromLink(
+  db: DB,
+  inv: Invitation,
+  data: { name: string; phone?: string | null; photo: Buffer | null },
+): Promise<{ ok: true; guest: User } | { ok: false; error: string }> {
+  if (inv.status === 'cancelada') return { ok: false, error: 'Esta invitación fue cancelada' };
+  if (inv.status === 'rechazada') return { ok: false, error: 'Esta invitación fue rechazada' };
+  if (!data.name.trim()) return { ok: false, error: 'Dinos tu nombre' };
+
+  let guest: User | null = inv.guest_id ? await users.findById(db, inv.guest_id) : null;
+
+  if (!guest) {
+    // El teléfono es la identidad; si no lo dio el socio, lo pide el formulario.
+    const phone = inv.guest_phone ?? data.phone ?? null;
+    if (!phone) return { ok: false, error: 'Falta tu número de WhatsApp' };
+    guest = await users.findByPhone(db, phone);
+    if (guest && guest.role !== 'invitado') {
+      return { ok: false, error: 'Ese teléfono ya pertenece al personal o a un socio' };
+    }
+    if (!guest) {
+      guest = await users.createUser(db, {
+        phone,
+        name: data.name.trim(),
+        role: 'invitado',
+        status: 'activo',
+        casetaId: inv.caseta_id,
+      });
+    }
+  }
+
+  await db.query('UPDATE users SET name = $1, status = $2, caseta_id = COALESCE(caseta_id, $3) WHERE id = $4', [
+    data.name.trim(),
+    'activo',
+    inv.caseta_id,
+    guest.id,
+  ]);
+  if (data.photo) await users.setPhoto(db, guest.id, data.photo);
+  await db.query(`UPDATE invitations SET status = 'aceptada', guest_id = $1 WHERE id = $2`, [
+    guest.id,
+    inv.id,
+  ]);
+  return { ok: true, guest: (await users.findById(db, guest.id))! };
+}
+
+// ---- Consultas ----
 
 export function pendingForPhone(db: DB, phone: string): Promise<Invitation | null> {
   return one<Invitation>(
@@ -60,6 +160,19 @@ export async function listActiveBySocio(db: DB, socioId: number): Promise<Invita
     `SELECT * FROM invitations WHERE socio_id = $1 AND status IN ('pendiente','aceptada')
      ORDER BY created_at DESC`,
     [socioId],
+  );
+  return rows;
+}
+
+export async function listByCaseta(db: DB, casetaId: number): Promise<any[]> {
+  const { rows } = await db.query(
+    `SELECT i.*, s.name AS socio_name, g.name AS guest_name
+     FROM invitations i
+     JOIN users s ON s.id = i.socio_id
+     LEFT JOIN users g ON g.id = i.guest_id
+     WHERE i.caseta_id = $1 AND i.parent_id IS NULL
+     ORDER BY i.created_at DESC LIMIT 100`,
+    [casetaId],
   );
   return rows;
 }
@@ -100,7 +213,8 @@ export async function spentCents(db: DB, invitationId: number): Promise<number> 
 
 /**
  * Regla central: ¿esta persona puede entrar/consumir hoy, y con qué límite?
- * Socios y staff activos → acceso abierto. Invitados → según su invitación.
+ * Socios activos → sin límite (su cuenta). Invitados → según su invitación,
+ * y su consumo va a la cuenta del socio que los invitó.
  */
 export async function checkAccess(db: DB, user: User): Promise<AccessInfo> {
   const base = {
@@ -116,10 +230,10 @@ export async function checkAccess(db: DB, user: User): Promise<AccessInfo> {
     return { ...base, ok: false, reason: 'Usuario suspendido' };
   }
   if (user.role === 'socio' || user.role === 'admin') {
-    return { ...base, ok: true, reason: 'Socio con acceso abierto' };
+    return { ...base, ok: true, reason: 'Socio: consumo a su cuenta' };
   }
   if (user.role === 'mesero' || user.role === 'puerta') {
-    return { ...base, ok: true, reason: 'Personal del local' };
+    return { ...base, ok: true, reason: 'Personal de la caseta' };
   }
 
   const inv = await activeForGuest(db, user.id);
@@ -143,7 +257,7 @@ export async function checkAccess(db: DB, user: User): Promise<AccessInfo> {
 
   return {
     ok: true,
-    reason: 'Invitación vigente',
+    reason: `Invitado de ${hostName ?? 'socio'} · a su cuenta`,
     user,
     invitation: inv,
     hostName,

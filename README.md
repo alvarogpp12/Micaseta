@@ -1,84 +1,50 @@
-# Micaseta
+# Micaseta 🎪
 
-Plataforma **híbrida** de gestión de club: los socios e invitados operan 100%
-por **WhatsApp** (invitaciones, registro con foto, QR, reportes) y el personal
-(Puerta y Mesero) usa una **PWA de escaneo** en su propio móvil. El cobro es
-presencial con el datáfono del local: el sistema registra la comanda, no toca
-el dinero.
+Gestión de **casetas privadas** (Feria de Sevilla): socios, invitados con QR,
+comandas **a cuenta del socio** y las cuentas claras al final.
 
 ## Cómo funciona
 
-1. El **admin** da de alta socios, meseros y puertas por WhatsApp (`alta socio +34... Nombre`).
-2. El **socio** recibe un menú (Invitar / Reporte / Cancelar) e invita amigos con
-   restricciones: días, límite de consumo y acompañantes.
-3. El **invitado** acepta, envía una selfie y recibe su **QR** (token firmado y
-   revocable, nunca el teléfono en claro). Cada acompañante recibe su propia
-   invitación y su propio QR.
-4. La **puerta** escanea el QR y ve la foto + semáforo de acceso → check-in.
-5. El **mesero** escanea el QR, ve el límite disponible, registra la comanda y
-   la marca cobrada (tarjeta en el datáfono del local).
-6. Los **reportes** de consumo por socio/invitado salen por WhatsApp.
+1. Entras en la web → **Registrar mi caseta** (nombre, email, contraseña). Ya estás dentro del panel.
+2. En el panel das de alta **socios**, el **equipo** (camareros y puerta) y la **carta** con precios.
+3. Creas **invitaciones** con restricciones (solo un día, límite de consumo, acompañantes) y se comparten
+   por WhatsApp con un link. El invitado abre el link, pone su nombre y una **selfie**, y recibe su **QR** al momento.
+4. La **puerta** escanea el QR con su móvil: ve la foto y el semáforo verde/rojo.
+5. El **camarero** escanea el QR, ve el límite disponible y **carga la comanda a la cuenta del socio**
+   que invitó (los invitados no pagan).
+6. En el panel ves el **consumo por socio** (propio + de sus invitados) y **liquidas** su cuenta cuando paga.
 
-## Arrancar en desarrollo
+Seguridad: el QR es un token firmado y revocable (nunca lleva el teléfono en claro); cancelar una
+invitación mata el QR del invitado y de sus acompañantes al instante; la verificación final siempre
+es la **foto** que ve el personal al escanear.
+
+## Desarrollo
 
 ```bash
 npm install
-cp .env.example .env    # revisa ADMIN_PHONES (tu número) y JWT_SECRET
-npm run dev
-```
-
-- Simulador de WhatsApp: **http://localhost:3000/dev/** — chatea con el bot
-  desde cualquier número simulado (prueba cada rol sin tocar WhatsApp).
-- PWA staff: **http://localhost:3000/staff/** — se entra con el link mágico
-  que el bot envía a meseros y puertas al darlos de alta.
-
-## Conectar tu número real de WhatsApp
-
-En `.env` pon `WA_PROVIDER=baileys` y arranca. Aparecerá un QR en la terminal:
-escanéalo desde el móvil en **WhatsApp → Dispositivos vinculados**. La sesión
-queda guardada en `data/wa-session/`.
-
-> ⚠️ Fase provisional: Baileys vincula un número personal como si fuera
-> WhatsApp Web (no es la API oficial de Meta). Úsalo con volumen bajo. La capa
-> `WhatsAppProvider` (`src/providers/`) permite migrar a la Cloud API oficial
-> escribiendo solo otro adaptador.
-
-## Comandos del admin (por WhatsApp)
-
-```
-alta socio +34612345678 Juan Pérez
-alta mesero +34622222222 Pepe
-alta puerta +34633333333 Paco
-baja +34612345678
-producto Cerveza 3,50 bebida
-carta
-reporte
-```
-
-## Tests y typecheck
-
-```bash
-npm test          # 17 tests: QRs revocables, reglas de acceso, límites, flujo completo del bot
+cp .env.example .env
+npm run dev        # http://localhost:3000 — Postgres embebido (PGlite), sin nada que instalar
+npm test           # 20 tests
 npm run typecheck
 ```
+
+## Producción (Vercel + Supabase)
+
+- El repo se conecta a Vercel (importar desde GitHub); `vercel.json` ya lo configura todo.
+- Variables de entorno: `JWT_SECRET` (obligatoria), `BASE_URL` (la URL pública),
+  `DATABASE_URL` (Postgres de Supabase, pooler). **El esquema se crea solo** en la primera conexión.
+- WhatsApp es opcional: la plataforma funciona con links compartidos por wa.me. Cuando se quiera el
+  bot (número del negocio con la Cloud API de Meta): `WA_PROVIDER=cloud`, `WHATSAPP_TOKEN`,
+  `WHATSAPP_PHONE_ID`, y webhook en `/webhook` con el verify token `WHATSAPP_VERIFY_TOKEN`.
 
 ## Estructura
 
 ```
-src/
-  bot/            flujos de conversación por rol (admin, socio, invitado, staff)
-  providers/      capa WhatsApp: mock (simulador) y baileys (número real)
-  services/       dominio: usuarios, invitaciones, QRs firmados, comandas, reportes
-  http/           API + auth por link mágico para la PWA
-  db/             SQLite (better-sqlite3) con esquema en schema.sql
-public/
-  staff/          PWA de escaneo (puerta y mesero)
-  dev/            simulador de WhatsApp para desarrollo
-docs/             organigrama, flujos y arquitectura
+public/           páginas web (sin build): portada, /panel, /invitacion, /staff (escáner PWA)
+src/http/         API: panel (papi), invitado público (gapi), staff (api), webhook WhatsApp
+src/services/     dominio: casetas/cuentas, usuarios, invitaciones, QRs firmados, comandas
+src/bot/          bot de WhatsApp (opcional, cuando se conecte la Cloud API)
+src/providers/    canal WhatsApp: mock (dev), cloud (Meta), baileys (número personal, solo local)
+src/db/           Postgres (pg en prod, PGlite embebido en dev/tests); esquema auto-aplicado
+docs/             diseño: organigrama, flujos, arquitectura
 ```
-
-## Documentación de diseño
-
-- [Organigrama y roles](docs/ORGANIGRAMA.md)
-- [Flujos de WhatsApp](docs/FLUJOS.md)
-- [Arquitectura técnica](docs/ARQUITECTURA.md)

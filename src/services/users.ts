@@ -11,26 +11,44 @@ export function findById(db: DB, id: number): Promise<User | null> {
 
 export async function createUser(
   db: DB,
-  data: { phone: string; name?: string | null; role: Role; status?: UserStatus },
+  data: { phone: string; name?: string | null; role: Role; status?: UserStatus; casetaId?: number | null },
 ): Promise<User> {
   const row = await one<User>(
     db,
-    'INSERT INTO users (phone, name, role, status) VALUES ($1, $2, $3, $4) RETURNING *',
-    [data.phone, data.name ?? null, data.role, data.status ?? 'activo'],
+    'INSERT INTO users (phone, name, role, status, caseta_id) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+    [data.phone, data.name ?? null, data.role, data.status ?? 'activo', data.casetaId ?? null],
   );
   return row!;
 }
 
-/** Alta de socio/mesero/puerta por el admin. Si el teléfono ya existe, actualiza rol y nombre. */
-export async function upsertByAdmin(db: DB, phone: string, name: string, role: Role): Promise<User> {
+/** Alta de socio/mesero/puerta. Si el teléfono ya existe, actualiza rol, nombre y caseta. */
+export async function upsertByAdmin(
+  db: DB,
+  phone: string,
+  name: string,
+  role: Role,
+  casetaId?: number | null,
+): Promise<User> {
   const row = await one<User>(
     db,
-    `INSERT INTO users (phone, name, role, status) VALUES ($1, $2, $3, 'activo')
-     ON CONFLICT (phone) DO UPDATE SET name = $2, role = $3, status = 'activo'
+    `INSERT INTO users (phone, name, role, status, caseta_id) VALUES ($1, $2, $3, 'activo', $4)
+     ON CONFLICT (phone) DO UPDATE SET name = $2, role = $3, status = 'activo',
+       caseta_id = COALESCE($4, users.caseta_id)
      RETURNING *`,
-    [phone, name, role],
+    [phone, name, role, casetaId ?? null],
   );
   return row!;
+}
+
+export async function listByCaseta(db: DB, casetaId: number, roles: Role[]): Promise<User[]> {
+  const placeholders = roles.map((_, i) => `$${i + 2}`).join(', ');
+  const { rows } = await db.query<User>(
+    `SELECT id, caseta_id, phone, name, role, status, qr_version, created_at,
+            (photo IS NOT NULL) AS has_photo
+     FROM users WHERE caseta_id = $1 AND role IN (${placeholders}) ORDER BY name NULLS LAST`,
+    [casetaId, ...roles],
+  );
+  return rows;
 }
 
 export async function setName(db: DB, userId: number, name: string): Promise<void> {

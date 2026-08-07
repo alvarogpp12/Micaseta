@@ -3,20 +3,103 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Micaseta</title>
+<title>Micaseta · Gestión de casetas privadas</title>
 <style>
-  body { font-family:system-ui,sans-serif; background:#0f1115; color:#eef1f6; display:grid; place-items:center; min-height:100vh; margin:0; }
-  .box { text-align:center; }
-  a { display:block; margin:12px; padding:14px 28px; background:#1a1e26; color:#eef1f6; border-radius:12px; text-decoration:none; font-weight:600; }
-  a:hover { background:#262b36; }
+  :root { --bg:#0f1115; --card:#1a1e26; --txt:#eef1f6; --mut:#8b93a3; --acc:#e0533d; --acc2:#f0a83d; --ok:#2ecc71; --bad:#e74c3c; }
+  * { box-sizing:border-box; margin:0; }
+  body { background:var(--bg); color:var(--txt); font-family:system-ui,-apple-system,sans-serif; min-height:100vh; }
+  .wrap { max-width:480px; margin:0 auto; padding:28px 20px 60px; }
+  .hero { text-align:center; padding:26px 0 8px; }
+  .hero .logo { font-size:56px; }
+  .hero h1 { font-size:30px; margin:8px 0 6px; }
+  .hero h1 b { color:var(--acc2); }
+  .hero p { color:var(--mut); font-size:15.5px; line-height:1.5; }
+  .cta { display:block; width:100%; text-align:center; background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#fff; font-size:18px; font-weight:800; padding:17px; border:0; border-radius:14px; margin:22px 0 10px; cursor:pointer; }
+  .alt { display:block; width:100%; text-align:center; background:var(--card); color:var(--txt); font-size:15px; font-weight:600; padding:14px; border:0; border-radius:12px; cursor:pointer; }
+  .card { background:var(--card); border-radius:16px; padding:20px; margin-top:18px; }
+  .card h2 { font-size:18px; margin-bottom:14px; }
+  label { display:block; color:var(--mut); font-size:13px; margin:12px 0 5px; }
+  input { width:100%; padding:13px; border-radius:10px; border:1px solid #333a48; background:#12151b; color:var(--txt); font-size:15px; }
+  .btn { width:100%; border:0; border-radius:10px; padding:14px; font-size:16px; font-weight:700; cursor:pointer; background:var(--acc); color:#fff; margin-top:16px; }
+  .err { color:var(--bad); font-weight:600; font-size:14px; margin-top:10px; min-height:18px; }
+  .hidden { display:none; }
+  .feats { margin-top:26px; display:grid; gap:10px; }
+  .feat { background:var(--card); border-radius:12px; padding:13px 15px; font-size:14px; color:var(--mut); }
+  .feat b { color:var(--txt); }
+  .link { color:var(--acc2); cursor:pointer; text-decoration:underline; font-size:14px; }
+  .center { text-align:center; margin-top:12px; }
 </style>
 </head>
 <body>
-<div class="box">
-  <h1>🏠 Micaseta</h1>
-  <p>El club funciona por WhatsApp. Esto es solo para el personal.</p>
-  <a href="/staff/">🎫 Acceso staff (puerta y meseros)</a>
-  <a href="/dev/">🧪 Simulador de WhatsApp (desarrollo)</a>
+<div class="wrap">
+  <div class="hero">
+    <div class="logo">🎪</div>
+    <h1>Mi<b>caseta</b></h1>
+    <p>La gestión de tu caseta, sin listas en papel: socios, invitados con QR, comandas a cuenta de cada socio y las cuentas claras al final.</p>
+  </div>
+
+  <button class="cta" id="ctaRegister">🎟 Registrar mi caseta</button>
+  <button class="alt" id="ctaLogin">Ya tengo cuenta — Entrar</button>
+
+  <div class="card hidden" id="formRegister">
+    <h2>Crea tu caseta</h2>
+    <label>Nombre de la caseta</label>
+    <input id="r_caseta" placeholder="Ej: Er Compás">
+    <label>Tu nombre</label>
+    <input id="r_name" placeholder="Ej: Álvaro">
+    <label>Email</label>
+    <input id="r_email" type="email" placeholder="tu@email.com">
+    <label>Contraseña (mín. 8 caracteres)</label>
+    <input id="r_pass" type="password">
+    <button class="btn" id="doRegister">Crear caseta →</button>
+    <div class="err" id="r_err"></div>
+  </div>
+
+  <div class="card hidden" id="formLogin">
+    <h2>Entrar</h2>
+    <label>Email</label>
+    <input id="l_email" type="email">
+    <label>Contraseña</label>
+    <input id="l_pass" type="password">
+    <button class="btn" id="doLogin">Entrar →</button>
+    <div class="err" id="l_err"></div>
+  </div>
+
+  <div class="feats">
+    <div class="feat">🎟 <b>Invitaciones con QR</b> — cada socio invita con límites de día, consumo y acompañantes. El invitado se registra con su selfie y recibe su QR.</div>
+    <div class="feat">🍾 <b>Comandas a cuenta del socio</b> — el camarero escanea el QR, ve la foto y quién invita, y carga la comanda. El invitado no paga.</div>
+    <div class="feat">🚪 <b>Control de puerta</b> — foto y semáforo verde/rojo al escanear. Sin listas impresas.</div>
+    <div class="feat">📊 <b>Cuentas claras</b> — qué ha consumido cada socio y sus invitados, y liquidación al final.</div>
+  </div>
+  <p class="center"><span class="link" onclick="location.href='/staff/'">Soy camarero o puerta →</span></p>
 </div>
+<script>
+const $ = (id) => document.getElementById(id);
+const show = (id) => { $('formRegister').classList.add('hidden'); $('formLogin').classList.add('hidden'); $(id).classList.remove('hidden'); $(id).scrollIntoView({behavior:'smooth'}); };
+$('ctaRegister').onclick = () => show('formRegister');
+$('ctaLogin').onclick = () => show('formLogin');
+
+async function post(path, body) {
+  const r = await fetch(path, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || 'Error');
+  return data;
+}
+
+$('doRegister').onclick = async () => {
+  $('r_err').textContent = '';
+  try {
+    await post('/papi/register', { casetaName:$('r_caseta').value, ownerName:$('r_name').value, email:$('r_email').value, password:$('r_pass').value });
+    location.href = '/panel/';
+  } catch (e) { $('r_err').textContent = e.message; }
+};
+$('doLogin').onclick = async () => {
+  $('l_err').textContent = '';
+  try { await post('/papi/login', { email:$('l_email').value, password:$('l_pass').value }); location.href = '/panel/'; }
+  catch (e) { $('l_err').textContent = e.message; }
+};
+// Si ya hay sesión, directo al panel
+fetch('/papi/me').then(r => { if (r.ok) location.href = '/panel/'; });
+</script>
 </body>
 </html>
