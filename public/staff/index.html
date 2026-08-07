@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Micaseta · Staff</title>
+<style>
+  :root { --bg:#0f1115; --card:#1a1e26; --txt:#eef1f6; --mut:#8b93a3; --ok:#2ecc71; --bad:#e74c3c; --acc:#4f8cff; }
+  * { box-sizing:border-box; margin:0; }
+  body { background:var(--bg); color:var(--txt); font-family:system-ui,-apple-system,sans-serif; min-height:100vh; }
+  header { padding:14px 18px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #262b36; }
+  header h1 { font-size:17px; } header span { color:var(--mut); font-size:13px; }
+  main { padding:16px; max-width:520px; margin:0 auto; }
+  .card { background:var(--card); border-radius:14px; padding:16px; margin-bottom:14px; }
+  video { width:100%; border-radius:12px; background:#000; }
+  button { border:0; border-radius:10px; padding:13px 16px; font-size:15px; font-weight:600; cursor:pointer; width:100%; margin-top:10px; }
+  .primary { background:var(--acc); color:#fff; } .good { background:var(--ok); color:#06290f; }
+  .ghost { background:#262b36; color:var(--txt); }
+  .status { display:flex; align-items:center; gap:14px; }
+  .status img { width:92px; height:92px; border-radius:12px; object-fit:cover; background:#333; }
+  .badge { display:inline-block; padding:4px 10px; border-radius:99px; font-size:13px; font-weight:700; }
+  .b-ok { background:var(--ok); color:#06290f; } .b-bad { background:var(--bad); color:#fff; }
+  .muted { color:var(--mut); font-size:13px; margin-top:4px; }
+  .row { display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-bottom:1px solid #262b36; }
+  .row:last-child { border-bottom:0; }
+  .stepper { display:flex; align-items:center; gap:10px; }
+  .stepper button { width:34px; padding:6px 0; margin:0; background:#262b36; color:var(--txt); font-size:17px; }
+  .total { font-size:19px; font-weight:800; text-align:right; margin-top:10px; }
+  input[type=text] { width:100%; padding:12px; border-radius:10px; border:1px solid #333a48; background:#12151b; color:var(--txt); }
+  .hidden { display:none; }
+  .err { color:var(--bad); font-weight:600; margin-top:8px; }
+</style>
+</head>
+<body>
+<header><h1>🏠 Micaseta</h1><span id="who">…</span></header>
+<main>
+  <div id="login" class="card hidden">
+    <p>Sesión no válida. Escribe <b>link</b> al WhatsApp del club para recibir tu acceso.</p>
+  </div>
+
+  <div id="scanner" class="card hidden">
+    <video id="video" playsinline></video>
+    <button class="primary" id="startCam">📷 Escanear QR</button>
+    <p class="muted" style="margin-top:10px">O pega el código manualmente:</p>
+    <input type="text" id="manual" placeholder="Código del QR">
+    <button class="ghost" id="manualBtn">Comprobar</button>
+  </div>
+
+  <div id="result" class="card hidden">
+    <div class="status">
+      <img id="photo" alt="foto">
+      <div>
+        <div id="pname" style="font-size:18px;font-weight:700"></div>
+        <div id="phost" class="muted"></div>
+        <div style="margin-top:6px"><span id="pbadge" class="badge"></span></div>
+        <div id="preason" class="muted"></div>
+      </div>
+    </div>
+    <div id="doorActions" class="hidden">
+      <button class="good" id="checkinBtn">✅ Registrar entrada</button>
+    </div>
+    <div id="waiterActions" class="hidden">
+      <div id="limits" class="muted" style="margin:10px 0"></div>
+      <div id="products"></div>
+      <div class="total" id="total">0,00€</div>
+      <button class="good" id="orderBtn">💳 Comanda cobrada (datáfono)</button>
+    </div>
+    <div id="resMsg"></div>
+    <button class="ghost" id="againBtn">↩︎ Escanear otro</button>
+  </div>
+</main>
+<script src="/vendor/jsQR.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const eur = (c) => (c / 100).toFixed(2).replace('.', ',') + '€';
+let me = null, current = null, products = [], qty = {};
+
+async function api(path, opts) {
+  const r = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...opts });
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(body.error || 'Error');
+  return body;
+}
+
+async function init() {
+  try {
+    me = await api('/api/me');
+    $('who').textContent = `${me.name} · ${me.role}`;
+    $('scanner').classList.remove('hidden');
+    if (me.role !== 'puerta') products = await api('/api/products');
+  } catch { $('login').classList.remove('hidden'); }
+}
+
+// --- Escaneo con cámara (jsQR sobre frames de vídeo) ---
+let stream = null, scanning = false;
+$('startCam').onclick = async () => {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    const video = $('video');
+    video.srcObject = stream; await video.play();
+    scanning = true;
+    const canvas = document.createElement('canvas');
+    const tick = () => {
+      if (!scanning) return;
+      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+        const c = canvas.getContext('2d');
+        c.drawImage(video, 0, 0);
+        const img = c.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(img.data, img.width, img.height);
+        if (code && code.data) { stopCam(); onScan(code.data); return; }
+      }
+      requestAnimationFrame(tick);
+    };
+    tick();
+  } catch { alert('No pude abrir la cámara. Usa el campo manual.'); }
+};
+function stopCam() { scanning = false; if (stream) stream.getTracks().forEach(t => t.stop()); }
+$('manualBtn').onclick = () => { const v = $('manual').value.trim(); if (v) onScan(v); };
+$('againBtn').onclick = () => { $('result').classList.add('hidden'); $('scanner').classList.remove('hidden'); $('resMsg').innerHTML = ''; };
+
+async function onScan(qr) {
+  try {
+    const info = await api('/api/scan', { method: 'POST', body: JSON.stringify({ qr }) });
+    current = { qr, info }; qty = {};
+    $('scanner').classList.add('hidden'); $('result').classList.remove('hidden');
+    $('photo').src = info.photoUrl || 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="92" height="92"><rect width="92" height="92" fill="#333"/><text x="46" y="52" font-size="30" text-anchor="middle" fill="#888">?</text></svg>');
+    $('pname').textContent = (info.name || 'Sin nombre') + (info.role === 'socio' || info.role === 'admin' ? ' ⭐ SOCIO' : '');
+    $('phost').textContent = info.hostName ? 'Invitado de ' + info.hostName : '';
+    $('pbadge').className = 'badge ' + (info.ok ? 'b-ok' : 'b-bad');
+    $('pbadge').textContent = info.ok ? 'ACCESO OK' : 'SIN ACCESO';
+    $('preason').textContent = info.reason;
+    $('doorActions').classList.toggle('hidden', !(me.role === 'puerta' || me.role === 'admin') || !info.ok);
+    const waiter = (me.role === 'mesero' || me.role === 'admin') && info.ok;
+    $('waiterActions').classList.toggle('hidden', !waiter);
+    if (waiter) renderOrder(info);
+  } catch (e) {
+    $('scanner').classList.add('hidden'); $('result').classList.remove('hidden');
+    $('photo').removeAttribute('src'); $('pname').textContent = 'QR rechazado';
+    $('phost').textContent = ''; $('pbadge').className = 'badge b-bad'; $('pbadge').textContent = 'INVÁLIDO';
+    $('preason').textContent = e.message;
+    $('doorActions').classList.add('hidden'); $('waiterActions').classList.add('hidden');
+  }
+}
+
+function renderOrder(info) {
+  $('limits').textContent = info.remainingCents === null
+    ? 'Consumo: abierto'
+    : `Disponible: ${eur(info.remainingCents)} de ${eur(info.spendLimitCents)}`;
+  const box = $('products'); box.innerHTML = '';
+  if (products.length === 0) box.innerHTML = '<p class="muted">Carta vacía: el admin debe añadir productos por WhatsApp.</p>';
+  for (const p of products) {
+    const row = document.createElement('div'); row.className = 'row';
+    row.innerHTML = `<div>${p.name}<div class="muted">${eur(p.price_cents)}</div></div>
+      <div class="stepper"><button>−</button><b>0</b><button>＋</button></div>`;
+    const [minus, plus] = row.querySelectorAll('button');
+    const count = row.querySelector('b');
+    minus.onclick = () => { qty[p.id] = Math.max(0, (qty[p.id] || 0) - 1); count.textContent = qty[p.id]; updateTotal(); };
+    plus.onclick = () => { qty[p.id] = (qty[p.id] || 0) + 1; count.textContent = qty[p.id]; updateTotal(); };
+    box.appendChild(row);
+  }
+  updateTotal();
+}
+function updateTotal() {
+  let t = 0;
+  for (const p of products) t += (qty[p.id] || 0) * p.price_cents;
+  $('total').textContent = eur(t);
+}
+
+$('checkinBtn').onclick = async () => {
+  try {
+    const r = await api('/api/checkin', { method: 'POST', body: JSON.stringify({ qr: current.qr }) });
+    $('resMsg').innerHTML = `<p style="color:var(--ok);font-weight:700;margin-top:10px">🎉 Entrada registrada: ${r.name}</p>`;
+    $('doorActions').classList.add('hidden');
+  } catch (e) { $('resMsg').innerHTML = `<p class="err">${e.message}</p>`; }
+};
+
+$('orderBtn').onclick = async () => {
+  const items = Object.entries(qty).filter(([, q]) => q > 0).map(([productId, q]) => ({ productId: Number(productId), qty: q }));
+  if (items.length === 0) return;
+  try {
+    const r = await api('/api/orders', { method: 'POST', body: JSON.stringify({ qr: current.qr, items }) });
+    $('resMsg').innerHTML = `<p style="color:var(--ok);font-weight:700;margin-top:10px">✅ Comanda #${r.orderId} registrada · ${eur(r.totalCents)}</p>`;
+    $('waiterActions').classList.add('hidden');
+  } catch (e) { $('resMsg').innerHTML = `<p class="err">${e.message}</p>`; }
+};
+
+init();
+</script>
+</body>
+</html>

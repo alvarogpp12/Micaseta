@@ -1,0 +1,34 @@
+{
+  "name": "micaseta",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Club por WhatsApp: socios, invitados, QRs y comandas (híbrido WhatsApp + PWA staff)",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^10.0.1",
+    "@fastify/static": "^8.0.3",
+    "@whiskeysockets/baileys": "^6.7.9",
+    "better-sqlite3": "^11.7.0",
+    "fastify": "^5.2.0",
+    "jsonwebtoken": "^9.0.2",
+    "jsqr": "^1.4.0",
+    "pino": "^9.5.0",
+    "qrcode": "^1.5.4",
+    "qrcode-terminal": "^0.12.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node": "^22.10.2",
+    "@types/qrcode": "^1.5.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
