@@ -58,7 +58,9 @@
   .tile.sel { border-color:var(--primary); background:var(--primary-soft); }
   .tile.sel .tp { color:#aab4ff; }
   .tile .qty { position:absolute; top:-8px; right:-6px; background:var(--primary); color:#fff; min-width:26px; height:26px; border-radius:99px; display:grid; place-items:center; font:800 13.5px Inter,sans-serif; padding:0 7px; box-shadow:0 2px 8px rgba(0,0,0,.45); }
-  .tile .rm { position:absolute; bottom:8px; right:8px; width:34px; height:34px; border-radius:99px; border:1px solid var(--border); background:var(--card2); color:var(--text); font:700 19px/1 Inter,sans-serif; display:grid; place-items:center; cursor:pointer; }
+  .tstep { position:absolute; bottom:8px; right:8px; display:flex; gap:6px; }
+  .tstep button { width:34px; height:34px; border-radius:99px; border:1px solid var(--border); background:var(--card2); color:var(--text); font:700 19px/1 Inter,sans-serif; display:grid; place-items:center; cursor:pointer; padding:0; margin:0; }
+  .tstep .ad { background:var(--primary); border-color:var(--primary); color:#fff; }
   .tile.bump { animation:bump .18s ease; }
   @keyframes bump { 50% { transform:scale(.96); } }
 
@@ -323,15 +325,13 @@ function renderGrid() {
     const tile = document.createElement('div');
     tile.className = 'tile' + (n ? ' sel' : '');
     tile.innerHTML = `<span class="tn">${p.name}</span><span class="tp">${eur(p.price_cents)}</span>
-      ${n ? `<span class="qty">${n}</span><button class="rm" aria-label="Quitar uno">−</button>` : ''}`;
-    tile.onclick = (ev) => {
-      if (ev.target.classList.contains('rm')) return;
-      qty[p.id] = (qty[p.id] || 0) + 1;
-      tile.classList.add('bump');
-      renderGrid(); updateCart();
-    };
+      ${n ? `<span class="qty">${n}</span><div class="tstep"><button class="rm" aria-label="Quitar una">−</button><button class="ad" aria-label="Añadir una">＋</button></div>` : ''}`;
+    const add = () => { qty[p.id] = (qty[p.id] || 0) + 1; renderGrid(); updateCart(); };
+    tile.onclick = (ev) => { if (ev.target.closest('.tstep')) return; add(); };
     const rm = tile.querySelector('.rm');
     if (rm) rm.onclick = (ev) => { ev.stopPropagation(); qty[p.id] = Math.max(0, (qty[p.id] || 0) - 1); renderGrid(); updateCart(); };
+    const ad = tile.querySelector('.ad');
+    if (ad) ad.onclick = (ev) => { ev.stopPropagation(); add(); };
     box.appendChild(tile);
   }
 }

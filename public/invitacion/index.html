@@ -59,7 +59,9 @@
   .tile .tp { color:var(--muted); font:600 13px Inter,sans-serif; margin-top:auto; padding-top:8px; }
   .tile.sel { border-color:var(--primary); background:var(--primary-soft); }
   .tile .qn { position:absolute; top:-8px; right:-6px; background:var(--primary); color:#fff; min-width:25px; height:25px; border-radius:99px; display:grid; place-items:center; font:800 13px Inter,sans-serif; padding:0 7px; box-shadow:0 2px 6px rgba(16,24,40,.25); }
-  .tile .rm { position:absolute; bottom:8px; right:8px; width:33px; height:33px; border-radius:99px; border:1px solid var(--border); background:#fff; color:var(--text); font:700 18px/1 Inter,sans-serif; display:grid; place-items:center; cursor:pointer; }
+  .tstep { position:absolute; bottom:8px; right:8px; display:flex; gap:6px; }
+  .tstep button { width:33px; height:33px; border-radius:99px; border:1px solid var(--border); background:#fff; color:var(--text); font:700 18px/1 Inter,sans-serif; display:grid; place-items:center; cursor:pointer; padding:0; margin:0; }
+  .tstep .ad { background:var(--primary); border-color:var(--primary); color:#fff; }
   .cartbar { position:fixed; left:0; right:0; bottom:0; z-index:30; background:#fff; border-top:1px solid var(--border); padding:12px 16px calc(12px + env(safe-area-inset-bottom)); box-shadow:0 -4px 16px rgba(16,24,40,.07); }
   .cartbar-in { max-width:420px; margin:0 auto; display:flex; align-items:center; gap:12px; }
   .cinfo { flex:1; min-width:0; }
@@ -244,13 +246,13 @@ function renderGrid() {
     const tile = document.createElement('div');
     tile.className = 'tile' + (n ? ' sel' : '');
     tile.innerHTML = `<span class="tn">${p.name}</span><span class="tp">${eur(p.price_cents)}</span>
-      ${n ? `<span class="qn">${n}</span><button class="rm">−</button>` : ''}`;
-    tile.onclick = (ev) => {
-      if (ev.target.classList.contains('rm')) return;
-      menuQty[p.id] = (menuQty[p.id] || 0) + 1; renderGrid(); updateCart();
-    };
+      ${n ? `<span class="qn">${n}</span><div class="tstep"><button class="rm">−</button><button class="ad">＋</button></div>` : ''}`;
+    const add = () => { menuQty[p.id] = (menuQty[p.id] || 0) + 1; renderGrid(); updateCart(); };
+    tile.onclick = (ev) => { if (ev.target.closest('.tstep')) return; add(); };
     const rm = tile.querySelector('.rm');
     if (rm) rm.onclick = (ev) => { ev.stopPropagation(); menuQty[p.id] = Math.max(0, (menuQty[p.id] || 0) - 1); renderGrid(); updateCart(); };
+    const ad = tile.querySelector('.ad');
+    if (ad) ad.onclick = (ev) => { ev.stopPropagation(); add(); };
     box.appendChild(tile);
   }
 }
