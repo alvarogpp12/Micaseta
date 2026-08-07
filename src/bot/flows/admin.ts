@@ -27,7 +27,7 @@ export async function handleAdmin(ctx: BotContext): Promise<void> {
     const phone = normalizePhone(alta[2]);
     const name = alta[3].trim();
     if (!phone) return ctx.reply('⚠️ Ese teléfono no parece válido.');
-    const user = users.upsertByAdmin(ctx.db, phone, name, role);
+    const user = await users.upsertByAdmin(ctx.db, phone, name, role);
     await ctx.reply(`✅ ${name} dado de alta como *${role}* (${formatPhone(phone)}).`);
     if (role === 'socio') await sendSocioWelcome(ctx, user);
     else await sendStaffLink(ctx, user);
@@ -37,9 +37,9 @@ export async function handleAdmin(ctx: BotContext): Promise<void> {
   const baja = text.match(/^baja\s+(\+?[\d\s.-]{9,})$/i);
   if (baja) {
     const phone = normalizePhone(baja[1]);
-    const user = phone ? users.findByPhone(ctx.db, phone) : null;
+    const user = phone ? await users.findByPhone(ctx.db, phone) : null;
     if (!user) return ctx.reply('⚠️ No encuentro a nadie con ese número.');
-    users.setStatus(ctx.db, user.id, 'suspendido');
+    await users.setStatus(ctx.db, user.id, 'suspendido');
     return ctx.reply(`🚫 ${user.name ?? formatPhone(user.phone)} suspendido. Su QR ya no vale.`);
   }
 
@@ -47,17 +47,17 @@ export async function handleAdmin(ctx: BotContext): Promise<void> {
   if (producto) {
     const price = parseEuros(producto[2]);
     if (price === null) return ctx.reply('⚠️ Precio inválido. Ej: producto Cerveza 3,50 bebida');
-    const p = orders.addProduct(ctx.db, producto[1].trim(), price, producto[3].toLowerCase());
+    const p = await orders.addProduct(ctx.db, producto[1].trim(), price, producto[3].toLowerCase());
     return ctx.reply(`✅ Producto añadido: ${p.name} — ${euros(p.price_cents)} (${p.category})`);
   }
 
   if (/^carta$/i.test(text)) {
-    const list = orders.listProducts(ctx.db);
+    const list = await orders.listProducts(ctx.db);
     if (list.length === 0) return ctx.reply('La carta está vacía. Añade con: producto Nombre Precio Categoría');
     return ctx.reply('🍽 *Carta*\n' + list.map((p) => `• ${p.name} — ${euros(p.price_cents)} (${p.category})`).join('\n'));
   }
 
-  if (/^reporte$/i.test(text)) return ctx.reply(adminReport(ctx.db));
+  if (/^reporte$/i.test(text)) return ctx.reply(await adminReport(ctx.db));
 
   return ctx.reply(HELP);
 }

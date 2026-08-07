@@ -8,9 +8,9 @@ export interface User {
   name: string | null;
   role: Role;
   status: UserStatus;
-  photo_path: string | null;
+  photo: Uint8Array | null;
   qr_version: number;
-  created_at: string;
+  created_at: string | Date;
 }
 
 export interface Invitation {
@@ -24,8 +24,8 @@ export interface Invitation {
   valid_date: string | null;
   spend_limit_cents: number | null;
   max_companions: number;
-  created_at: string;
-  cancelled_at: string | null;
+  created_at: string | Date;
+  cancelled_at: string | Date | null;
 }
 
 export interface Product {
@@ -33,7 +33,7 @@ export interface Product {
   name: string;
   price_cents: number;
   category: string;
-  active: number;
+  active: boolean;
 }
 
 /** Resultado de comprobar acceso/consumo al escanear un QR. */

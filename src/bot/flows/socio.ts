@@ -28,7 +28,7 @@ function describeInvitation(inv: Invitation): string {
 
 /** Envía la invitación por WhatsApp al invitado (o acompañante). */
 export async function sendInvitationMessage(ctx: BotContext, inv: Invitation): Promise<void> {
-  const socio = users.findById(ctx.db, inv.socio_id)!;
+  const socio = (await users.findById(ctx.db, inv.socio_id))!;
   await ctx.wa.sendText(
     inv.guest_phone,
     `🎊 *${socio.name}* te invita a *Micaseta*.\n\n${describeInvitation(inv)}\n\n` +
@@ -49,21 +49,23 @@ export async function handleSocio(ctx: BotContext): Promise<void> {
       }
       if (text === '2') {
         ctx.reset();
-        return ctx.reply(socioReport(ctx.db, ctx.user!.id));
+        return ctx.reply(await socioReport(ctx.db, ctx.user!.id));
       }
       if (text === '3') {
-        const list = invitations.listActiveBySocio(ctx.db, ctx.user!.id).filter((i) => !i.parent_id);
+        const all = await invitations.listActiveBySocio(ctx.db, ctx.user!.id);
+        const list = all.filter((i) => !i.parent_id);
         if (list.length === 0) {
           ctx.reset();
           return ctx.reply('No tienes invitaciones activas.\n\n' + MENU);
         }
         s.state = 'cancel_pick';
         s.data.cancelList = list.map((i) => i.id);
-        const lines = list.map((inv, idx) => {
-          const guest = inv.guest_id ? users.findById(ctx.db, inv.guest_id) : null;
+        const lines: string[] = [];
+        for (const [idx, inv] of list.entries()) {
+          const guest = inv.guest_id ? await users.findById(ctx.db, inv.guest_id) : null;
           const who = guest?.name ?? formatPhone(inv.guest_phone);
-          return `${idx + 1}️⃣ ${who} (${inv.status})`;
-        });
+          lines.push(`${idx + 1}️⃣ ${who} (${inv.status})`);
+        }
         return ctx.reply(`¿Cuál cancelo?\n\n${lines.join('\n')}\n\n0️⃣ Volver`);
       }
       s.state = 'menu';
@@ -74,7 +76,7 @@ export async function handleSocio(ctx: BotContext): Promise<void> {
       const phone = normalizePhone(text);
       if (!phone) return ctx.reply('⚠️ No entendí el número. Prueba de nuevo (ej: 612345678):');
       if (phone === ctx.user!.phone) return ctx.reply('😄 No puedes invitarte a ti mismo. Otro número:');
-      const existing = users.findByPhone(ctx.db, phone);
+      const existing = await users.findByPhone(ctx.db, phone);
       if (existing && existing.role !== 'invitado') {
         return ctx.reply(`⚠️ Ese número ya es ${existing.role} del club. Otro número:`);
       }
@@ -157,7 +159,7 @@ export async function handleSocio(ctx: BotContext): Promise<void> {
 
     case 'invite_confirm': {
       if (text === '1') {
-        const inv = invitations.createInvitation(ctx.db, {
+        const inv = await invitations.createInvitation(ctx.db, {
           socioId: ctx.user!.id,
           guestPhone: s.data.guestPhone,
           accessMode: s.data.accessMode ?? 'siempre',
@@ -181,8 +183,8 @@ export async function handleSocio(ctx: BotContext): Promise<void> {
       const idx = parseInt(text, 10) - 1;
       const ids: number[] = s.data.cancelList ?? [];
       if (isNaN(idx) || idx < 0 || idx >= ids.length) return ctx.reply('⚠️ Elige un número de la lista (o 0 para volver):');
-      const inv = invitations.getInvitation(ctx.db, ids[idx])!;
-      invitations.cancel(ctx.db, inv.id);
+      const inv = (await invitations.getInvitation(ctx.db, ids[idx]))!;
+      await invitations.cancel(ctx.db, inv.id);
       if (inv.guest_phone) {
         await ctx.wa.sendText(inv.guest_phone, '😔 Tu invitación a Micaseta ha sido cancelada. Tu QR ya no es válido.');
       }

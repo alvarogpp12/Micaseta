@@ -1,4 +1,4 @@
-import type { DB } from '../db/index.js';
+import { one, type DB } from '../db/index.js';
 import type { AccessInfo, Invitation, User } from '../domain/types.js';
 import { todayStr } from '../domain/types.js';
 import * as users from './users.js';
@@ -13,14 +13,13 @@ export interface NewInvitation {
   parentId?: number | null;
 }
 
-export function createInvitation(db: DB, inv: NewInvitation): Invitation {
-  const info = db
-    .prepare(
-      `INSERT INTO invitations
-       (socio_id, guest_phone, parent_id, access_mode, valid_date, spend_limit_cents, max_companions)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    )
-    .run(
+export async function createInvitation(db: DB, inv: NewInvitation): Promise<Invitation> {
+  const row = await one<Invitation>(
+    db,
+    `INSERT INTO invitations
+     (socio_id, guest_phone, parent_id, access_mode, valid_date, spend_limit_cents, max_companions)
+     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+    [
       inv.socioId,
       inv.guestPhone,
       inv.parentId ?? null,
@@ -28,81 +27,82 @@ export function createInvitation(db: DB, inv: NewInvitation): Invitation {
       inv.validDate ?? null,
       inv.spendLimitCents ?? null,
       inv.maxCompanions ?? 0,
-    );
-  return getInvitation(db, Number(info.lastInsertRowid))!;
+    ],
+  );
+  return row!;
 }
 
-export function getInvitation(db: DB, id: number): Invitation | null {
-  return (db.prepare('SELECT * FROM invitations WHERE id = ?').get(id) as Invitation | undefined) ?? null;
+export function getInvitation(db: DB, id: number): Promise<Invitation | null> {
+  return one<Invitation>(db, 'SELECT * FROM invitations WHERE id = $1', [id]);
 }
 
-export function pendingForPhone(db: DB, phone: string): Invitation | null {
-  return (
-    (db
-      .prepare(
-        `SELECT * FROM invitations WHERE guest_phone = ? AND status = 'pendiente'
-         ORDER BY created_at DESC LIMIT 1`,
-      )
-      .get(phone) as Invitation | undefined) ?? null
+export function pendingForPhone(db: DB, phone: string): Promise<Invitation | null> {
+  return one<Invitation>(
+    db,
+    `SELECT * FROM invitations WHERE guest_phone = $1 AND status = 'pendiente'
+     ORDER BY created_at DESC LIMIT 1`,
+    [phone],
   );
 }
 
 /** Invitación aceptada vigente de un invitado (la más reciente). */
-export function activeForGuest(db: DB, guestId: number): Invitation | null {
-  return (
-    (db
-      .prepare(
-        `SELECT * FROM invitations WHERE guest_id = ? AND status = 'aceptada'
-         ORDER BY created_at DESC LIMIT 1`,
-      )
-      .get(guestId) as Invitation | undefined) ?? null
+export function activeForGuest(db: DB, guestId: number): Promise<Invitation | null> {
+  return one<Invitation>(
+    db,
+    `SELECT * FROM invitations WHERE guest_id = $1 AND status = 'aceptada'
+     ORDER BY created_at DESC LIMIT 1`,
+    [guestId],
   );
 }
 
-export function listActiveBySocio(db: DB, socioId: number): Invitation[] {
-  return db
-    .prepare(
-      `SELECT * FROM invitations WHERE socio_id = ? AND status IN ('pendiente','aceptada')
-       ORDER BY created_at DESC`,
-    )
-    .all(socioId) as Invitation[];
+export async function listActiveBySocio(db: DB, socioId: number): Promise<Invitation[]> {
+  const { rows } = await db.query<Invitation>(
+    `SELECT * FROM invitations WHERE socio_id = $1 AND status IN ('pendiente','aceptada')
+     ORDER BY created_at DESC`,
+    [socioId],
+  );
+  return rows;
 }
 
-export function accept(db: DB, invitationId: number, guestId: number): void {
-  db.prepare(`UPDATE invitations SET status = 'aceptada', guest_id = ? WHERE id = ?`).run(
+export async function accept(db: DB, invitationId: number, guestId: number): Promise<void> {
+  await db.query(`UPDATE invitations SET status = 'aceptada', guest_id = $1 WHERE id = $2`, [
     guestId,
     invitationId,
-  );
+  ]);
 }
 
-export function reject(db: DB, invitationId: number): void {
-  db.prepare(`UPDATE invitations SET status = 'rechazada' WHERE id = ?`).run(invitationId);
+export async function reject(db: DB, invitationId: number): Promise<void> {
+  await db.query(`UPDATE invitations SET status = 'rechazada' WHERE id = $1`, [invitationId]);
 }
 
 /** Cancela la invitación y todas sus hijas (acompañantes) en cascada. */
-export function cancel(db: DB, invitationId: number): void {
-  const stmt = db.prepare(
-    `UPDATE invitations SET status = 'cancelada', cancelled_at = datetime('now') WHERE id = ?`,
+export async function cancel(db: DB, invitationId: number): Promise<void> {
+  await db.query(
+    `WITH RECURSIVE tree AS (
+       SELECT id FROM invitations WHERE id = $1
+       UNION ALL
+       SELECT i.id FROM invitations i JOIN tree t ON i.parent_id = t.id
+     )
+     UPDATE invitations SET status = 'cancelada', cancelled_at = now()
+     WHERE id IN (SELECT id FROM tree) AND status IN ('pendiente','aceptada')`,
+    [invitationId],
   );
-  stmt.run(invitationId);
-  const children = db
-    .prepare(`SELECT id FROM invitations WHERE parent_id = ? AND status IN ('pendiente','aceptada')`)
-    .all(invitationId) as { id: number }[];
-  for (const c of children) cancel(db, c.id);
 }
 
-export function spentCents(db: DB, invitationId: number): number {
-  const row = db
-    .prepare('SELECT COALESCE(SUM(total_cents), 0) AS total FROM orders WHERE invitation_id = ?')
-    .get(invitationId) as { total: number };
-  return row.total;
+export async function spentCents(db: DB, invitationId: number): Promise<number> {
+  const row = await one<{ total: number }>(
+    db,
+    'SELECT COALESCE(SUM(total_cents), 0)::int AS total FROM orders WHERE invitation_id = $1',
+    [invitationId],
+  );
+  return row!.total;
 }
 
 /**
  * Regla central: ¿esta persona puede entrar/consumir hoy, y con qué límite?
  * Socios y staff activos → acceso abierto. Invitados → según su invitación.
  */
-export function checkAccess(db: DB, user: User): AccessInfo {
+export async function checkAccess(db: DB, user: User): Promise<AccessInfo> {
   const base = {
     user,
     invitation: null as Invitation | null,
@@ -122,10 +122,10 @@ export function checkAccess(db: DB, user: User): AccessInfo {
     return { ...base, ok: true, reason: 'Personal del local' };
   }
 
-  const inv = activeForGuest(db, user.id);
+  const inv = await activeForGuest(db, user.id);
   if (!inv) return { ...base, ok: false, reason: 'Sin invitación activa' };
 
-  const socio = users.findById(db, inv.socio_id);
+  const socio = await users.findById(db, inv.socio_id);
   const hostName = socio?.name ?? null;
 
   if (inv.access_mode === 'fecha' && inv.valid_date !== todayStr()) {
@@ -138,7 +138,7 @@ export function checkAccess(db: DB, user: User): AccessInfo {
     };
   }
 
-  const spent = spentCents(db, inv.id);
+  const spent = await spentCents(db, inv.id);
   const remaining = inv.spend_limit_cents === null ? null : Math.max(0, inv.spend_limit_cents - spent);
 
   return {

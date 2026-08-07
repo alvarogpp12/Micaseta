@@ -19,9 +19,13 @@ export const config = {
     .map((p) => p.replace(/\D/g, ''))
     .filter(Boolean),
   defaultCountry: process.env.DEFAULT_COUNTRY ?? '34',
-  waProvider: (process.env.WA_PROVIDER ?? 'mock') as 'mock' | 'baileys',
-  dbPath: process.env.DB_PATH ?? 'data/micaseta.db',
+  waProvider: (process.env.WA_PROVIDER ?? 'mock') as 'mock' | 'baileys' | 'cloud',
+  databaseUrl: process.env.DATABASE_URL || undefined,
   dataDir: 'data',
+  // WhatsApp Business Cloud API (proveedor 'cloud')
+  whatsappToken: process.env.WHATSAPP_TOKEN ?? '',
+  whatsappPhoneId: process.env.WHATSAPP_PHONE_ID ?? '',
+  whatsappVerifyToken: process.env.WHATSAPP_VERIFY_TOKEN ?? 'micaseta-verify',
 };
 
 /**

@@ -1,8 +1,6 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import type { BotContext } from '../context.js';
 import type { Invitation, User } from '../../domain/types.js';
-import { config, normalizePhone, formatPhone } from '../../config.js';
+import { normalizePhone, formatPhone } from '../../config.js';
 import * as users from '../../services/users.js';
 import * as invitations from '../../services/invitations.js';
 import { signQrToken, qrPng } from '../../services/qr.js';
@@ -34,32 +32,28 @@ export async function handleInvitado(ctx: BotContext): Promise<void> {
   switch (s.state) {
     case 'reg_name': {
       if (!text || ctx.msg.imageBuffer) return ctx.reply('¿Cómo te llamas? (escribe tu nombre):');
-      users.setName(ctx.db, ctx.user!.id, text);
+      await users.setName(ctx.db, ctx.user!.id, text);
       s.state = 'reg_photo';
       return ctx.reply(`Gracias, ${text} 🙌 Ahora envíame una *foto de tu rostro* (selfie, con buena luz):`);
     }
 
     case 'reg_photo': {
       if (!ctx.msg.imageBuffer) return ctx.reply('Necesito una foto tuya para el registro 🤳 Envíala como imagen:');
-      const dir = path.join(config.dataDir, 'photos');
-      fs.mkdirSync(dir, { recursive: true });
-      const photoPath = path.join(dir, `u${ctx.user!.id}.jpg`);
-      fs.writeFileSync(photoPath, ctx.msg.imageBuffer);
-      users.setPhoto(ctx.db, ctx.user!.id, photoPath);
-      users.setStatus(ctx.db, ctx.user!.id, 'activo');
+      await users.setPhoto(ctx.db, ctx.user!.id, ctx.msg.imageBuffer);
+      await users.setStatus(ctx.db, ctx.user!.id, 'activo');
 
-      const guest = users.findById(ctx.db, ctx.user!.id)!;
+      const guest = (await users.findById(ctx.db, ctx.user!.id))!;
       await ctx.reply('✅ ¡Registro completado!');
       await sendGuestQr(ctx, guest);
 
-      const inv = invitations.activeForGuest(ctx.db, guest.id);
+      const inv = await invitations.activeForGuest(ctx.db, guest.id);
       if (inv && inv.max_companions > 0 && !inv.parent_id) return askCompanions(ctx, inv);
       ctx.reset();
       return;
     }
 
     case 'companions': {
-      const inv = invitations.getInvitation(ctx.db, s.data.invitationId);
+      const inv = await invitations.getInvitation(ctx.db, s.data.invitationId);
       ctx.reset();
       if (!inv || inv.status !== 'aceptada') return ctx.reply('Tu invitación ya no está activa.');
       if (text === '0') return ctx.reply('¡Perfecto, te esperamos! 🎉');
@@ -72,7 +66,7 @@ export async function handleInvitado(ctx: BotContext): Promise<void> {
 
       const toInvite = [...new Set(phones)].slice(0, inv.max_companions);
       for (const companionPhone of toInvite) {
-        const child = invitations.createInvitation(ctx.db, {
+        const child = await invitations.createInvitation(ctx.db, {
           socioId: inv.socio_id,
           guestPhone: companionPhone,
           accessMode: inv.access_mode,
@@ -88,18 +82,18 @@ export async function handleInvitado(ctx: BotContext): Promise<void> {
 
     default: {
       // Sin flujo activo: ¿tiene una invitación pendiente de aceptar?
-      const pending = invitations.pendingForPhone(ctx.db, phone);
+      const pending = await invitations.pendingForPhone(ctx.db, phone);
       if (pending) {
         if (text === '1') {
-          let guest = ctx.user ?? users.findByPhone(ctx.db, phone);
-          if (!guest) guest = users.createUser(ctx.db, { phone, role: 'invitado', status: 'pendiente' });
-          invitations.accept(ctx.db, pending.id, guest.id);
+          let guest = ctx.user ?? (await users.findByPhone(ctx.db, phone));
+          if (!guest) guest = await users.createUser(ctx.db, { phone, role: 'invitado', status: 'pendiente' });
+          await invitations.accept(ctx.db, pending.id, guest.id);
           ctx.user = guest;
-          if (guest.photo_path && guest.name) {
+          if (guest.photo && guest.name) {
             // Ya estaba registrado de una invitación anterior: QR directo.
-            users.setStatus(ctx.db, guest.id, 'activo');
+            await users.setStatus(ctx.db, guest.id, 'activo');
             await ctx.reply('✅ ¡Invitación aceptada! Tu QR sigue siendo válido.');
-            await sendGuestQr(ctx, users.findById(ctx.db, guest.id)!);
+            await sendGuestQr(ctx, (await users.findById(ctx.db, guest.id))!);
             if (pending.max_companions > 0 && !pending.parent_id) return askCompanions(ctx, pending);
             return;
           }
@@ -107,8 +101,8 @@ export async function handleInvitado(ctx: BotContext): Promise<void> {
           return ctx.reply('🎉 ¡Genial! Vamos a registrarte.\n\n¿Cómo te llamas?');
         }
         if (text === '2') {
-          invitations.reject(ctx.db, pending.id);
-          const socio = users.findById(ctx.db, pending.socio_id);
+          await invitations.reject(ctx.db, pending.id);
+          const socio = await users.findById(ctx.db, pending.socio_id);
           if (socio) await ctx.wa.sendText(socio.phone, `ℹ️ ${formatPhone(phone)} ha rechazado tu invitación.`);
           return ctx.reply('Entendido, ¡otra vez será! 👋');
         }
@@ -118,12 +112,12 @@ export async function handleInvitado(ctx: BotContext): Promise<void> {
       // Invitado ya registrado
       if (ctx.user && ctx.user.role === 'invitado') {
         if (/^qr$/i.test(text)) {
-          const access = invitations.checkAccess(ctx.db, ctx.user);
+          const access = await invitations.checkAccess(ctx.db, ctx.user);
           if (!access.ok) return ctx.reply(`⚠️ ${access.reason}.`);
           return sendGuestQr(ctx, ctx.user);
         }
         if (/^acompañantes$/i.test(text)) {
-          const inv = invitations.activeForGuest(ctx.db, ctx.user.id);
+          const inv = await invitations.activeForGuest(ctx.db, ctx.user.id);
           if (inv && inv.max_companions > 0 && !inv.parent_id) return askCompanions(ctx, inv);
           return ctx.reply('Tu invitación no incluye acompañantes.');
         }

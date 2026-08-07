@@ -12,29 +12,54 @@ import * as invitations from '../services/invitations.js';
 import * as orders from '../services/orders.js';
 import { verifyQrToken } from '../services/qr.js';
 import type { MockProvider } from '../providers/mock.js';
+import type { CloudProvider } from '../providers/cloud.js';
 
 const PUBLIC_DIR = path.resolve('public');
 
-export async function createServer(db: DB, mock: MockProvider | null) {
+export interface ServerDeps {
+  db: DB;
+  mock?: MockProvider | null;
+  cloud?: CloudProvider | null;
+}
+
+export async function createServer({ db, mock, cloud }: ServerDeps) {
   const app = Fastify({ logger: false });
 
   await app.register(fastifyCookie);
-  await app.register(fastifyStatic, { root: PUBLIC_DIR, prefix: '/' });
+  // En Vercel los estáticos los sirve la CDN (outputDirectory: public);
+  // localmente los sirve Fastify.
+  if (fs.existsSync(PUBLIC_DIR)) {
+    await app.register(fastifyStatic, { root: PUBLIC_DIR, prefix: '/' });
+  }
 
   app.get('/health', () => ({ ok: true }));
 
-  app.get('/vendor/jsQR.js', (_req, reply) => {
-    reply.type('application/javascript');
-    return fs.readFileSync(path.resolve('node_modules/jsqr/dist/jsQR.js'), 'utf8');
-  });
+  // ---- Webhook de la WhatsApp Cloud API (Meta) ----
+
+  if (cloud) {
+    // Verificación del webhook (la hace Meta una sola vez al configurarlo)
+    app.get('/webhook', (req, reply) => {
+      const q = req.query as Record<string, string>;
+      if (q['hub.mode'] === 'subscribe' && q['hub.verify_token'] === config.whatsappVerifyToken) {
+        return reply.send(q['hub.challenge']);
+      }
+      return reply.code(403).send('forbidden');
+    });
+
+    app.post('/webhook', async (req, reply) => {
+      // Responder rápido a Meta y procesar; en serverless el await es necesario
+      await cloud.handleWebhook(req.body);
+      return reply.send({ ok: true });
+    });
+  }
 
   // ---- Auth staff (link mágico → cookie de sesión) ----
 
-  app.get('/staff/login', (req, reply) => {
+  app.get('/staff/login', async (req, reply) => {
     const token = (req.query as any).token as string | undefined;
     try {
       const payload = jwt.verify(token ?? '', config.jwtSecret) as { s: number };
-      const user = users.findById(db, payload.s);
+      const user = await users.findById(db, payload.s);
       if (!user || user.status !== 'activo') throw new Error('no');
       const session = jwt.sign({ s: user.id }, config.jwtSecret, { expiresIn: '30d' });
       reply
@@ -45,10 +70,10 @@ export async function createServer(db: DB, mock: MockProvider | null) {
     }
   });
 
-  function staffFromRequest(req: any): User | null {
+  async function staffFromRequest(req: any): Promise<User | null> {
     try {
       const payload = jwt.verify(req.cookies?.session ?? '', config.jwtSecret) as { s: number };
-      const user = users.findById(db, payload.s);
+      const user = await users.findById(db, payload.s);
       if (!user || user.status !== 'activo') return null;
       if (!['mesero', 'puerta', 'admin'].includes(user.role)) return null;
       return user;
@@ -57,23 +82,26 @@ export async function createServer(db: DB, mock: MockProvider | null) {
     }
   }
 
-  app.get('/api/me', (req, reply) => {
-    const staff = staffFromRequest(req);
+  app.get('/api/me', async (req, reply) => {
+    const staff = await staffFromRequest(req);
     if (!staff) return reply.code(401).send({ error: 'no-session' });
     return { id: staff.id, name: staff.name, role: staff.role };
   });
 
   // ---- Escaneo de QR ----
 
-  function scanPayload(qr: string) {
-    const person = verifyQrToken(db, qr);
-    if (!person) return null;
-    const access = invitations.checkAccess(db, person);
+  app.post('/api/scan', async (req, reply) => {
+    const staff = await staffFromRequest(req);
+    if (!staff) return reply.code(401).send({ error: 'no-session' });
+    const { qr } = req.body as { qr?: string };
+    const person = qr ? await verifyQrToken(db, qr) : null;
+    if (!person) return reply.code(404).send({ error: 'QR no válido o revocado' });
+    const access = await invitations.checkAccess(db, person);
     return {
       userId: person.id,
       name: person.name,
       role: person.role,
-      photoUrl: person.photo_path ? `/api/photo/${person.id}` : null,
+      photoUrl: person.photo ? `/api/photo/${person.id}` : null,
       hostName: access.hostName,
       ok: access.ok,
       reason: access.reason,
@@ -82,63 +110,54 @@ export async function createServer(db: DB, mock: MockProvider | null) {
       remainingCents: access.remainingCents,
       invitationId: access.invitation?.id ?? null,
     };
-  }
-
-  app.post('/api/scan', (req, reply) => {
-    const staff = staffFromRequest(req);
-    if (!staff) return reply.code(401).send({ error: 'no-session' });
-    const { qr } = req.body as { qr?: string };
-    const info = qr ? scanPayload(qr) : null;
-    if (!info) return reply.code(404).send({ error: 'QR no válido o revocado' });
-    return info;
   });
 
-  app.post('/api/checkin', (req, reply) => {
-    const staff = staffFromRequest(req);
+  app.post('/api/checkin', async (req, reply) => {
+    const staff = await staffFromRequest(req);
     if (!staff || (staff.role !== 'puerta' && staff.role !== 'admin')) {
       return reply.code(403).send({ error: 'Solo puerta' });
     }
     const { qr } = req.body as { qr?: string };
-    const person = qr ? verifyQrToken(db, qr) : null;
+    const person = qr ? await verifyQrToken(db, qr) : null;
     if (!person) return reply.code(404).send({ error: 'QR no válido o revocado' });
-    const access = invitations.checkAccess(db, person);
+    const access = await invitations.checkAccess(db, person);
     if (!access.ok) return reply.code(403).send({ error: access.reason });
-    db.prepare('INSERT INTO checkins (user_id, invitation_id, door_user_id) VALUES (?, ?, ?)').run(
+    await db.query('INSERT INTO checkins (user_id, invitation_id, door_user_id) VALUES ($1, $2, $3)', [
       person.id,
       access.invitation?.id ?? null,
       staff.id,
-    );
+    ]);
     return { ok: true, name: person.name };
   });
 
   // ---- Comandas (mesero) ----
 
-  app.get('/api/products', (req, reply) => {
-    const staff = staffFromRequest(req);
+  app.get('/api/products', async (req, reply) => {
+    const staff = await staffFromRequest(req);
     if (!staff) return reply.code(401).send({ error: 'no-session' });
     return orders.listProducts(db);
   });
 
-  app.post('/api/orders', (req, reply) => {
-    const staff = staffFromRequest(req);
+  app.post('/api/orders', async (req, reply) => {
+    const staff = await staffFromRequest(req);
     if (!staff || (staff.role !== 'mesero' && staff.role !== 'admin')) {
       return reply.code(403).send({ error: 'Solo meseros' });
     }
     const { qr, items } = req.body as { qr?: string; items?: { productId: number; qty: number }[] };
-    const person = qr ? verifyQrToken(db, qr) : null;
+    const person = qr ? await verifyQrToken(db, qr) : null;
     if (!person) return reply.code(404).send({ error: 'QR no válido o revocado' });
-    const result = orders.createOrder(db, person, staff, items ?? []);
+    const result = await orders.createOrder(db, person, staff, items ?? []);
     if (!result.ok) return reply.code(422).send({ error: result.error });
     return result;
   });
 
-  app.get('/api/photo/:id', (req, reply) => {
-    const staff = staffFromRequest(req);
+  app.get('/api/photo/:id', async (req, reply) => {
+    const staff = await staffFromRequest(req);
     if (!staff) return reply.code(401).send({ error: 'no-session' });
-    const user = users.findById(db, Number((req.params as any).id));
-    if (!user?.photo_path || !fs.existsSync(user.photo_path)) return reply.code(404).send({ error: 'sin foto' });
+    const photo = await users.getPhoto(db, Number((req.params as any).id));
+    if (!photo) return reply.code(404).send({ error: 'sin foto' });
     reply.type('image/jpeg');
-    return fs.readFileSync(user.photo_path);
+    return photo;
   });
 
   // ---- Simulador de WhatsApp (solo en modo mock) ----

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { openDb, type DB } from '../src/db/index.js';
 import { MockProvider } from '../src/providers/mock.js';
 import { createRouter } from '../src/bot/router.js';
@@ -14,11 +14,15 @@ const COMPANION = '34611111111';
 let db: DB;
 let wa: MockProvider;
 
-beforeEach(() => {
-  db = openDb(':memory:');
+beforeEach(async () => {
+  db = await openDb();
   config.adminPhones = [ADMIN];
   wa = new MockProvider();
   wa.onMessage(createRouter(db, wa));
+});
+
+afterEach(async () => {
+  await db.close();
 });
 
 const say = (from: string, text: string, imageBuffer?: Buffer) =>
@@ -57,10 +61,10 @@ describe('flujo completo por WhatsApp', () => {
     const qrMsg = wa.getLog(GUEST).filter((e) => e.dir === 'out' && e.imageBase64);
     expect(qrMsg.length).toBe(1); // recibió su QR
 
-    const guest = users.findByPhone(db, GUEST)!;
+    const guest = (await users.findByPhone(db, GUEST))!;
     expect(guest.status).toBe('activo');
-    expect(invitations.checkAccess(db, guest).ok).toBe(true);
-    expect(invitations.checkAccess(db, guest).remainingCents).toBe(5000);
+    expect((await invitations.checkAccess(db, guest)).ok).toBe(true);
+    expect((await invitations.checkAccess(db, guest)).remainingCents).toBe(5000);
 
     // 4. Acompañantes: reciben su propia invitación
     expect(lastOut(GUEST)!.text).toContain('acompañantes');
@@ -74,8 +78,8 @@ describe('flujo completo por WhatsApp', () => {
     await say(SOCIO, '3'); // cancelar
     await say(SOCIO, '1'); // la primera de la lista
     expect(lastOut(SOCIO)!.text).toContain('cancelada');
-    expect(invitations.checkAccess(db, users.findByPhone(db, GUEST)!).ok).toBe(false);
-    expect(invitations.checkAccess(db, users.findByPhone(db, COMPANION)!).ok).toBe(false);
+    expect((await invitations.checkAccess(db, (await users.findByPhone(db, GUEST))!)).ok).toBe(false);
+    expect((await invitations.checkAccess(db, (await users.findByPhone(db, COMPANION))!)).ok).toBe(false);
   });
 
   it('desconocido sin invitación recibe mensaje informativo', async () => {
