@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Micaseta — Gestión de casetas privadas</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -14,7 +14,7 @@
     --radius:14px; --shadow:0 1px 2px rgba(16,24,40,.05), 0 1px 3px rgba(16,24,40,.06);
   }
   * { box-sizing:border-box; margin:0; }
-  body { background:var(--bg); color:var(--text); font-family:Inter,-apple-system,"Segoe UI",system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+  body { background:var(--bg); color:var(--text); font-family:Inter,-apple-system,"Segoe UI",system-ui,sans-serif; -webkit-font-smoothing:antialiased; touch-action:manipulation; overflow-x:hidden; }
   .topbar { background:var(--surface); border-bottom:1px solid var(--border); }
   .topbar-in { max-width:960px; margin:0 auto; padding:14px 20px; display:flex; justify-content:space-between; align-items:center; }
   .wordmark { font-weight:800; font-size:19px; letter-spacing:-.03em; }
@@ -35,7 +35,7 @@
   .card h2 { font-size:19px; letter-spacing:-.02em; margin-bottom:6px; }
   .card .hint { color:var(--muted); font-size:14px; margin-bottom:14px; }
   label { display:block; font:600 13px Inter,sans-serif; color:#344054; margin:14px 0 6px; }
-  input { width:100%; padding:11px 13px; border-radius:9px; border:1px solid #d0d5dd; background:#fff; color:var(--text); font:400 15px Inter,sans-serif; outline:none; transition:border .15s, box-shadow .15s; }
+  input { width:100%; padding:11px 13px; border-radius:9px; border:1px solid #d0d5dd; background:#fff; color:var(--text); font:400 16px Inter,sans-serif; outline:none; transition:border .15s, box-shadow .15s; }
   input:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(67,83,255,.12); }
   .err { color:var(--danger); font:600 13.5px Inter,sans-serif; margin-top:10px; min-height:18px; }
   .hidden { display:none; }
@@ -111,6 +111,15 @@
       <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 13l4-4 4 4 5-6"/></svg></div>
       <b>Cuentas claras</b>
       <p>Consumo de cada socio y de sus invitados en tiempo real, con liquidación al cierre y el histórico guardado.</p>
+    </div>
+  </div>
+
+  <div class="card" style="max-width:520px;text-align:center">
+    <h2>Pruébalo sin registrarte</h2>
+    <p class="hint" style="margin-bottom:16px">Entra en una caseta de demostración con carta sevillana completa, socios e invitados con QR.</p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="/demo/camarero">Probar como camarero</a>
+      <a class="btn btn-sec" href="/demo/puerta">Probar como puerta</a>
     </div>
   </div>
 

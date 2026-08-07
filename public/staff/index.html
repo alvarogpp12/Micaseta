@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Escáner — Micaseta</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -12,7 +12,7 @@
     --primary:#5b6cff; --primary-dark:#4353f0; --ok:#12b76a; --danger:#f04438;
   }
   * { box-sizing:border-box; margin:0; }
-  body { background:var(--bg); color:var(--text); font-family:Inter,-apple-system,"Segoe UI",system-ui,sans-serif; -webkit-font-smoothing:antialiased; min-height:100vh; }
+  body { background:var(--bg); color:var(--text); font-family:Inter,-apple-system,"Segoe UI",system-ui,sans-serif; -webkit-font-smoothing:antialiased; touch-action:manipulation; overflow-x:hidden; min-height:100vh; }
   header { padding:14px 18px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); }
   .wordmark { font-weight:800; font-size:16px; letter-spacing:-.03em; }
   .wordmark i { color:var(--primary); font-style:normal; }
@@ -37,12 +37,16 @@
   .stepper button { width:36px; padding:6px 0; margin:0; background:#232a3a; color:var(--text); font-size:17px; border-radius:8px; }
   .stepper b { min-width:16px; text-align:center; }
   .total { font-size:19px; font-weight:800; text-align:right; margin-top:12px; letter-spacing:-.01em; }
-  input[type=text] { width:100%; padding:12px; border-radius:9px; border:1px solid var(--border); background:#0d1117; color:var(--text); font:400 14px Inter,sans-serif; outline:none; }
+  input[type=text] { width:100%; padding:12px; border-radius:9px; border:1px solid var(--border); background:#0d1117; color:var(--text); font:400 16px Inter,sans-serif; outline:none; }
   input[type=text]:focus { border-color:var(--primary); }
   .hidden { display:none; }
   .err { color:#ff7a70; font:600 13.5px Inter,sans-serif; margin-top:10px; }
   .okmsg { color:#3ddc93; font:700 14px Inter,sans-serif; margin-top:12px; }
   label.small { display:block; color:var(--muted); font:600 12px Inter,sans-serif; margin:12px 0 6px; }
+  .cat { font:700 11.5px Inter,sans-serif; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; margin:16px 0 2px; padding-bottom:6px; border-bottom:1px solid var(--border); }
+  .pname { flex:1; min-width:0; padding-right:10px; overflow:hidden; text-overflow:ellipsis; }
+  #products { max-height:44vh; overflow-y:auto; margin:0 -6px; padding:0 6px; }
+  #demoBtns button { text-align:left; font-size:14px; }
 </style>
 </head>
 <body>
@@ -58,6 +62,10 @@
     <label class="small">O introduce el código manualmente</label>
     <input type="text" id="manual" placeholder="Código del QR">
     <button class="ghost" id="manualBtn">Comprobar</button>
+    <div id="demoZone" class="hidden">
+      <label class="small">Modo demo — simula el escaneo de una persona</label>
+      <div id="demoBtns"></div>
+    </div>
   </div>
 
   <div id="result" class="card hidden">
@@ -101,7 +109,23 @@ async function init() {
     me = await api('/api/me');
     $('who').textContent = `${me.name} · ${me.role === 'puerta' ? 'Puerta' : 'Camarero'}`;
     $('scanner').classList.remove('hidden');
-    if (me.role !== 'puerta') products = await api('/api/products');
+    if (me.role !== 'puerta') {
+      products = await api('/api/products');
+      const ORDER = ['cerveza','vino','refresco','copa','botella','comida'];
+      products.sort((a, b) => (ORDER.indexOf(a.category) - ORDER.indexOf(b.category)) || a.name.localeCompare(b.name));
+    }
+    try {
+      const demos = await api('/api/demo-qrs');
+      if (Array.isArray(demos) && demos.length) {
+        $('demoZone').classList.remove('hidden');
+        for (const d of demos) {
+          const b = document.createElement('button');
+          b.className = 'ghost'; b.textContent = d.label;
+          b.onclick = () => onScan(d.token);
+          $('demoBtns').appendChild(b);
+        }
+      }
+    } catch {}
   } catch { $('login').classList.remove('hidden'); }
 }
 
@@ -156,15 +180,25 @@ async function onScan(qr) {
   }
 }
 
+const CAT_LABELS = { cerveza:'Cervezas', vino:'Vinos y rebujito', refresco:'Refrescos', copa:'Copas', botella:'Botellas', comida:'Comida', general:'Otros' };
+
 function renderOrder(info) {
   $('limits').textContent = info.remainingCents === null
     ? 'Consumo sin límite (a cuenta del socio)'
     : `Disponible: ${eur(info.remainingCents)} de ${eur(info.spendLimitCents)}`;
   const box = $('products'); box.innerHTML = '';
   if (products.length === 0) box.innerHTML = '<p class="muted">La carta está vacía: añádela desde el panel.</p>';
+  let lastCat = null;
   for (const p of products) {
+    if (p.category !== lastCat) {
+      lastCat = p.category;
+      const h = document.createElement('div');
+      h.className = 'cat';
+      h.textContent = CAT_LABELS[p.category] ?? p.category;
+      box.appendChild(h);
+    }
     const row = document.createElement('div'); row.className = 'row';
-    row.innerHTML = `<div>${p.name}<div class="muted">${eur(p.price_cents)}</div></div>
+    row.innerHTML = `<div class="pname">${p.name}<div class="muted">${eur(p.price_cents)}</div></div>
       <div class="stepper"><button>−</button><b>0</b><button>＋</button></div>`;
     const [minus, plus] = row.querySelectorAll('button');
     const count = row.querySelector('b');

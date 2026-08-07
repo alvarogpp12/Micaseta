@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Panel — Micaseta</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -14,7 +14,7 @@
     --radius:14px; --shadow:0 1px 2px rgba(16,24,40,.05), 0 1px 3px rgba(16,24,40,.06);
   }
   * { box-sizing:border-box; margin:0; }
-  body { background:var(--bg); color:var(--text); font-family:Inter,-apple-system,"Segoe UI",system-ui,sans-serif; -webkit-font-smoothing:antialiased; padding-bottom:86px; }
+  body { background:var(--bg); color:var(--text); font-family:Inter,-apple-system,"Segoe UI",system-ui,sans-serif; -webkit-font-smoothing:antialiased; touch-action:manipulation; overflow-x:hidden; padding-bottom:86px; }
   .topbar { background:var(--surface); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:20; }
   .topbar-in { max-width:640px; margin:0 auto; padding:13px 18px; display:flex; justify-content:space-between; align-items:center; }
   .brand { display:flex; align-items:center; gap:10px; min-width:0; }
@@ -36,7 +36,7 @@
   h2 { font-size:15px; font-weight:700; letter-spacing:-.01em; margin:20px 0 10px; }
   h2:first-child, .card h2:first-child { margin-top:0; }
   label { display:block; font:600 12.5px Inter,sans-serif; color:#344054; margin:12px 0 5px; }
-  input, select { width:100%; padding:10px 12px; border-radius:9px; border:1px solid #d0d5dd; background:#fff; color:var(--text); font:400 15px Inter,sans-serif; outline:none; transition:border .15s, box-shadow .15s; }
+  input, select { width:100%; padding:10px 12px; border-radius:9px; border:1px solid #d0d5dd; background:#fff; color:var(--text); font:400 16px Inter,sans-serif; outline:none; transition:border .15s, box-shadow .15s; }
   input:focus, select:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(67,83,255,.12); }
   .btn { border:0; border-radius:9px; padding:11px 16px; font:600 14.5px Inter,sans-serif; cursor:pointer; transition:background .15s; }
   .btn-primary { background:var(--primary); color:#fff; width:100%; margin-top:14px; }
@@ -263,12 +263,14 @@ async function renderCarta(m) {
       <button class="btn btn-primary" id="p_add">Añadir a la carta</button><div class="err" id="p_err"></div>
     </div>
     <h2>Carta · ${prods.length}</h2>
-    <div class="card" id="p_list">${prods.length ? '' : '<p class="empty">Carta vacía. Añade rebujito, copas, raciones…</p>'}</div>`;
+    <div class="card" id="p_list">${prods.length ? '' : `<p class="empty">Carta vacía. Añade productos uno a uno o carga una carta sevillana completa para empezar.</p><button class="btn btn-sec" id="p_seed" style="margin-top:12px;width:100%">Cargar carta de ejemplo (Sevilla)</button>`}</div>`;
   $('#p_add').onclick = async () => {
     $('#p_err').textContent = '';
     try { await post('/papi/products', { name:$('#p_name').value, price:$('#p_price').value, category:$('#p_cat').value }); render(); }
     catch (e) { $('#p_err').textContent = e.message; }
   };
+  const seedBtn = document.getElementById('p_seed');
+  if (seedBtn) seedBtn.onclick = async () => { seedBtn.disabled = true; seedBtn.textContent = 'Cargando…'; await post('/papi/products/seed'); render(); };
   const box = $('#p_list');
   for (const p of prods) {
     const row = document.createElement('div'); row.className = 'row';

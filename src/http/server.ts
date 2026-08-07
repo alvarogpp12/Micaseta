@@ -11,6 +11,7 @@ import * as users from '../services/users.js';
 import * as invitations from '../services/invitations.js';
 import * as orders from '../services/orders.js';
 import { verifyQrToken } from '../services/qr.js';
+import * as demo from '../services/demo.js';
 import { registerPanelRoutes } from './panel.js';
 import type { MockProvider } from '../providers/mock.js';
 import type { CloudProvider } from '../providers/cloud.js';
@@ -37,6 +38,25 @@ export async function createServer({ db, mock, cloud }: ServerDeps) {
 
   // Panel web de la caseta + registro público de invitados
   registerPanelRoutes(app, db);
+
+  // ---- Modo demo: entrar como camarero o puerta sin dar nada de alta ----
+
+  app.get('/demo/:rol', async (req, reply) => {
+    const rol = (req.params as any).rol === 'puerta' ? 'puerta' : 'camarero';
+    await demo.ensureDemoCaseta(db);
+    const staff = await users.findByPhone(db, demo.demoStaffPhone(rol));
+    if (!staff) return reply.code(500).send({ error: 'demo no disponible' });
+    const session = jwt.sign({ s: staff.id }, config.jwtSecret, { expiresIn: '2d' });
+    reply
+      .setCookie('session', session, { path: '/', httpOnly: true, sameSite: 'lax', maxAge: 2 * 24 * 3600 })
+      .redirect('/staff/');
+  });
+
+  app.get('/api/demo-qrs', async (req, reply) => {
+    const staff = await staffFromRequest(req);
+    if (!staff?.caseta_id) return [];
+    return demo.demoTokens(db, staff.caseta_id);
+  });
 
   // ---- Webhook de la WhatsApp Cloud API (Meta) ----
 

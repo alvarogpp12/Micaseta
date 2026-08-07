@@ -8,6 +8,7 @@ import * as invitations from '../services/invitations.js';
 import * as orders from '../services/orders.js';
 import { signQrToken, verifyQrToken, qrPng } from '../services/qr.js';
 import { staffLoginUrl } from '../bot/flows/staff.js';
+import { SEVILLA_MENU } from '../services/demo.js';
 import { parseEuros, todayStr } from '../domain/types.js';
 
 const COOKIE = 'panel';
@@ -183,6 +184,17 @@ export function registerPanelRoutes(app: FastifyInstance, db: DB): void {
     const category = (body?.category ?? 'general').trim().toLowerCase() || 'general';
     const product = await orders.addProduct(db, name, price, category, account.caseta_id);
     return { ok: true, product };
+  });
+
+  app.post('/papi/products/seed', async (req, reply) => {
+    const account = await auth(req, reply);
+    if (!account) return;
+    const existing = await orders.listProducts(db, account.caseta_id);
+    if (existing.length > 0) return reply.code(422).send({ error: 'La carta ya tiene productos' });
+    for (const p of SEVILLA_MENU) {
+      await orders.addProduct(db, p.name, p.price_cents, p.category, account.caseta_id);
+    }
+    return { ok: true, count: SEVILLA_MENU.length };
   });
 
   app.post('/papi/products/:id/desactivar', async (req, reply) => {
