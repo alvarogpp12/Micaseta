@@ -325,6 +325,40 @@ export function registerPanelRoutes(app: FastifyInstance, db: DB): void {
     return { ok: true, qrToken: signQrToken(result.guest), name: result.guest.name };
   });
 
+  /** Carta pública para que el cliente pida desde su móvil (link de invitación). */
+  app.get('/gapi/carta', async (req, reply) => {
+    const inv = await invitations.invitationFromToken(db, String((req.query as any).t ?? ''));
+    if (!inv || inv.status !== 'aceptada' || !inv.guest_id) {
+      return reply.code(404).send({ error: 'Invitación no activa' });
+    }
+    const guest = await users.findById(db, inv.guest_id);
+    if (!guest) return reply.code(404).send({ error: 'Invitado no encontrado' });
+    const access = await invitations.checkAccess(db, guest);
+    if (!access.ok) return reply.code(403).send({ error: access.reason });
+    const products = await orders.listProducts(db, inv.caseta_id);
+    return {
+      products,
+      remainingCents: access.remainingCents,
+      spendLimitCents: access.spendLimitCents,
+      socio: access.hostName,
+    };
+  });
+
+  /** El cliente envía su pedido: queda pendiente hasta que un camarero lo sirva. */
+  app.post('/gapi/pedido', async (req, reply) => {
+    const body = req.body as any;
+    const inv = await invitations.invitationFromToken(db, String(body?.t ?? ''));
+    if (!inv || inv.status !== 'aceptada' || !inv.guest_id) {
+      return reply.code(404).send({ error: 'Invitación no activa' });
+    }
+    const guest = await users.findById(db, inv.guest_id);
+    if (!guest) return reply.code(404).send({ error: 'Invitado no encontrado' });
+    const items = Array.isArray(body?.items) ? body.items : [];
+    const result = await orders.createOrder(db, guest, null, items);
+    if (!result.ok) return reply.code(422).send({ error: result.error });
+    return { ok: true, orderId: result.orderId, totalCents: result.totalCents, socioName: result.socioName };
+  });
+
   /** Imagen PNG del QR (el token firmado ES el secreto, se puede servir sin cookie). */
   app.get('/qr.png', async (req, reply) => {
     const t = String((req.query as any).t ?? '');

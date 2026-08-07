@@ -76,7 +76,8 @@ CREATE TABLE IF NOT EXISTS orders (
   customer_id    BIGINT NOT NULL REFERENCES users(id),
   socio_id       BIGINT NOT NULL REFERENCES users(id),
   invitation_id  BIGINT REFERENCES invitations(id),
-  waiter_id      BIGINT NOT NULL REFERENCES users(id),
+  waiter_id      BIGINT REFERENCES users(id),      -- NULL si el pedido lo envió el cliente
+  status         TEXT NOT NULL DEFAULT 'servida' CHECK (status IN ('pendiente','servida')),
   total_cents    INTEGER NOT NULL,
   settled        BOOLEAN NOT NULL DEFAULT false,
   created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -97,6 +98,10 @@ CREATE TABLE IF NOT EXISTS bot_sessions (
   data       JSONB NOT NULL DEFAULT '{}',
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Migraciones idempotentes para bases creadas con esquemas anteriores
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'servida';
+ALTER TABLE orders ALTER COLUMN waiter_id DROP NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_users_caseta ON users(caseta_id, role);
 CREATE INDEX IF NOT EXISTS idx_invitations_guest ON invitations(guest_phone, status);

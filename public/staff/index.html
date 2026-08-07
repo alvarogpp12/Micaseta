@@ -95,6 +95,15 @@
   .done .to { color:var(--muted); font-size:14px; margin-top:5px; }
   .okmsg { color:#3ddc93; font:700 14px Inter,sans-serif; margin-top:12px; }
   #demoBtns .btn { text-align:left; font-size:14px; font-weight:600; }
+  .ptitle { font:700 13px Inter,sans-serif; display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+  .pn { background:var(--primary); color:#fff; min-width:22px; height:22px; border-radius:99px; display:grid; place-items:center; font:700 12px Inter,sans-serif; padding:0 7px; }
+  .pedido { display:flex; align-items:center; gap:12px; padding:11px 0; border-bottom:1px solid var(--border); }
+  .pedido:last-child { border-bottom:0; }
+  .pinfo2 { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+  .pinfo2 b { font-size:14.5px; }
+  .pit { color:var(--text); font-size:13px; opacity:.85; }
+  .psub { color:var(--muted); font-size:12.5px; }
+  .btn.sm { width:auto; margin:0; padding:10px 14px; font-size:13.5px; flex-shrink:0; }
 </style>
 </head>
 <body>
@@ -115,6 +124,12 @@
       <label class="small">Modo demo — simula el escaneo de una persona</label>
       <div id="demoBtns"></div>
     </div>
+  </div>
+
+  <!-- Pedidos enviados por clientes -->
+  <div id="pedidosCard" class="card hidden">
+    <div class="ptitle">Pedidos de clientes <span class="pn" id="pedidosN"></span></div>
+    <div id="pedidosList"></div>
   </div>
 
   <!-- Persona escaneada -->
@@ -151,26 +166,13 @@
   </div>
 </main>
 
-<!-- Barra inferior: total de la comanda -->
+<!-- Barra inferior fija: total + Finalizar comanda -->
 <div class="cartbar hidden" id="cartbar">
   <div class="cartbar-in">
     <div class="info"><div class="n" id="cartN"></div><div class="t" id="cartT"></div></div>
-    <button class="btn primary" id="openSheet">Ver comanda</button>
+    <button class="btn good" id="finishBtn">Finalizar comanda</button>
   </div>
-</div>
-
-<!-- Hoja de comanda -->
-<div class="sheet-back hidden" id="sheetBack"></div>
-<div class="sheet hidden" id="sheet">
-  <div class="sheet-in">
-    <h3>Comanda</h3>
-    <div class="sub" id="sheetSub"></div>
-    <div class="lines" id="lines"></div>
-    <div class="totalrow"><span>Total</span><span id="sheetTotal"></span></div>
-    <button class="btn good" id="orderBtn"></button>
-    <button class="btn ghost" id="keepBtn">Seguir pidiendo</button>
-    <div class="err" id="sheetErr"></div>
-  </div>
+  <div class="err" id="barErr" style="max-width:480px;margin:0 auto"></div>
 </div>
 
 <script src="/vendor/jsQR.js"></script>
@@ -209,6 +211,7 @@ async function init() {
         }
       }
     } catch {}
+    loadPedidos();
   } catch { $('login').classList.remove('hidden'); }
 }
 
@@ -242,10 +245,10 @@ $('manualBtn').onclick = () => { const v = $('manual').value.trim(); if (v) onSc
 
 function resetToScanner() {
   ['personCard','waiterActions','doneCard','cartbar'].forEach(id => $(id).classList.add('hidden'));
-  closeSheet();
-  $('resMsg').innerHTML = '';
+  $('resMsg').innerHTML = ''; $('barErr').textContent = '';
   $('scanner').classList.remove('hidden');
   current = null; qty = {};
+  loadPedidos();
 }
 $('againBtn').onclick = resetToScanner;
 $('doneAgain').onclick = resetToScanner;
@@ -340,62 +343,55 @@ function updateCart() {
   const n = cartCount();
   $('cartN').textContent = n === 0 ? 'Toca productos para añadirlos' : `${n} artículo${n === 1 ? '' : 's'}`;
   $('cartT').textContent = eur(cartTotal());
-  $('openSheet').disabled = n === 0;
-  $('openSheet').style.opacity = n === 0 ? '.45' : '1';
+  $('finishBtn').disabled = n === 0;
+  $('finishBtn').style.opacity = n === 0 ? '.45' : '1';
 }
 
-// ---- Hoja de comanda ----
-function openSheet() {
-  if (cartCount() === 0) return;
-  renderSheet();
-  $('sheet').classList.remove('hidden');
-  $('sheetBack').classList.remove('hidden');
-}
-function closeSheet() { $('sheet').classList.add('hidden'); $('sheetBack').classList.add('hidden'); $('sheetErr').textContent = ''; }
-$('openSheet').onclick = openSheet;
-$('keepBtn').onclick = closeSheet;
-$('sheetBack').onclick = closeSheet;
-
-function renderSheet() {
-  const socio = current?.info?.hostName ?? (current?.info?.role === 'socio' ? current.info.name : null);
-  $('sheetSub').textContent = socio ? `A la cuenta de ${socio}` : 'A la cuenta del socio';
-  $('orderBtn').textContent = socio ? `Cargar a la cuenta de ${socio}` : 'Cargar a la cuenta del socio';
-  const box = $('lines'); box.innerHTML = '';
-  for (const p of products.filter(x => qty[x.id] > 0)) {
-    const line = document.createElement('div'); line.className = 'line';
-    line.innerHTML = `<div class="ln">${p.name}<div class="lp">${eur(p.price_cents)} / ud</div></div>
-      <div class="stepper"><button>−</button><b>${qty[p.id]}</b><button>＋</button></div>
-      <span class="lp" style="min-width:58px;text-align:right">${eur(qty[p.id] * p.price_cents)}</span>`;
-    const [minus, plus] = line.querySelectorAll('button');
-    minus.onclick = () => { qty[p.id] = Math.max(0, qty[p.id] - 1); afterSheetChange(); };
-    plus.onclick = () => { qty[p.id]++; afterSheetChange(); };
-    box.appendChild(line);
-  }
-  $('sheetTotal').textContent = eur(cartTotal());
-}
-function afterSheetChange() {
-  renderGrid(); updateCart();
-  if (cartCount() === 0) closeSheet(); else renderSheet();
-}
-
-$('orderBtn').onclick = async () => {
+// ---- Finalizar comanda (directo, sin pasos intermedios) ----
+$('finishBtn').onclick = async () => {
   const items = Object.entries(qty).filter(([, q]) => q > 0).map(([productId, q]) => ({ productId: Number(productId), qty: q }));
   if (items.length === 0) return;
-  $('orderBtn').disabled = true;
+  $('finishBtn').disabled = true; $('barErr').textContent = '';
   try {
     const r = await api('/api/orders', { method: 'POST', body: JSON.stringify({ qr: current.qr, items }) });
-    closeSheet();
     ['personCard','waiterActions','cartbar'].forEach(id => $(id).classList.add('hidden'));
     $('doneCard').classList.remove('hidden');
     $('doneAmt').textContent = eur(r.totalCents);
     $('doneTo').textContent = `cargados a la cuenta de ${r.socioName ?? 'socio'} · comanda #${r.orderId}`;
     qty = {};
+    loadPedidos();
   } catch (e) {
-    $('sheetErr').textContent = e.message;
+    $('barErr').textContent = e.message;
   } finally {
-    $('orderBtn').disabled = false;
+    $('finishBtn').disabled = false;
   }
 };
+
+// ---- Pedidos enviados por los clientes (pendientes de servir) ----
+async function loadPedidos() {
+  if (!me || me.role === 'puerta') return;
+  let list = [];
+  try { list = await api('/api/pedidos'); } catch { return; }
+  const card = $('pedidosCard'), box = $('pedidosList');
+  if (!list.length) { card.classList.add('hidden'); return; }
+  card.classList.remove('hidden');
+  $('pedidosN').textContent = list.length;
+  box.innerHTML = '';
+  for (const o of list) {
+    const div = document.createElement('div'); div.className = 'pedido';
+    div.innerHTML = `<div class="pinfo2"><b>${o.customer_name ?? 'Cliente'}</b>
+        <span class="pit">${o.items ?? ''}</span>
+        <span class="psub">${eur(o.total_cents)} · a cuenta de ${o.socio_name ?? 'socio'}</span></div>
+      <button class="btn good sm">Servido</button>`;
+    div.querySelector('button').onclick = async (ev) => {
+      ev.target.disabled = true;
+      try { await api(`/api/pedidos/${o.id}/servir`, { method: 'POST', body: '{}' }); loadPedidos(); }
+      catch { ev.target.disabled = false; }
+    };
+    box.appendChild(div);
+  }
+}
+setInterval(loadPedidos, 10000);
 
 init();
 </script>

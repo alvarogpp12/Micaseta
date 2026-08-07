@@ -50,12 +50,13 @@ export interface OrderResult {
 /**
  * Crea una comanda. Los invitados NO pagan: todo va a la cuenta del socio
  * (la suya propia si pide un socio, o la del socio que invitó al invitado).
- * La cuenta se liquida después desde el panel (settleSocio).
+ * waiter=null → pedido enviado por el propio cliente (queda 'pendiente'
+ * hasta que un camarero lo sirva). La cuenta se liquida desde el panel.
  */
 export async function createOrder(
   db: DB,
   customer: User,
-  waiter: User,
+  waiter: User | null,
   items: OrderItemInput[],
 ): Promise<OrderResult> {
   if (items.length === 0) return { ok: false, error: 'La comanda está vacía' };
@@ -90,14 +91,15 @@ export async function createOrder(
 
   const order = await one<{ id: number }>(
     db,
-    `INSERT INTO orders (caseta_id, customer_id, socio_id, invitation_id, waiter_id, total_cents)
-     VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+    `INSERT INTO orders (caseta_id, customer_id, socio_id, invitation_id, waiter_id, status, total_cents)
+     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
     [
-      customer.caseta_id ?? waiter.caseta_id ?? null,
+      customer.caseta_id ?? waiter?.caseta_id ?? null,
       customer.id,
       socioId,
       access.invitation?.id ?? null,
-      waiter.id,
+      waiter?.id ?? null,
+      waiter ? 'servida' : 'pendiente',
       total,
     ],
   );
@@ -110,6 +112,34 @@ export async function createOrder(
 
   const socio = await one<{ name: string | null }>(db, 'SELECT name FROM users WHERE id = $1', [socioId]);
   return { ok: true, orderId: order!.id, totalCents: total, socioName: socio?.name ?? null };
+}
+
+/** Pedidos enviados por clientes que aún no ha servido nadie. */
+export async function pendingOrders(db: DB, casetaId: number): Promise<any[]> {
+  const { rows } = await db.query(
+    `SELECT o.id, o.total_cents, o.created_at,
+            c.name AS customer_name, s.name AS socio_name,
+            (SELECT string_agg(oi.qty || '× ' || p.name, ', ' ORDER BY oi.id)
+             FROM order_items oi JOIN products p ON p.id = oi.product_id
+             WHERE oi.order_id = o.id) AS items
+     FROM orders o
+     JOIN users c ON c.id = o.customer_id
+     JOIN users s ON s.id = o.socio_id
+     WHERE o.caseta_id = $1 AND o.status = 'pendiente'
+     ORDER BY o.created_at ASC`,
+    [casetaId],
+  );
+  return rows;
+}
+
+/** Un camarero marca servido un pedido enviado por el cliente. */
+export async function serveOrder(db: DB, casetaId: number, orderId: number, waiterId: number): Promise<boolean> {
+  const { rows } = await db.query(
+    `UPDATE orders SET status = 'servida', waiter_id = $1
+     WHERE id = $2 AND caseta_id = $3 AND status = 'pendiente' RETURNING id`,
+    [waiterId, orderId, casetaId],
+  );
+  return rows.length > 0;
 }
 
 /** Cuentas pendientes por socio (lo que llevan gastado ellos + sus invitados). */

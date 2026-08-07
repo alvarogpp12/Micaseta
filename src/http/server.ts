@@ -175,6 +175,25 @@ export async function createServer({ db, mock, cloud }: ServerDeps) {
     return result;
   });
 
+  // Pedidos enviados por los propios clientes (quedan pendientes de servir)
+  app.get('/api/pedidos', async (req, reply) => {
+    const staff = await staffFromRequest(req);
+    if (!staff?.caseta_id || (staff.role !== 'mesero' && staff.role !== 'admin')) {
+      return reply.code(403).send({ error: 'Solo camareros' });
+    }
+    return orders.pendingOrders(db, staff.caseta_id);
+  });
+
+  app.post('/api/pedidos/:id/servir', async (req, reply) => {
+    const staff = await staffFromRequest(req);
+    if (!staff?.caseta_id || (staff.role !== 'mesero' && staff.role !== 'admin')) {
+      return reply.code(403).send({ error: 'Solo camareros' });
+    }
+    const ok = await orders.serveOrder(db, staff.caseta_id, Number((req.params as any).id), staff.id);
+    if (!ok) return reply.code(404).send({ error: 'Ese pedido ya no está pendiente' });
+    return { ok: true };
+  });
+
   app.get('/api/photo/:id', async (req, reply) => {
     const staff = await staffFromRequest(req);
     if (!staff) return reply.code(401).send({ error: 'no-session' });

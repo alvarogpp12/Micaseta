@@ -94,6 +94,40 @@ describe('flujo completo de caseta (web)', () => {
     expect(after[0].total_cents).toBe(3600); // el histórico se conserva
   });
 
+  it('pedido enviado por el cliente: queda pendiente, el camarero lo sirve y computa en la cuenta', async () => {
+    const reg = await accounts.registerCaseta(db, {
+      casetaName: 'D', ownerName: 'Z', email: 'z@z.es', password: '12345678',
+    });
+    if (!reg.ok) throw new Error('registro falló');
+    const c = reg.caseta.id;
+    const socio = await users.upsertByAdmin(db, '34622333444', 'Socio D', 'socio', c);
+    const waiter = await users.upsertByAdmin(db, '34622333445', 'Cam D', 'mesero', c);
+    const inv = await invitations.createInvitation(db, { socioId: socio.id, casetaId: c, accessMode: 'siempre' });
+    const r = await invitations.registerGuestFromLink(db, inv, {
+      name: 'Guest D', phone: '34622333446', photo: Buffer.from('x'),
+    });
+    if (!r.ok) throw new Error('registro invitado falló');
+    const beer = await orders.addProduct(db, 'Cerveza', 300, 'cerveza', c);
+
+    // El cliente pide él mismo (waiter=null) → pendiente
+    const selfOrder = await orders.createOrder(db, r.guest, null, [{ productId: beer.id, qty: 3 }]);
+    expect(selfOrder.ok).toBe(true);
+
+    const pending = await orders.pendingOrders(db, c);
+    expect(pending).toHaveLength(1);
+    expect(pending[0].items).toContain('3× Cerveza');
+
+    // El camarero lo sirve
+    expect(await orders.serveOrder(db, c, pending[0].id, waiter.id)).toBe(true);
+    expect(await orders.pendingOrders(db, c)).toHaveLength(0);
+    // Servir dos veces no vale
+    expect(await orders.serveOrder(db, c, pending[0].id, waiter.id)).toBe(false);
+
+    // Y computa en la cuenta del socio
+    const cuentas = await orders.cuentasPorSocio(db, c);
+    expect(cuentas.find((x) => x.socio_id === socio.id)?.pending_cents).toBe(900);
+  });
+
   it('no se puede registrar dos casetas con el mismo email', async () => {
     const input = { casetaName: 'A', ownerName: 'X', email: 'x@x.es', password: '12345678' };
     expect((await accounts.registerCaseta(db, input)).ok).toBe(true);
