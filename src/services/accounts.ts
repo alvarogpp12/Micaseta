@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { one, type DB } from '../db/index.js';
 import type { Account, Caseta } from '../domain/types.js';
 import { config } from '../config.js';
+import { SEVILLA_MENU } from './demo.js';
 
 /** Hash de contraseña con scrypt (sin dependencias externas). */
 export function hashPassword(password: string): string {
@@ -46,6 +47,15 @@ export async function registerCaseta(
     'INSERT INTO accounts (caseta_id, name, email, password_hash) VALUES ($1, $2, $3, $4) RETURNING *',
     [caseta.id, input.ownerName.trim() || 'Admin', email, hashPassword(input.password)],
   ))!;
+  // Carta sevillana de serie: la caseta puede pedir desde el primer minuto.
+  for (const p of SEVILLA_MENU) {
+    await db.query('INSERT INTO products (name, price_cents, category, caseta_id) VALUES ($1, $2, $3, $4)', [
+      p.name,
+      p.price_cents,
+      p.category,
+      caseta.id,
+    ]);
+  }
   return { ok: true, account, caseta };
 }
 

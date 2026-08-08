@@ -79,7 +79,6 @@
   <button data-tab="resumen" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 13l4-4 4 4 5-6"/></svg>Resumen</button>
   <button data-tab="socios"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Socios</button>
   <button data-tab="invitaciones"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M15 5v14M3 10h12"/></svg>Invitar</button>
-  <button data-tab="carta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v20M16 2v20M3 7h5M3 12h5M3 17h5M16 7h5M16 12h5M16 17h5" opacity="0"/><path d="M4 4h16v16H4z" opacity="0"/><path d="M6 2v6a2 2 0 0 0 4 0V2M8 10v12"/><path d="M17 2c-2 2-2.5 5-2.5 7.5 0 2 1 3 2.5 3s2.5-1 2.5-3C19.5 7 19 4 17 2zM17 12.5V22"/></svg>Carta</button>
   <button data-tab="staff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M15 8h4M15 12h4M5.5 16.5c.5-1.5 2-2.5 3.5-2.5s3 1 3.5 2.5"/></svg>Equipo</button>
 </div></nav>
 <dialog id="dlg"></dialog>
@@ -122,7 +121,6 @@ async function render() {
     if (tab === 'resumen') await renderResumen(m);
     if (tab === 'socios') await renderSocios(m);
     if (tab === 'invitaciones') await renderInvitaciones(m);
-    if (tab === 'carta') await renderCarta(m);
     if (tab === 'staff') await renderStaff(m);
   } catch (e) { m.innerHTML = `<p class="err">${esc(e.message)}</p>`; }
 }
@@ -263,36 +261,6 @@ async function renderInvitaciones(m) {
       if (!confirm('¿Cancelar esta invitación? Su QR dejará de funcionar al instante.')) return;
       await post(`/papi/invitations/${i.id}/cancelar`); render();
     };
-    box.appendChild(row);
-  }
-}
-
-// ---------- CARTA ----------
-async function renderCarta(m) {
-  const prods = await api('/papi/products');
-  m.innerHTML = `
-    <div class="card">
-      <h2>Nuevo producto</h2>
-      <div class="grid2"><div><label>Nombre</label><input id="p_name" placeholder="Rebujito"></div><div><label>Precio €</label><input id="p_price" placeholder="12" inputmode="decimal"></div></div>
-      <label>Categoría</label>
-      <select id="p_cat"><option>bebida</option><option>copa</option><option>botella</option><option>comida</option><option>otro</option></select>
-      <button class="btn btn-primary" id="p_add">Añadir a la carta</button><div class="err" id="p_err"></div>
-    </div>
-    <h2>Carta · ${prods.length}</h2>
-    <div class="card" id="p_list">${prods.length ? '' : `<p class="empty">Carta vacía. Añade productos uno a uno o carga una carta sevillana completa para empezar.</p><button class="btn btn-sec" id="p_seed" style="margin-top:12px;width:100%">Cargar carta de ejemplo (Sevilla)</button>`}</div>`;
-  $('#p_add').onclick = async () => {
-    $('#p_err').textContent = '';
-    try { await post('/papi/products', { name:$('#p_name').value, price:$('#p_price').value, category:$('#p_cat').value }); render(); }
-    catch (e) { $('#p_err').textContent = e.message; }
-  };
-  const seedBtn = document.getElementById('p_seed');
-  if (seedBtn) seedBtn.onclick = async () => { seedBtn.disabled = true; seedBtn.textContent = 'Cargando…'; await post('/papi/products/seed'); render(); };
-  const box = $('#p_list');
-  for (const p of prods) {
-    const row = document.createElement('div'); row.className = 'row';
-    row.innerHTML = `<div class="who"><b>${esc(p.name)}</b><small>${esc(p.category)}</small></div>
-      <span class="money">${eur(p.price_cents)}</span><button class="btn btn-mini btn-sec">Quitar</button>`;
-    row.querySelector('button').onclick = async () => { await post(`/papi/products/${p.id}/desactivar`); render(); };
     box.appendChild(row);
   }
 }
