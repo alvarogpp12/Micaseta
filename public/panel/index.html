@@ -190,8 +190,8 @@ async function renderSocios(m) {
     const qrBtn = s.qrToken ? btns[0] : null;
     const susBtn = btns[btns.length - 1];
     if (qrBtn) qrBtn.onclick = () => {
-      const socioUrl = location.origin + '/socio/?t=' + encodeURIComponent(s.qrToken);
-      dlg(`<h2>App de ${esc(s.name ?? '')}</h2><p class="mut">La página personal del socio: su QR para entrar y el botón "Pedir desde el móvil" para pedir a su cuenta sin pasar por la barra. Envíasela por WhatsApp.</p>
+      const socioUrl = location.origin + '/mi/?t=' + encodeURIComponent(s.qrToken);
+      dlg(`<h2>App de ${esc(s.name ?? '')}</h2><p class="mut">Su app personal: QR, pedir desde el móvil, sus gastos y crear sus invitaciones. Envíasela por WhatsApp una sola vez.</p>
       <div class="qrframe"><img src="/qr.png?t=${encodeURIComponent(s.qrToken)}" alt="QR del socio"></div>
       <a class="btn btn-sec btn-block" href="${socioUrl}" target="_blank">Abrir su página (probar)</a>` +
       shareBlock('Tu acceso de socio a la caseta. Dentro tienes tu QR y puedes pedir desde el móvil: ' + socioUrl, s.phone, socioUrl));
@@ -201,47 +201,24 @@ async function renderSocios(m) {
   }
 }
 
-// ---------- INVITACIONES ----------
+// ---------- INVITACIONES (supervisión: las crean los socios desde su app) ----------
 async function renderInvitaciones(m) {
-  const [socios, invs] = await Promise.all([api('/papi/socios'), api('/papi/invitations')]);
+  const invs = await api('/papi/invitations');
   m.innerHTML = `
     <div class="card">
-      <h2>Nueva invitación</h2>
-      ${socios.length ? `
-      <label>Socio que invita</label>
-      <select id="i_socio">${socios.filter(s=>s.status==='activo').map(s => `<option value="${s.id}">${esc(s.name ?? s.phone)}</option>`).join('')}</select>
-      <div class="grid2">
-        <div><label>Nombre del invitado</label><input id="i_name" placeholder="Ana López"></div>
-        <div><label>Su móvil <span style="color:#98a2b3">(opcional)</span></label><input id="i_phone" placeholder="698 765 432"></div>
-      </div>
-      <div class="grid2">
-        <div><label>Solo un día <span style="color:#98a2b3">(vacío = siempre)</span></label><input id="i_date" type="date"></div>
-        <div><label>Límite € <span style="color:#98a2b3">(vacío = sin límite)</span></label><input id="i_limit" placeholder="50" inputmode="decimal"></div>
-      </div>
-      <label>Acompañantes permitidos</label><input id="i_comp" type="number" min="0" max="10" value="0">
-      <button class="btn btn-primary" id="i_add">Crear invitación</button><div class="err" id="i_err"></div>
-      ` : '<p class="empty">Primero da de alta un socio en la pestaña Socios.</p>'}
+      <h2>Invitaciones de la caseta</h2>
+      <p class="empty" style="padding:4px 0 0">Cada socio invita desde su propia app (pestaña Socios → "Su app"). Aquí las ves todas y puedes cancelar cualquiera.</p>
     </div>
     <h2>Invitaciones · ${invs.length}</h2>
     <div class="card" id="i_list">${invs.length ? '' : '<p class="empty">Ninguna todavía.</p>'}</div>`;
-  if (socios.length) $('#i_add').onclick = async () => {
-    $('#i_err').textContent = '';
-    try {
-      const r = await post('/papi/invitations', {
-        socioId: $('#i_socio').value, guestName: $('#i_name').value, guestPhone: $('#i_phone').value,
-        date: $('#i_date').value || null, limit: $('#i_limit').value || null, companions: $('#i_comp').value,
-      });
-      dlg(`<h2>Invitación creada</h2><p class="mut">Compártela con el invitado: se registra con su selfie y recibe su QR al momento.</p>` + shareBlock(r.shareText, r.guestPhone, r.shareUrl));
-      render();
-    } catch (e) { $('#i_err').textContent = e.message; }
-  };
   const box = $('#i_list');
   for (const i of invs) {
     const row = document.createElement('div'); row.className = 'row';
     const st = { pendiente:'c-mut', aceptada:'c-ok', cancelada:'c-bad', rechazada:'c-bad' }[i.status] ?? 'c-mut';
     const gname = i.guest_name ?? i.guest_label ?? (i.guest_phone ? '+'+i.guest_phone : 'Invitado');
+    const tipo = i.can_order === false ? 'solo entrada' : 'con barra';
     row.innerHTML = `<div class="avatar">${initials(gname)}</div>
-      <div class="who"><b>${esc(gname)}</b><small>invita ${esc(i.socio_name ?? '')}</small></div>
+      <div class="who"><b>${esc(gname)}</b><small>invita ${esc(i.socio_name ?? '')} · ${tipo}</small></div>
       <span class="chip ${st}">${i.status}</span>
       <button class="btn btn-mini btn-soft">Compartir</button>
       ${['pendiente','aceptada'].includes(i.status) ? '<button class="btn btn-mini btn-sec">Cancelar</button>' : ''}`;

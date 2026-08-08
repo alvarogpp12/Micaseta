@@ -109,46 +109,6 @@
     </div>
   </div>
 
-  <div id="done" class="hidden">
-    <div class="card qrwrap">
-      <h3 id="doneName"></h3>
-      <p class="mut">Este es tu acceso. Haz una captura de pantalla o vuelve a abrir este enlace cuando lo necesites.</p>
-      <div class="divider"></div>
-      <div class="qrframe"><img id="qrImg" alt="Tu código QR"></div>
-      <p class="mut" id="compHint" style="margin-top:12px"></p>
-    </div>
-    <button class="btn btn-primary" id="openMenu">Pedir desde el móvil</button>
-  </div>
-
-  <!-- Menú interactivo para pedir -->
-  <div id="menu" class="hidden">
-    <div class="card" style="padding:16px">
-      <h3 style="margin-bottom:2px">Haz tu pedido</h3>
-      <p class="mut" id="menuSub"></p>
-      <div class="cats" id="cats"></div>
-      <div class="grid" id="grid"></div>
-    </div>
-  </div>
-
-  <div id="sent" class="hidden">
-    <div class="card qrwrap" style="text-align:center">
-      <p class="mut" style="font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-size:12px">Tu número</p>
-      <div class="bignum" id="sentNum"></div>
-      <div class="statuschip" id="sentStatus"></div>
-      <h3 id="sentTitle" style="margin-top:14px"></h3>
-      <p class="mut" id="sentSub"></p>
-      <button class="btn btn-sec" id="sentBack" style="margin-top:14px">Volver a mi QR</button>
-    </div>
-  </div>
-</div>
-
-<!-- Barra fija: total + Enviar pedido -->
-<div class="cartbar hidden" id="cartbar">
-  <div class="cartbar-in">
-    <div class="cinfo"><div class="cn" id="cartN"></div><div class="ct" id="cartT"></div></div>
-    <button class="btn btn-primary" id="sendOrder" style="width:auto;margin:0;padding:13px 20px">Enviar pedido</button>
-  </div>
-  <div class="err" id="cartErr" style="max-width:420px;margin:0 auto"></div>
 </div>
 <script>
 const $ = (id) => document.getElementById(id);
@@ -183,12 +143,9 @@ async function load() {
   $('invite').classList.remove('hidden');
 }
 
-function showQr(name, qrToken, maxComp) {
-  $('invite').classList.add('hidden');
-  $('done').classList.remove('hidden');
-  $('doneName').textContent = `Listo, ${name}`;
-  $('qrImg').src = '/qr.png?t=' + encodeURIComponent(qrToken);
-  if (maxComp > 0) $('compHint').textContent = `Puedes traer hasta ${maxComp} acompañantes: pide al socio que cree sus invitaciones.`;
+// Registrado → su app de cliente (/mi/): ahí vive su QR y, si puede, pedir.
+function showQr(name, qrToken) {
+  location.replace('/mi/?t=' + encodeURIComponent(qrToken));
 }
 
 $('g_take').onclick = () => $('g_file').click();
@@ -211,119 +168,6 @@ $('g_file').addEventListener('change', () => {
   };
   reader.readAsDataURL(f);
 });
-
-// ---- Menú interactivo: tocar añade, − quita, Enviar pedido ----
-const eur = (c) => (c/100).toLocaleString('es-ES', { minimumFractionDigits:2, maximumFractionDigits:2 }) + ' €';
-const CAT_LABELS = { cerveza:'Cervezas', vino:'Vinos', refresco:'Refrescos', copa:'Copas', botella:'Botellas', comida:'Comida', general:'Otros' };
-let menuProducts = [], menuQty = {}, menuCat = null;
-
-$('openMenu').onclick = async () => {
-  const r = await fetch('/gapi/carta?t=' + encodeURIComponent(t));
-  const data = await r.json().catch(() => ({}));
-  if (!r.ok) { alert(data.error || 'No se pudo cargar la carta'); return; }
-  menuProducts = data.products;
-  const ORDER = ['cerveza','vino','refresco','copa','botella','comida'];
-  menuProducts.sort((a, b) => (ORDER.indexOf(a.category) - ORDER.indexOf(b.category)) || a.name.localeCompare(b.name));
-  $('menuSub').textContent = data.remainingCents === null
-    ? `A cuenta de ${data.socio ?? 'tu socio'} · sin límite`
-    : `A cuenta de ${data.socio ?? 'tu socio'} · te quedan ${eur(data.remainingCents)}`;
-  $('done').classList.add('hidden');
-  $('menu').classList.remove('hidden');
-  $('cartbar').classList.remove('hidden');
-  document.body.classList.add('menu-open');
-  renderCats(); renderGrid(); updateCart();
-};
-
-function renderCats() {
-  const cats = [...new Set(menuProducts.map(p => p.category))];
-  if (!cats.includes(menuCat)) menuCat = cats[0] ?? null;
-  const box = $('cats'); box.innerHTML = '';
-  for (const c of cats) {
-    const b = document.createElement('button');
-    b.textContent = CAT_LABELS[c] ?? c;
-    if (c === menuCat) b.classList.add('on');
-    b.onclick = () => { menuCat = c; renderCats(); renderGrid(); };
-    box.appendChild(b);
-  }
-}
-
-function renderGrid() {
-  const box = $('grid'); box.innerHTML = '';
-  for (const p of menuProducts.filter(x => x.category === menuCat)) {
-    const n = menuQty[p.id] || 0;
-    const tile = document.createElement('div');
-    tile.className = 'tile' + (n ? ' sel' : '');
-    tile.innerHTML = `<span class="tn">${p.name}</span><span class="tp">${eur(p.price_cents)}</span>
-      ${n ? `<span class="qn">${n}</span><div class="tstep"><button class="rm">−</button><button class="ad">＋</button></div>` : ''}`;
-    const add = () => { menuQty[p.id] = (menuQty[p.id] || 0) + 1; renderGrid(); updateCart(); };
-    tile.onclick = (ev) => { if (ev.target.closest('.tstep')) return; add(); };
-    const rm = tile.querySelector('.rm');
-    if (rm) rm.onclick = (ev) => { ev.stopPropagation(); menuQty[p.id] = Math.max(0, (menuQty[p.id] || 0) - 1); renderGrid(); updateCart(); };
-    const ad = tile.querySelector('.ad');
-    if (ad) ad.onclick = (ev) => { ev.stopPropagation(); add(); };
-    box.appendChild(tile);
-  }
-}
-
-function updateCart() {
-  const n = Object.values(menuQty).reduce((a, b) => a + b, 0);
-  let total = 0;
-  for (const p of menuProducts) total += (menuQty[p.id] || 0) * p.price_cents;
-  $('cartN').textContent = n === 0 ? 'Toca productos para añadirlos' : `${n} artículo${n === 1 ? '' : 's'}`;
-  $('cartT').textContent = eur(total);
-  $('sendOrder').disabled = n === 0;
-  $('sendOrder').style.opacity = n === 0 ? '.45' : '1';
-}
-
-$('sendOrder').onclick = async () => {
-  const items = Object.entries(menuQty).filter(([, q]) => q > 0).map(([productId, q]) => ({ productId: Number(productId), qty: q }));
-  if (!items.length) return;
-  $('sendOrder').disabled = true; $('cartErr').textContent = '';
-  const r = await fetch('/gapi/pedido', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ t, items }) });
-  const data = await r.json().catch(() => ({}));
-  if (!r.ok) { $('cartErr').textContent = data.error || 'Error'; $('sendOrder').disabled = false; return; }
-  menuQty = {};
-  $('menu').classList.add('hidden'); $('cartbar').classList.add('hidden');
-  document.body.classList.remove('menu-open');
-  $('sent').classList.remove('hidden');
-  $('sentTitle').textContent = `Pedido enviado · ${eur(data.totalCents)}`;
-  $('sendOrder').disabled = false;
-  trackOrder(data.orderId, data.pickupNumber, data.socioName);
-};
-
-// Seguimiento: cuando esté listo, tu número sale en la pantalla de la caseta
-let trackTimer = null;
-function setSentState(status, socioName) {
-  $('sent').classList.toggle('sent-ready', status === 'lista');
-  if (status === 'lista') {
-    $('sentStatus').textContent = '¡Listo! Recógelo en la barra';
-    $('sentSub').textContent = 'Tu número está en la pantalla de la caseta.';
-    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-  } else if (status === 'servida') {
-    $('sentStatus').textContent = 'Entregado · ¡que aproveche!';
-    $('sentSub').textContent = `Cargado a la cuenta de ${socioName ?? 'tu socio'}.`;
-  } else {
-    $('sentStatus').textContent = 'En preparación…';
-    $('sentSub').textContent = `Va a la cuenta de ${socioName ?? 'tu socio'}. Cuando esté listo, tu número saldrá en la pantalla de la caseta y te avisaremos aquí.`;
-  }
-}
-function trackOrder(orderId, pickupNumber, socioName) {
-  $('sentNum').textContent = pickupNumber ?? '—';
-  setSentState('pendiente', socioName);
-  clearInterval(trackTimer);
-  trackTimer = setInterval(async () => {
-    if ($('sent').classList.contains('hidden')) { clearInterval(trackTimer); return; }
-    try {
-      const r = await fetch(`/gapi/pedido-estado?t=${encodeURIComponent(t)}&id=${orderId}`);
-      if (!r.ok) return;
-      const st = await r.json();
-      setSentState(st.status, socioName);
-      if (st.status === 'servida') clearInterval(trackTimer);
-    } catch { /* reintenta */ }
-  }, 5000);
-}
-
-$('sentBack').onclick = () => { clearInterval(trackTimer); $('sent').classList.add('hidden'); $('done').classList.remove('hidden'); };
 
 $('g_go').onclick = async () => {
   $('g_err').textContent = '';

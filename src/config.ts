@@ -23,11 +23,24 @@ export const config = {
   waProvider: (process.env.WA_PROVIDER ?? 'mock') as 'mock' | 'baileys' | 'cloud',
   databaseUrl: process.env.DATABASE_URL || undefined,
   dataDir: 'data',
+  // Login con Google (One Tap / botón). Sin client id, el botón no se muestra.
+  googleClientId: process.env.GOOGLE_CLIENT_ID ?? '',
+  // Modo demo (/demo/camarero, /demo/puerta): crea una caseta de prueba en la
+  // base de datos. Activado por defecto solo sin Postgres real, para no
+  // ensuciar producción; forzable con DEMO_MODE=1/0.
+  demoEnabled: process.env.DEMO_MODE ? process.env.DEMO_MODE === '1' : !process.env.DATABASE_URL,
   // WhatsApp Business Cloud API (proveedor 'cloud')
   whatsappToken: process.env.WHATSAPP_TOKEN ?? '',
   whatsappPhoneId: process.env.WHATSAPP_PHONE_ID ?? '',
   whatsappVerifyToken: process.env.WHATSAPP_VERIFY_TOKEN ?? 'micaseta-verify',
 };
+
+if (process.env.VERCEL && !process.env.JWT_SECRET) {
+  console.error('⚠️ JWT_SECRET sin configurar en producción: los QR y sesiones usan el secreto de desarrollo.');
+}
+if (process.env.VERCEL && !process.env.DATABASE_URL) {
+  console.error('⚠️ DATABASE_URL sin configurar: la base de datos es efímera y se pierde en cada arranque.');
+}
 
 /**
  * Normaliza un teléfono a dígitos con prefijo de país (formato JID de WhatsApp).

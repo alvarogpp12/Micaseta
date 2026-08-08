@@ -43,8 +43,10 @@ export async function createServer({ db, mock, cloud }: ServerDeps) {
   registerPanelRoutes(app, db);
 
   // ---- Modo demo: entrar como camarero o puerta sin dar nada de alta ----
+  // Desactivado con base de datos real para no ensuciar producción (DEMO_MODE lo fuerza).
 
   app.get('/demo/:rol', async (req, reply) => {
+    if (!config.demoEnabled) return reply.redirect('/');
     const rol = (req.params as any).rol === 'puerta' ? 'puerta' : 'camarero';
     await demo.ensureDemoCaseta(db);
     const staff = await users.findByPhone(db, demo.demoStaffPhone(rol));
@@ -56,6 +58,7 @@ export async function createServer({ db, mock, cloud }: ServerDeps) {
   });
 
   app.get('/api/demo-qrs', async (req, reply) => {
+    if (!config.demoEnabled) return [];
     const staff = await staffFromRequest(req);
     if (!staff?.caseta_id) return [];
     return demo.demoTokens(db, staff.caseta_id);
@@ -123,6 +126,10 @@ export async function createServer({ db, mock, cloud }: ServerDeps) {
     const { qr } = req.body as { qr?: string };
     const person = qr ? await verifyQrToken(db, qr) : null;
     if (!person) return reply.code(404).send({ error: 'QR no válido o revocado' });
+    // Un QR de otra caseta no vale aquí (multi-tenant)
+    if (person.caseta_id !== staff.caseta_id) {
+      return reply.code(404).send({ error: 'Ese QR no es de esta caseta' });
+    }
     const access = await invitations.checkAccess(db, person);
     return {
       userId: person.id,
@@ -147,6 +154,9 @@ export async function createServer({ db, mock, cloud }: ServerDeps) {
     const { qr } = req.body as { qr?: string };
     const person = qr ? await verifyQrToken(db, qr) : null;
     if (!person) return reply.code(404).send({ error: 'QR no válido o revocado' });
+    if (person.caseta_id !== staff.caseta_id) {
+      return reply.code(404).send({ error: 'Ese QR no es de esta caseta' });
+    }
     const access = await invitations.checkAccess(db, person);
     if (!access.ok) return reply.code(403).send({ error: access.reason });
     await db.query('INSERT INTO checkins (user_id, invitation_id, door_user_id) VALUES ($1, $2, $3)', [
@@ -162,7 +172,8 @@ export async function createServer({ db, mock, cloud }: ServerDeps) {
   app.get('/api/products', async (req, reply) => {
     const staff = await staffFromRequest(req);
     if (!staff) return reply.code(401).send({ error: 'no-session' });
-    return orders.listProducts(db);
+    // Solo la carta de SU caseta
+    return orders.listProducts(db, staff.caseta_id);
   });
 
   app.post('/api/orders', async (req, reply) => {
@@ -173,6 +184,9 @@ export async function createServer({ db, mock, cloud }: ServerDeps) {
     const { qr, items } = req.body as { qr?: string; items?: { productId: number; qty: number }[] };
     const person = qr ? await verifyQrToken(db, qr) : null;
     if (!person) return reply.code(404).send({ error: 'QR no válido o revocado' });
+    if (person.caseta_id !== staff.caseta_id) {
+      return reply.code(404).send({ error: 'Ese QR no es de esta caseta' });
+    }
     const result = await orders.createOrder(db, person, staff, items ?? []);
     if (!result.ok) return reply.code(422).send({ error: result.error });
     return result;

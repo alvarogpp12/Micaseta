@@ -54,6 +54,37 @@ export function registerPanelRoutes(app: FastifyInstance, db: DB): void {
     return { ok: true };
   });
 
+  /**
+   * Login/registro con Google. Con cuenta existente inicia sesión; sin cuenta,
+   * si viene casetaName la crea, y si no, pide al front el nombre de la caseta.
+   */
+  app.post('/papi/google', async (req, reply) => {
+    const body = req.body as any;
+    const profile = await accounts.verifyGoogleCredential(String(body?.credential ?? ''));
+    if (!profile) return reply.code(401).send({ error: 'No pudimos verificar tu cuenta de Google' });
+    let account = await accounts.loginWithGoogle(db, profile);
+    if (!account) {
+      const casetaName = String(body?.casetaName ?? '').trim();
+      if (!casetaName) return { ok: false, needsCaseta: true, name: profile.name, email: profile.email };
+      const result = await accounts.registerCaseta(db, {
+        casetaName,
+        ownerName: profile.name,
+        email: profile.email,
+        google: profile,
+      });
+      if (!result.ok) return reply.code(422).send({ error: result.error });
+      account = result.account;
+    }
+    setSession(reply, accounts.signPanelSession(account));
+    return { ok: true };
+  });
+
+  /** Config pública para las páginas (sin datos sensibles). */
+  app.get('/gapi/config', async () => ({
+    googleClientId: config.googleClientId || null,
+    demo: config.demoEnabled,
+  }));
+
   app.post('/papi/logout', async (_req, reply) => {
     reply.clearCookie(COOKIE, { path: '/' });
     return { ok: true };
@@ -353,36 +384,65 @@ export function registerPanelRoutes(app: FastifyInstance, db: DB): void {
     return { ok: true, qrToken: signQrToken(result.guest), name: result.guest.name };
   });
 
-  /** Carta pública para que el cliente pida desde su móvil (link de invitación). */
-  app.get('/gapi/carta', async (req, reply) => {
-    const inv = await invitations.invitationFromToken(db, String((req.query as any).t ?? ''));
-    if (!inv || inv.status !== 'aceptada' || !inv.guest_id) {
-      return reply.code(404).send({ error: 'Invitación no activa' });
-    }
-    const guest = await users.findById(db, inv.guest_id);
-    if (!guest) return reply.code(404).send({ error: 'Invitado no encontrado' });
-    const access = await invitations.checkAccess(db, guest);
-    if (!access.ok) return reply.code(403).send({ error: access.reason });
-    const products = await orders.listProducts(db, inv.caseta_id);
-    return {
-      products,
-      remainingCents: access.remainingCents,
-      spendLimitCents: access.spendLimitCents,
-      socio: access.hostName,
+  // ---- App Cliente (/mi/): socio e invitado, misma app, pestañas según rol ----
+
+  /** Identifica al cliente (socio o invitado) por su token QR firmado y revocable. */
+  async function clientFromToken(t: string) {
+    const user = await verifyQrToken(db, t);
+    if (!user || (user.role !== 'socio' && user.role !== 'invitado')) return null;
+    if (user.status !== 'activo') return null;
+    return user;
+  }
+
+  /** Todo lo que la App Cliente necesita pintar, según quién eres. */
+  app.get('/gapi/mi', async (req, reply) => {
+    const t = String((req.query as any).t ?? '');
+    const user = await clientFromToken(t);
+    if (!user) return reply.code(404).send({ error: 'Acceso no válido o suspendido' });
+    const caseta = user.caseta_id ? await accounts.getCaseta(db, user.caseta_id) : null;
+    const access = await invitations.checkAccess(db, user);
+    const canOrder = access.ok && access.canOrder;
+
+    const payload: Record<string, unknown> = {
+      role: user.role,
+      name: user.name,
+      caseta: caseta?.name ?? 'Micaseta',
+      qrToken: t,
+      accessOk: access.ok,
+      accessReason: access.reason,
+      canOrder,
+      products: canOrder ? await orders.listProducts(db, user.caseta_id) : [],
     };
+
+    if (user.role === 'socio') {
+      payload.gastos = await orders.gastosSocio(db, user.id);
+      const base = requestBaseUrl(req);
+      payload.invitaciones = (await invitations.listBySocio(db, user.id)).map((inv) => ({
+        id: inv.id,
+        status: inv.status,
+        guestName: inv.guest_name ?? inv.guest_label ?? null,
+        canOrder: inv.can_order,
+        spendLimitCents: inv.spend_limit_cents,
+        validDate: inv.valid_date,
+        shareUrl: invitations.inviteUrl(inv.id, base),
+        shareText: invitations.inviteShareText(inv, caseta?.name ?? 'la caseta', user.name ?? 'Un socio', base),
+      }));
+    } else {
+      payload.hostName = access.hostName;
+      payload.spendLimitCents = access.spendLimitCents;
+      payload.spentCents = access.spentCents;
+      payload.remainingCents = access.remainingCents;
+    }
+    return payload;
   });
 
-  /** El cliente envía su pedido: queda pendiente hasta que un camarero lo sirva. */
-  app.post('/gapi/pedido', async (req, reply) => {
+  /** Pedido desde el móvil (socio o invitado con barra): queda pendiente. */
+  app.post('/gapi/mi/pedido', async (req, reply) => {
     const body = req.body as any;
-    const inv = await invitations.invitationFromToken(db, String(body?.t ?? ''));
-    if (!inv || inv.status !== 'aceptada' || !inv.guest_id) {
-      return reply.code(404).send({ error: 'Invitación no activa' });
-    }
-    const guest = await users.findById(db, inv.guest_id);
-    if (!guest) return reply.code(404).send({ error: 'Invitado no encontrado' });
+    const user = await clientFromToken(String(body?.t ?? ''));
+    if (!user) return reply.code(404).send({ error: 'Acceso no válido' });
     const items = Array.isArray(body?.items) ? body.items : [];
-    const result = await orders.createOrder(db, guest, null, items);
+    const result = await orders.createOrder(db, user, null, items);
     if (!result.ok) return reply.code(422).send({ error: result.error });
     return {
       ok: true,
@@ -393,57 +453,70 @@ export function registerPanelRoutes(app: FastifyInstance, db: DB): void {
     };
   });
 
-  /** El invitado sigue el estado de su pedido (¿ya está listo?). */
-  app.get('/gapi/pedido-estado', async (req, reply) => {
+  /** Seguimiento del pedido propio (¿ya está listo?). */
+  app.get('/gapi/mi/pedido-estado', async (req, reply) => {
     const q = req.query as any;
-    const inv = await invitations.invitationFromToken(db, String(q.t ?? ''));
-    if (!inv || !inv.guest_id) return reply.code(404).send({ error: 'Invitación no activa' });
-    const ticket = await orders.orderTicket(db, Number(q.id), inv.guest_id);
-    if (!ticket) return reply.code(404).send({ error: 'Pedido no encontrado' });
-    return ticket;
-  });
-
-  /** Página personal del socio (token = su QR firmado y revocable): su QR + pedir. */
-  app.get('/gapi/socio', async (req, reply) => {
-    const t = String((req.query as any).t ?? '');
-    const user = await verifyQrToken(db, t);
-    if (!user || user.role !== 'socio') return reply.code(404).send({ error: 'Acceso no válido' });
-    if (user.status !== 'activo') return reply.code(403).send({ error: 'Acceso suspendido' });
-    const caseta = user.caseta_id ? await accounts.getCaseta(db, user.caseta_id) : null;
-    const products = await orders.listProducts(db, user.caseta_id);
-    const pend = await one<{ total: number }>(
-      db,
-      'SELECT COALESCE(SUM(total_cents), 0)::int AS total FROM orders WHERE socio_id = $1 AND NOT settled',
-      [user.id],
-    );
-    return {
-      name: user.name,
-      caseta: caseta?.name ?? 'Micaseta',
-      qrToken: t,
-      products,
-      pendingCents: pend!.total,
-    };
-  });
-
-  /** El socio envía su propio pedido: pendiente hasta que el camarero lo sirve. */
-  app.post('/gapi/socio/pedido', async (req, reply) => {
-    const body = req.body as any;
-    const user = await verifyQrToken(db, String(body?.t ?? ''));
-    if (!user || user.role !== 'socio') return reply.code(404).send({ error: 'Acceso no válido' });
-    const items = Array.isArray(body?.items) ? body.items : [];
-    const result = await orders.createOrder(db, user, null, items);
-    if (!result.ok) return reply.code(422).send({ error: result.error });
-    return { ok: true, orderId: result.orderId, totalCents: result.totalCents, pickupNumber: result.pickupNumber };
-  });
-
-  /** El socio sigue el estado de su pedido (¿ya está listo?). */
-  app.get('/gapi/socio/pedido-estado', async (req, reply) => {
-    const q = req.query as any;
-    const user = await verifyQrToken(db, String(q.t ?? ''));
-    if (!user || user.role !== 'socio') return reply.code(404).send({ error: 'Acceso no válido' });
+    const user = await clientFromToken(String(q.t ?? ''));
+    if (!user) return reply.code(404).send({ error: 'Acceso no válido' });
     const ticket = await orders.orderTicket(db, Number(q.id), user.id);
     if (!ticket) return reply.code(404).send({ error: 'Pedido no encontrado' });
     return ticket;
+  });
+
+  /** El socio crea una invitación desde su app: con barra o solo entrada. */
+  app.post('/gapi/mi/invitar', async (req, reply) => {
+    const body = req.body as any;
+    const user = await clientFromToken(String(body?.t ?? ''));
+    if (!user || user.role !== 'socio') return reply.code(403).send({ error: 'Solo los socios invitan' });
+    const guestLabel = String(body?.guestName ?? '').trim();
+    if (!guestLabel) return reply.code(422).send({ error: 'Dinos el nombre de tu invitado' });
+    const guestPhone = body?.guestPhone ? normalizePhone(String(body.guestPhone)) : null;
+    const canOrder = body?.type !== 'entrada';
+
+    let spendLimitCents: number | null = null;
+    if (canOrder && body?.limit) {
+      spendLimitCents = parseEuros(String(body.limit));
+      if (spendLimitCents === null) return reply.code(422).send({ error: 'Límite no válido (ej: 50)' });
+    }
+    let accessMode: 'fecha' | 'siempre' = 'siempre';
+    let validDate: string | null = null;
+    if (body?.date) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(body.date))) return reply.code(422).send({ error: 'Fecha no válida' });
+      if (String(body.date) < todayStr()) return reply.code(422).send({ error: 'Esa fecha ya pasó' });
+      accessMode = 'fecha';
+      validDate = String(body.date);
+    }
+
+    const inv = await invitations.createInvitation(db, {
+      socioId: user.id,
+      casetaId: user.caseta_id,
+      guestPhone,
+      guestLabel,
+      accessMode,
+      validDate,
+      spendLimitCents,
+      canOrder,
+    });
+    const caseta = user.caseta_id ? await accounts.getCaseta(db, user.caseta_id) : null;
+    const base = requestBaseUrl(req);
+    return {
+      ok: true,
+      id: inv.id,
+      shareUrl: invitations.inviteUrl(inv.id, base),
+      shareText: invitations.inviteShareText(inv, caseta?.name ?? 'la caseta', user.name ?? 'Un socio', base),
+      guestPhone: guestPhone ? formatPhone(guestPhone) : null,
+    };
+  });
+
+  /** El socio cancela una invitación suya. */
+  app.post('/gapi/mi/invitaciones/:id/cancelar', async (req, reply) => {
+    const body = req.body as any;
+    const user = await clientFromToken(String(body?.t ?? ''));
+    if (!user || user.role !== 'socio') return reply.code(403).send({ error: 'Solo los socios' });
+    const inv = await invitations.getInvitation(db, Number((req.params as any).id));
+    if (!inv || inv.socio_id !== user.id) return reply.code(404).send({ error: 'No existe' });
+    await invitations.cancel(db, inv.id);
+    return { ok: true };
   });
 
   /** Imagen PNG del QR (el token firmado ES el secreto, se puede servir sin cookie). */

@@ -13,7 +13,8 @@ export interface Account {
   caseta_id: number;
   name: string;
   email: string;
-  password_hash: string;
+  password_hash: string | null; // NULL = cuenta creada con Google
+  google_sub: string | null;
   created_at: string | Date;
 }
 
@@ -41,6 +42,7 @@ export interface Invitation {
   access_mode: 'fecha' | 'siempre';
   valid_date: string | null;
   spend_limit_cents: number | null;
+  can_order: boolean;
   max_companions: number;
   created_at: string | Date;
   cancelled_at: string | Date | null;
@@ -62,6 +64,7 @@ export interface AccessInfo {
   user: User;
   invitation: Invitation | null;
   hostName: string | null;
+  canOrder: boolean; // false = invitación "solo entrada"
   spendLimitCents: number | null; // null = abierto
   spentCents: number;
   remainingCents: number | null; // null = abierto

@@ -11,12 +11,14 @@ CREATE TABLE IF NOT EXISTS casetas (
 );
 
 -- Login web del panel (dueños/gestores de la caseta).
+-- password_hash NULL = cuenta creada con Google (google_sub identifica).
 CREATE TABLE IF NOT EXISTS accounts (
   id            BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   caseta_id     BIGINT NOT NULL REFERENCES casetas(id),
   name          TEXT NOT NULL,
   email         TEXT NOT NULL UNIQUE,
-  password_hash TEXT NOT NULL,
+  password_hash TEXT,
+  google_sub    TEXT UNIQUE,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -46,6 +48,7 @@ CREATE TABLE IF NOT EXISTS invitations (
   access_mode       TEXT NOT NULL DEFAULT 'siempre' CHECK (access_mode IN ('fecha','siempre')),
   valid_date        TEXT,                      -- YYYY-MM-DD; comparación por string
   spend_limit_cents INTEGER,                   -- NULL = sin límite (paga el socio igualmente)
+  can_order         BOOLEAN NOT NULL DEFAULT true, -- false = invitado "solo entrada": QR sin barra
   max_companions    INTEGER NOT NULL DEFAULT 0,
   created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
   cancelled_at      TIMESTAMPTZ
@@ -108,6 +111,9 @@ ALTER TABLE orders ALTER COLUMN waiter_id DROP NOT NULL;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS pickup_number INTEGER;
 ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_status_check;
 ALTER TABLE orders ADD CONSTRAINT orders_status_check CHECK (status IN ('pendiente','lista','servida'));
+ALTER TABLE invitations ADD COLUMN IF NOT EXISTS can_order BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE accounts ADD COLUMN IF NOT EXISTS google_sub TEXT UNIQUE;
+ALTER TABLE accounts ALTER COLUMN password_hash DROP NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_users_caseta ON users(caseta_id, role);
 CREATE INDEX IF NOT EXISTS idx_invitations_guest ON invitations(guest_phone, status);
