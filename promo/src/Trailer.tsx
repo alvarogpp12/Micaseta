@@ -8,13 +8,14 @@ export const TRAILER_FPS = 30;
 export const TRAILER_DURATION = 1320; // 44s
 
 // ---------- fuente ----------
+import { INTER_DATA_URI } from './inter-font';
+
+// Fuente incrustada como data URI: la carga es local al proceso del navegador,
+// no depende de la red del bundle y no puede colgarse entre pestañas.
 if (typeof document !== 'undefined') {
   const handle = delayRender('font');
-  let cleared = false;
-  const done = () => { if (!cleared) { cleared = true; continueRender(handle); } };
-  const font = new FontFace('Inter', `url(${staticFile('Inter.woff2')}) format('woff2')`, { weight: '100 900' } as FontFaceDescriptors);
-  font.load().then((f) => { (document as any).fonts.add(f); done(); }).catch(done);
-  setTimeout(done, 12000); // failsafe: nunca bloquear el render por la fuente
+  const font = new FontFace('Inter', `url(${INTER_DATA_URI}) format('woff2')`, { weight: '100 900' } as FontFaceDescriptors);
+  font.load().then((f) => { (document as any).fonts.add(f); continueRender(handle); }).catch(() => continueRender(handle));
 }
 
 // ---------- tokens ----------
