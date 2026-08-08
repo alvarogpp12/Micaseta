@@ -61,7 +61,7 @@ export async function invitationFromToken(db: DB, token: string): Promise<Invita
 }
 
 export function inviteUrl(invitationId: number, baseUrl: string = config.baseUrl): string {
-  return `${baseUrl}/invitacion/?t=${signInviteToken(invitationId)}`;
+  return `${baseUrl}/app/?i=${signInviteToken(invitationId)}`;
 }
 
 /** Texto listo para compartir por WhatsApp (wa.me) con el link dentro. */
