@@ -36,8 +36,8 @@ export async function createServer({ db, mock, cloud }: ServerDeps) {
 
   app.get('/health', () => ({ ok: true }));
 
-  // Cada puesto tiene su propia interfaz con el mismo diseño
-  const staffHome = (role: string) => (role === 'puerta' ? '/puerta/' : '/camarero/');
+  // La app única resuelve el rol al abrir: staff aterriza directamente en su vista
+  const staffHome = (_role: string) => '/app/';
 
   // Panel web de la caseta + registro público de invitados
   registerPanelRoutes(app, db);

@@ -54,7 +54,7 @@
 <body>
 <div class="topbar"><div class="topbar-in">
   <span class="wordmark">micaseta<i>.</i></span>
-  <button class="btn btn-sec" id="navLogin">Entrar</button>
+  <a class="btn btn-sec" href="/app/">Entrar</a>
 </div></div>
 
 <div class="wrap">
@@ -63,47 +63,9 @@
     <h1>Tu caseta, sin listas en papel</h1>
     <p class="sub">Socios, invitados con acceso QR, comandas a cuenta de cada socio y las cuentas claras al cierre. Todo desde el móvil.</p>
     <div class="cta-row">
-      <button class="btn btn-primary" id="ctaRegister">Registrar mi caseta</button>
+      <a class="btn btn-primary" href="/app/">Registrar mi caseta</a>
       <a class="btn btn-sec" href="#features">Cómo funciona</a>
     </div>
-  </div>
-
-  <div class="card hidden" id="formRegister">
-    <h2>Crea tu caseta</h2>
-    <p class="hint">Gratis. Menos de un minuto.</p>
-    <div id="g_register" class="gwrap"></div>
-    <label>Nombre de la caseta</label>
-    <input id="r_caseta" placeholder="Er Compás">
-    <label>Tu nombre</label>
-    <input id="r_name" placeholder="Álvaro García">
-    <label>Email</label>
-    <input id="r_email" type="email" placeholder="tu@email.com" autocomplete="email">
-    <label>Contraseña</label>
-    <input id="r_pass" type="password" placeholder="Mínimo 8 caracteres" autocomplete="new-password">
-    <button class="btn btn-primary btn-block" id="doRegister" style="margin-top:20px">Crear caseta</button>
-    <div class="err" id="r_err"></div>
-  </div>
-
-  <div class="card hidden" id="formLogin">
-    <h2>Entrar</h2>
-    <p class="hint">Accede al panel de tu caseta.</p>
-    <div id="g_login" class="gwrap"></div>
-    <label>Email</label>
-    <input id="l_email" type="email" autocomplete="email">
-    <label>Contraseña</label>
-    <input id="l_pass" type="password" autocomplete="current-password">
-    <button class="btn btn-primary btn-block" id="doLogin" style="margin-top:20px">Entrar</button>
-    <div class="err" id="l_err"></div>
-  </div>
-
-  <!-- Con Google sin caseta aún: solo falta el nombre de la caseta -->
-  <div class="card hidden" id="formGoogleCaseta">
-    <h2>Ya casi está</h2>
-    <p class="hint" id="gc_hint"></p>
-    <label>Nombre de tu caseta</label>
-    <input id="gc_caseta" placeholder="Er Compás">
-    <button class="btn btn-primary btn-block" id="gc_go" style="margin-top:20px">Crear caseta</button>
-    <div class="err" id="gc_err"></div>
   </div>
 
   <div class="features" id="features">
@@ -138,77 +100,14 @@
     </div>
   </div>
 
-  <footer>¿Trabajas en la caseta? <a href="/staff/">Acceso para camareros y puerta</a></footer>
+  <footer>¿Trabajas en la caseta? <a href="/app/">Abre tu acceso</a></footer>
 </div>
 <script>
-const $ = (id) => document.getElementById(id);
-const show = (id) => { $('formRegister').classList.add('hidden'); $('formLogin').classList.add('hidden'); $(id).classList.remove('hidden'); $(id).scrollIntoView({behavior:'smooth', block:'center'}); };
-$('ctaRegister').onclick = () => show('formRegister');
-$('navLogin').onclick = () => show('formLogin');
-
-async function post(path, body) {
-  const r = await fetch(path, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
-  const data = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(data.error || 'Error');
-  return data;
-}
-$('doRegister').onclick = async () => {
-  $('r_err').textContent = '';
-  try {
-    await post('/papi/register', { casetaName:$('r_caseta').value, ownerName:$('r_name').value, email:$('r_email').value, password:$('r_pass').value });
-    location.href = '/panel/';
-  } catch (e) { $('r_err').textContent = e.message; }
-};
-$('doLogin').onclick = async () => {
-  $('l_err').textContent = '';
-  try { await post('/papi/login', { email:$('l_email').value, password:$('l_pass').value }); location.href = '/panel/'; }
-  catch (e) { $('l_err').textContent = e.message; }
-};
-
-// ---- Login con Google (se activa solo si el servidor tiene GOOGLE_CLIENT_ID) ----
-let googleCredential = null;
-async function onGoogle(resp) {
-  googleCredential = resp.credential;
-  try {
-    const r = await post('/papi/google', { credential: googleCredential });
-    if (r.needsCaseta) {
-      $('gc_hint').textContent = `Hola, ${r.name}. Ponle nombre a tu caseta y listo.`;
-      ['formRegister','formLogin'].forEach(id => $(id).classList.add('hidden'));
-      $('formGoogleCaseta').classList.remove('hidden');
-      $('formGoogleCaseta').scrollIntoView({ behavior:'smooth', block:'center' });
-      return;
-    }
-    location.href = '/panel/';
-  } catch (e) { $('l_err').textContent = $('r_err').textContent = e.message; }
-}
-$('gc_go').onclick = async () => {
-  $('gc_err').textContent = '';
-  try {
-    await post('/papi/google', { credential: googleCredential, casetaName: $('gc_caseta').value });
-    location.href = '/panel/';
-  } catch (e) { $('gc_err').textContent = e.message; }
-};
-
-async function initGoogle() {
-  try {
-    const cfg = await (await fetch('/gapi/config')).json();
-    if (cfg.demo) $('demoCard').classList.remove('hidden');
-    if (!cfg.googleClientId) return;
-    const s = document.createElement('script');
-    s.src = 'https://accounts.google.com/gsi/client';
-    s.onload = () => {
-      google.accounts.id.initialize({ client_id: cfg.googleClientId, callback: onGoogle });
-      for (const id of ['g_register','g_login']) {
-        google.accounts.id.renderButton($(id), { theme:'outline', size:'large', width: 280, text:'continue_with', locale:'es' });
-        const sep = document.createElement('div'); sep.className = 'gsep'; sep.textContent = 'o con tu email';
-        $(id).after(sep);
-      }
-    };
-    document.head.appendChild(s);
-  } catch {}
-}
-initGoogle();
-fetch('/papi/me').then(r => { if (r.ok) location.href = '/panel/'; });
+// La app única vive en /app: aquí solo marketing.
+fetch('/gapi/config').then(r => r.json()).then(cfg => {
+  if (cfg.demo) document.getElementById('demoCard').classList.remove('hidden');
+}).catch(() => {});
+fetch('/papi/me').then(r => { if (r.ok) location.href = '/app/'; });
 </script>
 </body>
 </html>
