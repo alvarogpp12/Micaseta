@@ -137,8 +137,20 @@ async function renderResumen(m) {
       <div class="kpi"><div class="l">Pendiente de liquidar</div><div class="v">${eur(o.pendienteCents)}</div></div>
       <div class="kpi"><div class="l">Socios · Invitados</div><div class="v">${o.counts.socios} · ${o.counts.invitados}</div></div>
     </div>
+    <div class="card">
+      <h2>Pantalla de pedidos (TV)</h2>
+      <p class="empty" style="padding:4px 0 0">Ábrela en la tele de la caseta: muestra los números en preparación y los listos para recoger, como en una hamburguesería.</p>
+      <button class="btn btn-sec btn-block" id="tvBtn">Abrir / compartir pantalla</button>
+    </div>
     <h2>Cuentas por socio</h2>
     <div class="card" id="cuentas">${o.cuentas.length ? '' : '<p class="empty">Aún no hay consumo registrado. Empieza dando de alta socios y creando invitaciones.</p>'}</div>`;
+  $('#tvBtn').onclick = async () => {
+    const r = await api('/papi/tv-link');
+    dlg(`<h2>Pantalla de pedidos</h2><p class="mut">Abre este enlace en el navegador de la TV de la caseta (o de cualquier tablet). Se actualiza sola.</p>
+      <a class="btn btn-primary btn-block" style="color:#fff;text-decoration:none" href="${r.url}" target="_blank">Abrir pantalla</a>
+      <button class="btn btn-sec btn-block" onclick="navigator.clipboard.writeText(${JSON.stringify(r.url).replace(/"/g,'&quot;')});this.textContent='Copiado'">Copiar enlace</button>
+      <div class="share">${esc(r.url)}</div>`);
+  };
   const box = $('#cuentas');
   for (const c of o.cuentas) {
     const row = document.createElement('div'); row.className = 'row';

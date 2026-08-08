@@ -184,6 +184,17 @@ export async function createServer({ db, mock, cloud }: ServerDeps) {
     return orders.pendingOrders(db, staff.caseta_id);
   });
 
+  // El camarero marca el pedido listo: su número aparece en la pantalla de TV
+  app.post('/api/pedidos/:id/listo', async (req, reply) => {
+    const staff = await staffFromRequest(req);
+    if (!staff?.caseta_id || (staff.role !== 'mesero' && staff.role !== 'admin')) {
+      return reply.code(403).send({ error: 'Solo camareros' });
+    }
+    const ok = await orders.readyOrder(db, staff.caseta_id, Number((req.params as any).id), staff.id);
+    if (!ok) return reply.code(404).send({ error: 'Ese pedido ya no está en preparación' });
+    return { ok: true };
+  });
+
   app.post('/api/pedidos/:id/servir', async (req, reply) => {
     const staff = await staffFromRequest(req);
     if (!staff?.caseta_id || (staff.role !== 'mesero' && staff.role !== 'admin')) {

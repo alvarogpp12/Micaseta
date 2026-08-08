@@ -70,6 +70,8 @@ CREATE TABLE IF NOT EXISTS products (
 
 -- Comandas: SIEMPRE a cuenta de un socio (los invitados no pagan).
 -- La liquidación marca settled=true cuando el socio paga su cuenta.
+-- Pedidos enviados desde el móvil del cliente: pendiente → lista → servida,
+-- con pickup_number (número de recogida del día, estilo pantalla de hamburguesería).
 CREATE TABLE IF NOT EXISTS orders (
   id             BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   caseta_id      BIGINT REFERENCES casetas(id),
@@ -77,7 +79,8 @@ CREATE TABLE IF NOT EXISTS orders (
   socio_id       BIGINT NOT NULL REFERENCES users(id),
   invitation_id  BIGINT REFERENCES invitations(id),
   waiter_id      BIGINT REFERENCES users(id),      -- NULL si el pedido lo envió el cliente
-  status         TEXT NOT NULL DEFAULT 'servida' CHECK (status IN ('pendiente','servida')),
+  status         TEXT NOT NULL DEFAULT 'servida' CHECK (status IN ('pendiente','lista','servida')),
+  pickup_number  INTEGER,                          -- solo pedidos de cliente; se reinicia cada día
   total_cents    INTEGER NOT NULL,
   settled        BOOLEAN NOT NULL DEFAULT false,
   created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -102,6 +105,9 @@ CREATE TABLE IF NOT EXISTS bot_sessions (
 -- Migraciones idempotentes para bases creadas con esquemas anteriores
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'servida';
 ALTER TABLE orders ALTER COLUMN waiter_id DROP NOT NULL;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS pickup_number INTEGER;
+ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_status_check;
+ALTER TABLE orders ADD CONSTRAINT orders_status_check CHECK (status IN ('pendiente','lista','servida'));
 
 CREATE INDEX IF NOT EXISTS idx_users_caseta ON users(caseta_id, role);
 CREATE INDEX IF NOT EXISTS idx_invitations_guest ON invitations(guest_phone, status);

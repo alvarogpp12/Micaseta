@@ -101,6 +101,8 @@
   .pn { background:var(--primary); color:#fff; min-width:22px; height:22px; border-radius:99px; display:grid; place-items:center; font:700 12px Inter,sans-serif; padding:0 7px; }
   .pedido { display:flex; align-items:center; gap:12px; padding:11px 0; border-bottom:1px solid var(--border); }
   .pedido:last-child { border-bottom:0; }
+  .pnum { flex-shrink:0; min-width:40px; height:40px; border-radius:10px; display:grid; place-items:center; background:var(--card2); color:var(--text); font:800 16px Inter,sans-serif; padding:0 6px; }
+  .pnum.rdy { background:var(--ok); color:#fff; }
   .pinfo2 { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
   .pinfo2 b { font-size:14.5px; }
   .pit { color:var(--text); font-size:13px; opacity:.85; }
@@ -378,15 +380,19 @@ async function loadPedidos() {
   $('pedidosN').textContent = list.length;
   box.innerHTML = '';
   for (const o of list) {
+    const lista = o.status === 'lista';
     const div = document.createElement('div'); div.className = 'pedido';
-    div.innerHTML = `<div class="pinfo2"><b>${o.customer_name ?? 'Cliente'}</b>
+    div.innerHTML = `<span class="pnum${lista ? ' rdy' : ''}">${o.pickup_number ?? '·'}</span>
+      <div class="pinfo2"><b>${o.customer_name ?? 'Cliente'}</b>
         <span class="pit">${o.items ?? ''}</span>
-        <span class="psub">${eur(o.total_cents)} · a cuenta de ${o.socio_name ?? 'socio'}</span></div>
-      <button class="btn good sm">Servido</button>`;
+        <span class="psub">${eur(o.total_cents)} · a cuenta de ${o.socio_name ?? 'socio'}${lista ? ' · en pantalla' : ''}</span></div>
+      <button class="btn ${lista ? 'good' : 'primary'} sm">${lista ? 'Entregado' : 'Listo'}</button>`;
     div.querySelector('button').onclick = async (ev) => {
       ev.target.disabled = true;
-      try { await api(`/api/pedidos/${o.id}/servir`, { method: 'POST', body: '{}' }); loadPedidos(); }
-      catch { ev.target.disabled = false; }
+      try {
+        await api(`/api/pedidos/${o.id}/${lista ? 'servir' : 'listo'}`, { method: 'POST', body: '{}' });
+        loadPedidos();
+      } catch { ev.target.disabled = false; }
     };
     box.appendChild(div);
   }

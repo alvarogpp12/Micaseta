@@ -109,23 +109,45 @@ describe('flujo completo de caseta (web)', () => {
     if (!r.ok) throw new Error('registro invitado falló');
     const beer = await orders.addProduct(db, 'Cerveza', 300, 'cerveza', c);
 
-    // El cliente pide él mismo (waiter=null) → pendiente
+    // El cliente pide él mismo (waiter=null) → pendiente, con número de recogida del día
     const selfOrder = await orders.createOrder(db, r.guest, null, [{ productId: beer.id, qty: 3 }]);
     expect(selfOrder.ok).toBe(true);
+    expect(selfOrder.pickupNumber).toBe(1);
 
     const pending = await orders.pendingOrders(db, c);
     expect(pending).toHaveLength(1);
     expect(pending[0].items).toContain('3× Cerveza');
+    expect(pending[0].pickup_number).toBe(1);
+    expect(pending[0].status).toBe('pendiente');
 
-    // El camarero lo sirve
+    // En la pantalla de TV aparece en preparación
+    expect(await orders.tvBoard(db, c)).toEqual({ preparing: [1], ready: [] });
+
+    // El camarero lo marca listo → pasa a la columna de listos y el cliente lo ve
+    expect(await orders.readyOrder(db, c, pending[0].id, waiter.id)).toBe(true);
+    expect(await orders.tvBoard(db, c)).toEqual({ preparing: [], ready: [1] });
+    expect(await orders.orderTicket(db, pending[0].id, r.guest.id)).toEqual({
+      status: 'lista',
+      pickupNumber: 1,
+    });
+    // Marcar listo dos veces no vale
+    expect(await orders.readyOrder(db, c, pending[0].id, waiter.id)).toBe(false);
+
+    // El camarero lo entrega (sirve) → desaparece de la pantalla
     expect(await orders.serveOrder(db, c, pending[0].id, waiter.id)).toBe(true);
     expect(await orders.pendingOrders(db, c)).toHaveLength(0);
+    expect(await orders.tvBoard(db, c)).toEqual({ preparing: [], ready: [] });
     // Servir dos veces no vale
     expect(await orders.serveOrder(db, c, pending[0].id, waiter.id)).toBe(false);
 
-    // Y computa en la cuenta del socio
+    // El siguiente pedido del día recibe el número 2
+    const second = await orders.createOrder(db, r.guest, null, [{ productId: beer.id, qty: 1 }]);
+    expect(second.ok).toBe(true);
+    expect(second.pickupNumber).toBe(2);
+
+    // Y computa en la cuenta del socio (3 + 1 cervezas)
     const cuentas = await orders.cuentasPorSocio(db, c);
-    expect(cuentas.find((x) => x.socio_id === socio.id)?.pending_cents).toBe(900);
+    expect(cuentas.find((x) => x.socio_id === socio.id)?.pending_cents).toBe(1200);
   });
 
   it('no se puede registrar dos casetas con el mismo email', async () => {

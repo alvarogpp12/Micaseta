@@ -45,6 +45,7 @@ export interface OrderResult {
   orderId?: number;
   totalCents?: number;
   socioName?: string | null;
+  pickupNumber?: number | null;
 }
 
 /**
@@ -89,17 +90,33 @@ export async function createOrder(
     };
   }
 
+  const casetaId = customer.caseta_id ?? waiter?.caseta_id ?? null;
+
+  // Pedidos enviados desde el móvil: número de recogida del día (estilo
+  // pantalla de hamburguesería), correlativo por caseta y reiniciado a diario.
+  let pickupNumber: number | null = null;
+  if (!waiter) {
+    const next = await one<{ n: number }>(
+      db,
+      `SELECT COALESCE(MAX(pickup_number), 0) + 1 AS n FROM orders
+       WHERE caseta_id IS NOT DISTINCT FROM $1 AND created_at::date = current_date`,
+      [casetaId],
+    );
+    pickupNumber = next!.n;
+  }
+
   const order = await one<{ id: number }>(
     db,
-    `INSERT INTO orders (caseta_id, customer_id, socio_id, invitation_id, waiter_id, status, total_cents)
-     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+    `INSERT INTO orders (caseta_id, customer_id, socio_id, invitation_id, waiter_id, status, pickup_number, total_cents)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
     [
-      customer.caseta_id ?? waiter?.caseta_id ?? null,
+      casetaId,
       customer.id,
       socioId,
       access.invitation?.id ?? null,
       waiter?.id ?? null,
       waiter ? 'servida' : 'pendiente',
+      pickupNumber,
       total,
     ],
   );
@@ -111,13 +128,13 @@ export async function createOrder(
   }
 
   const socio = await one<{ name: string | null }>(db, 'SELECT name FROM users WHERE id = $1', [socioId]);
-  return { ok: true, orderId: order!.id, totalCents: total, socioName: socio?.name ?? null };
+  return { ok: true, orderId: order!.id, totalCents: total, socioName: socio?.name ?? null, pickupNumber };
 }
 
-/** Pedidos enviados por clientes que aún no ha servido nadie. */
+/** Pedidos enviados por clientes aún sin entregar: en preparación o listos. */
 export async function pendingOrders(db: DB, casetaId: number): Promise<any[]> {
   const { rows } = await db.query(
-    `SELECT o.id, o.total_cents, o.created_at,
+    `SELECT o.id, o.total_cents, o.created_at, o.status, o.pickup_number,
             c.name AS customer_name, s.name AS socio_name,
             (SELECT string_agg(oi.qty || '× ' || p.name, ', ' ORDER BY oi.id)
              FROM order_items oi JOIN products p ON p.id = oi.product_id
@@ -125,21 +142,63 @@ export async function pendingOrders(db: DB, casetaId: number): Promise<any[]> {
      FROM orders o
      JOIN users c ON c.id = o.customer_id
      JOIN users s ON s.id = o.socio_id
-     WHERE o.caseta_id = $1 AND o.status = 'pendiente'
+     WHERE o.caseta_id = $1 AND o.status IN ('pendiente','lista')
      ORDER BY o.created_at ASC`,
     [casetaId],
   );
   return rows;
 }
 
-/** Un camarero marca servido un pedido enviado por el cliente. */
-export async function serveOrder(db: DB, casetaId: number, orderId: number, waiterId: number): Promise<boolean> {
+/** El camarero marca un pedido como listo: su número sale en la pantalla de TV. */
+export async function readyOrder(db: DB, casetaId: number, orderId: number, waiterId: number): Promise<boolean> {
   const { rows } = await db.query(
-    `UPDATE orders SET status = 'servida', waiter_id = $1
+    `UPDATE orders SET status = 'lista', waiter_id = $1
      WHERE id = $2 AND caseta_id = $3 AND status = 'pendiente' RETURNING id`,
     [waiterId, orderId, casetaId],
   );
   return rows.length > 0;
+}
+
+/** Un camarero marca servido (entregado) un pedido enviado por el cliente. */
+export async function serveOrder(db: DB, casetaId: number, orderId: number, waiterId: number): Promise<boolean> {
+  const { rows } = await db.query(
+    `UPDATE orders SET status = 'servida', waiter_id = $1
+     WHERE id = $2 AND caseta_id = $3 AND status IN ('pendiente','lista') RETURNING id`,
+    [waiterId, orderId, casetaId],
+  );
+  return rows.length > 0;
+}
+
+/**
+ * Números para la pantalla de TV de la caseta (estilo hamburguesería):
+ * en preparación y listos para recoger. Solo pedidos de hoy con número.
+ */
+export async function tvBoard(db: DB, casetaId: number): Promise<{ preparing: number[]; ready: number[] }> {
+  const { rows } = await db.query<{ pickup_number: number; status: string }>(
+    `SELECT pickup_number, status FROM orders
+     WHERE caseta_id = $1 AND pickup_number IS NOT NULL
+       AND status IN ('pendiente','lista') AND created_at::date = current_date
+     ORDER BY pickup_number ASC`,
+    [casetaId],
+  );
+  return {
+    preparing: rows.filter((r) => r.status === 'pendiente').map((r) => r.pickup_number),
+    ready: rows.filter((r) => r.status === 'lista').map((r) => r.pickup_number),
+  };
+}
+
+/** Estado de un pedido concreto para que el cliente lo siga desde su móvil. */
+export async function orderTicket(
+  db: DB,
+  orderId: number,
+  customerId: number,
+): Promise<{ status: string; pickupNumber: number | null } | null> {
+  const row = await one<{ status: string; pickup_number: number | null }>(
+    db,
+    'SELECT status, pickup_number FROM orders WHERE id = $1 AND customer_id = $2',
+    [orderId, customerId],
+  );
+  return row ? { status: row.status, pickupNumber: row.pickup_number } : null;
 }
 
 /** Cuentas pendientes por socio (lo que llevan gastado ellos + sus invitados). */

@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import jwt from 'jsonwebtoken';
 import type { DB } from '../db/index.js';
 import { one } from '../db/index.js';
 import { config, normalizePhone, formatPhone, requestBaseUrl } from '../config.js';
@@ -205,6 +206,31 @@ export function registerPanelRoutes(app: FastifyInstance, db: DB): void {
     return { ok: true };
   });
 
+  // ---- Pantalla de TV de pedidos (estilo hamburguesería) ----
+
+  /** Enlace firmado para abrir la pantalla de pedidos en la TV de la caseta. */
+  app.get('/papi/tv-link', async (req, reply) => {
+    const account = await auth(req, reply);
+    if (!account) return;
+    const token = jwt.sign({ tv: account.caseta_id }, config.jwtSecret, { expiresIn: '180d' });
+    return { url: `${requestBaseUrl(req)}/tv/?t=${encodeURIComponent(token)}` };
+  });
+
+  /** Números en preparación y listos, para la pantalla (polling sin cookie). */
+  app.get('/gapi/tv', async (req, reply) => {
+    let casetaId: number;
+    try {
+      const payload = jwt.verify(String((req.query as any).t ?? ''), config.jwtSecret) as { tv: number };
+      casetaId = Number(payload.tv);
+      if (!casetaId) throw new Error('no');
+    } catch {
+      return reply.code(401).send({ error: 'Enlace de pantalla no válido' });
+    }
+    const caseta = await accounts.getCaseta(db, casetaId);
+    const board = await orders.tvBoard(db, casetaId);
+    return { caseta: caseta?.name ?? 'Micaseta', ...board };
+  });
+
   // ---- Invitaciones ----
 
   app.get('/papi/invitations', async (req, reply) => {
@@ -358,7 +384,23 @@ export function registerPanelRoutes(app: FastifyInstance, db: DB): void {
     const items = Array.isArray(body?.items) ? body.items : [];
     const result = await orders.createOrder(db, guest, null, items);
     if (!result.ok) return reply.code(422).send({ error: result.error });
-    return { ok: true, orderId: result.orderId, totalCents: result.totalCents, socioName: result.socioName };
+    return {
+      ok: true,
+      orderId: result.orderId,
+      totalCents: result.totalCents,
+      socioName: result.socioName,
+      pickupNumber: result.pickupNumber,
+    };
+  });
+
+  /** El invitado sigue el estado de su pedido (¿ya está listo?). */
+  app.get('/gapi/pedido-estado', async (req, reply) => {
+    const q = req.query as any;
+    const inv = await invitations.invitationFromToken(db, String(q.t ?? ''));
+    if (!inv || !inv.guest_id) return reply.code(404).send({ error: 'Invitación no activa' });
+    const ticket = await orders.orderTicket(db, Number(q.id), inv.guest_id);
+    if (!ticket) return reply.code(404).send({ error: 'Pedido no encontrado' });
+    return ticket;
   });
 
   /** Página personal del socio (token = su QR firmado y revocable): su QR + pedir. */
@@ -391,7 +433,17 @@ export function registerPanelRoutes(app: FastifyInstance, db: DB): void {
     const items = Array.isArray(body?.items) ? body.items : [];
     const result = await orders.createOrder(db, user, null, items);
     if (!result.ok) return reply.code(422).send({ error: result.error });
-    return { ok: true, orderId: result.orderId, totalCents: result.totalCents };
+    return { ok: true, orderId: result.orderId, totalCents: result.totalCents, pickupNumber: result.pickupNumber };
+  });
+
+  /** El socio sigue el estado de su pedido (¿ya está listo?). */
+  app.get('/gapi/socio/pedido-estado', async (req, reply) => {
+    const q = req.query as any;
+    const user = await verifyQrToken(db, String(q.t ?? ''));
+    if (!user || user.role !== 'socio') return reply.code(404).send({ error: 'Acceso no válido' });
+    const ticket = await orders.orderTicket(db, Number(q.id), user.id);
+    if (!ticket) return reply.code(404).send({ error: 'Pedido no encontrado' });
+    return ticket;
   });
 
   /** Imagen PNG del QR (el token firmado ES el secreto, se puede servir sin cookie). */

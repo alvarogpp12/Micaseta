@@ -67,6 +67,11 @@
   .cinfo { flex:1; min-width:0; }
   .cn { color:var(--muted); font:600 12.5px Inter,sans-serif; }
   .ct { font:800 19px Inter,sans-serif; letter-spacing:-.01em; }
+  .bignum { font:900 72px/1.05 Inter,sans-serif; letter-spacing:-.03em; color:var(--primary); margin:6px 0 10px; font-variant-numeric:tabular-nums; }
+  .statuschip { display:inline-block; padding:7px 16px; border-radius:99px; font:700 13.5px Inter,sans-serif; background:var(--primary-soft); color:var(--primary); }
+  .sent-ready .bignum { color:#12b76a; }
+  .sent-ready .statuschip { background:#e7f8f0; color:#027a48; animation:pulse 1s ease infinite alternate; }
+  @keyframes pulse { from { transform:scale(1); } to { transform:scale(1.06); } }
 </style>
 </head>
 <body>
@@ -126,8 +131,11 @@
   </div>
 
   <div id="sent" class="hidden">
-    <div class="card qrwrap">
-      <h3 id="sentTitle"></h3>
+    <div class="card qrwrap" style="text-align:center">
+      <p class="mut" style="font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-size:12px">Tu número</p>
+      <div class="bignum" id="sentNum"></div>
+      <div class="statuschip" id="sentStatus"></div>
+      <h3 id="sentTitle" style="margin-top:14px"></h3>
       <p class="mut" id="sentSub"></p>
       <button class="btn btn-sec" id="sentBack" style="margin-top:14px">Volver a mi QR</button>
     </div>
@@ -279,11 +287,43 @@ $('sendOrder').onclick = async () => {
   document.body.classList.remove('menu-open');
   $('sent').classList.remove('hidden');
   $('sentTitle').textContent = `Pedido enviado · ${eur(data.totalCents)}`;
-  $('sentSub').textContent = `El camarero lo tiene en pantalla. Va a la cuenta de ${data.socioName ?? 'tu socio'}.`;
   $('sendOrder').disabled = false;
+  trackOrder(data.orderId, data.pickupNumber, data.socioName);
 };
 
-$('sentBack').onclick = () => { $('sent').classList.add('hidden'); $('done').classList.remove('hidden'); };
+// Seguimiento: cuando esté listo, tu número sale en la pantalla de la caseta
+let trackTimer = null;
+function setSentState(status, socioName) {
+  $('sent').classList.toggle('sent-ready', status === 'lista');
+  if (status === 'lista') {
+    $('sentStatus').textContent = '¡Listo! Recógelo en la barra';
+    $('sentSub').textContent = 'Tu número está en la pantalla de la caseta.';
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+  } else if (status === 'servida') {
+    $('sentStatus').textContent = 'Entregado · ¡que aproveche!';
+    $('sentSub').textContent = `Cargado a la cuenta de ${socioName ?? 'tu socio'}.`;
+  } else {
+    $('sentStatus').textContent = 'En preparación…';
+    $('sentSub').textContent = `Va a la cuenta de ${socioName ?? 'tu socio'}. Cuando esté listo, tu número saldrá en la pantalla de la caseta y te avisaremos aquí.`;
+  }
+}
+function trackOrder(orderId, pickupNumber, socioName) {
+  $('sentNum').textContent = pickupNumber ?? '—';
+  setSentState('pendiente', socioName);
+  clearInterval(trackTimer);
+  trackTimer = setInterval(async () => {
+    if ($('sent').classList.contains('hidden')) { clearInterval(trackTimer); return; }
+    try {
+      const r = await fetch(`/gapi/pedido-estado?t=${encodeURIComponent(t)}&id=${orderId}`);
+      if (!r.ok) return;
+      const st = await r.json();
+      setSentState(st.status, socioName);
+      if (st.status === 'servida') clearInterval(trackTimer);
+    } catch { /* reintenta */ }
+  }, 5000);
+}
+
+$('sentBack').onclick = () => { clearInterval(trackTimer); $('sent').classList.add('hidden'); $('done').classList.remove('hidden'); };
 
 $('g_go').onclick = async () => {
   $('g_err').textContent = '';

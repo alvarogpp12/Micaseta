@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pedidos — Micaseta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#0d1117; --panel:#161b26; --border:#252c3b; --text:#f2f4f8; --muted:#8b93a5; --primary:#5b6cff; --ok:#12b76a; }
+  * { box-sizing:border-box; margin:0; }
+  html, body { height:100%; }
+  body { background:var(--bg); color:var(--text); font-family:Inter,-apple-system,"Segoe UI",system-ui,sans-serif; -webkit-font-smoothing:antialiased; overflow:hidden; display:flex; flex-direction:column; cursor:none; }
+  header { display:flex; align-items:baseline; justify-content:space-between; padding:2.2vh 3vw 1.2vh; }
+  .wordmark { font-weight:800; font-size:clamp(16px, 2.2vw, 28px); letter-spacing:-.03em; color:var(--muted); }
+  .wordmark i { color:var(--primary); font-style:normal; }
+  h1 { font-size:clamp(18px, 3vw, 40px); font-weight:900; letter-spacing:-.02em; }
+  main { flex:1; display:grid; grid-template-columns:1fr 1.4fr; gap:2vw; padding:0 3vw 3vh; min-height:0; }
+  .col { background:var(--panel); border:1px solid var(--border); border-radius:1.5vw; padding:2.5vh 2vw; display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+  .col h2 { font-size:clamp(14px, 2vw, 30px); font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); text-align:center; margin-bottom:2vh; }
+  .col.ready { border-color:rgba(18,183,106,.5); box-shadow:inset 0 0 0 2px rgba(18,183,106,.25); }
+  .col.ready h2 { color:#3ddc93; }
+  .nums { flex:1; display:flex; flex-wrap:wrap; gap:1.2vw; align-content:flex-start; justify-content:center; overflow:hidden; }
+  .num { min-width:8vw; padding:1.2vh 1.5vw; border-radius:1vw; display:grid; place-items:center; font-weight:900; font-variant-numeric:tabular-nums; letter-spacing:-.02em; background:#1d2432; color:var(--muted); font-size:clamp(26px, 4.5vw, 88px); }
+  .ready .num { background:var(--ok); color:#fff; font-size:clamp(34px, 6.5vw, 130px); box-shadow:0 0 4vw rgba(18,183,106,.35); }
+  .ready .num.new { animation:pop 1s ease infinite alternate; }
+  @keyframes pop { from { transform:scale(1); } to { transform:scale(1.08); } }
+  .empty { color:var(--muted); font-size:clamp(13px, 1.6vw, 24px); font-weight:600; text-align:center; margin:auto; opacity:.7; }
+  footer { text-align:center; color:var(--muted); font-size:clamp(11px, 1.3vw, 20px); font-weight:600; padding-bottom:1.6vh; }
+  .dead { margin:auto; color:#ff7a70; font-size:clamp(16px, 2vw, 30px); font-weight:700; text-align:center; padding:20px; }
+</style>
+</head>
+<body>
+<header>
+  <span class="wordmark">micaseta<i>.</i></span>
+  <h1 id="caseta"></h1>
+  <span class="wordmark" style="visibility:hidden">micaseta<i>.</i></span>
+</header>
+<main id="main">
+  <section class="col">
+    <h2>En preparación</h2>
+    <div class="nums" id="preparing"></div>
+  </section>
+  <section class="col ready">
+    <h2>✓ Listos · recoge en barra</h2>
+    <div class="nums" id="ready"></div>
+  </section>
+</main>
+<div class="dead" id="dead" style="display:none"></div>
+<footer>Pide desde tu móvil con tu QR de socio o invitación · tu número aparecerá aquí cuando esté listo</footer>
+<script>
+const $ = (id) => document.getElementById(id);
+const t = new URLSearchParams(location.search).get('t') ?? '';
+let lastReady = new Set();
+
+function renderNums(box, nums, markNew) {
+  box.innerHTML = '';
+  if (!nums.length) {
+    box.innerHTML = `<div class="empty">${box.id === 'ready' ? 'Aquí saldrá tu número' : 'Sin pedidos en cola'}</div>`;
+    return;
+  }
+  for (const n of nums) {
+    const d = document.createElement('div');
+    d.className = 'num' + (markNew && !lastReady.has(n) ? ' new' : '');
+    d.textContent = n;
+    box.appendChild(d);
+  }
+}
+
+async function tick() {
+  try {
+    const r = await fetch('/gapi/tv?t=' + encodeURIComponent(t));
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      $('main').style.display = 'none';
+      $('dead').style.display = 'block';
+      $('dead').textContent = data.error || 'Enlace de pantalla no válido. Genera uno nuevo desde el panel.';
+      return;
+    }
+    $('dead').style.display = 'none';
+    $('main').style.display = 'grid';
+    $('caseta').textContent = data.caseta;
+    renderNums($('preparing'), data.preparing, false);
+    renderNums($('ready'), data.ready, true);
+    setTimeout(() => { lastReady = new Set(data.ready); }, 4000);
+  } catch { /* red caída: reintenta en el siguiente tick */ }
+}
+
+tick();
+setInterval(tick, 4000);
+</script>
+</body>
+</html>
