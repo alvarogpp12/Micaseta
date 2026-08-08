@@ -10,8 +10,11 @@ export const TRAILER_DURATION = 1320; // 44s
 // ---------- fuente ----------
 if (typeof document !== 'undefined') {
   const handle = delayRender('font');
+  let cleared = false;
+  const done = () => { if (!cleared) { cleared = true; continueRender(handle); } };
   const font = new FontFace('Inter', `url(${staticFile('Inter.woff2')}) format('woff2')`, { weight: '100 900' } as FontFaceDescriptors);
-  font.load().then((f) => { (document as any).fonts.add(f); continueRender(handle); }).catch(() => continueRender(handle));
+  font.load().then((f) => { (document as any).fonts.add(f); done(); }).catch(done);
+  setTimeout(done, 12000); // failsafe: nunca bloquear el render por la fuente
 }
 
 // ---------- tokens ----------
