@@ -39,6 +39,9 @@
   input:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(67,83,255,.12); }
   .err { color:var(--danger); font:600 13.5px Inter,sans-serif; margin-top:10px; min-height:18px; }
   .hidden { display:none; }
+  .gwrap { display:flex; justify-content:center; margin-bottom:6px; min-height:0; }
+  .gsep { display:flex; align-items:center; gap:10px; color:var(--muted); font:600 12px Inter,sans-serif; margin-top:14px; }
+  .gsep::before, .gsep::after { content:''; flex:1; border-top:1px solid var(--border); }
   .features { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px; margin-top:44px; }
   .feat { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; }
   .feat .ic { width:38px; height:38px; border-radius:9px; background:var(--primary-soft); color:var(--primary); display:grid; place-items:center; margin-bottom:12px; }
@@ -68,6 +71,7 @@
   <div class="card hidden" id="formRegister">
     <h2>Crea tu caseta</h2>
     <p class="hint">Gratis. Menos de un minuto.</p>
+    <div id="g_register" class="gwrap"></div>
     <label>Nombre de la caseta</label>
     <input id="r_caseta" placeholder="Er Compás">
     <label>Tu nombre</label>
@@ -83,12 +87,23 @@
   <div class="card hidden" id="formLogin">
     <h2>Entrar</h2>
     <p class="hint">Accede al panel de tu caseta.</p>
+    <div id="g_login" class="gwrap"></div>
     <label>Email</label>
     <input id="l_email" type="email" autocomplete="email">
     <label>Contraseña</label>
     <input id="l_pass" type="password" autocomplete="current-password">
     <button class="btn btn-primary btn-block" id="doLogin" style="margin-top:20px">Entrar</button>
     <div class="err" id="l_err"></div>
+  </div>
+
+  <!-- Con Google sin caseta aún: solo falta el nombre de la caseta -->
+  <div class="card hidden" id="formGoogleCaseta">
+    <h2>Ya casi está</h2>
+    <p class="hint" id="gc_hint"></p>
+    <label>Nombre de tu caseta</label>
+    <input id="gc_caseta" placeholder="Er Compás">
+    <button class="btn btn-primary btn-block" id="gc_go" style="margin-top:20px">Crear caseta</button>
+    <div class="err" id="gc_err"></div>
   </div>
 
   <div class="features" id="features">
@@ -114,7 +129,7 @@
     </div>
   </div>
 
-  <div class="card" style="max-width:520px;text-align:center">
+  <div class="card hidden" id="demoCard" style="max-width:520px;text-align:center">
     <h2>Pruébalo sin registrarte</h2>
     <p class="hint" style="margin-bottom:16px">Entra en una caseta de demostración con carta sevillana completa, socios e invitados con QR.</p>
     <div class="cta-row">
@@ -149,6 +164,50 @@ $('doLogin').onclick = async () => {
   try { await post('/papi/login', { email:$('l_email').value, password:$('l_pass').value }); location.href = '/panel/'; }
   catch (e) { $('l_err').textContent = e.message; }
 };
+
+// ---- Login con Google (se activa solo si el servidor tiene GOOGLE_CLIENT_ID) ----
+let googleCredential = null;
+async function onGoogle(resp) {
+  googleCredential = resp.credential;
+  try {
+    const r = await post('/papi/google', { credential: googleCredential });
+    if (r.needsCaseta) {
+      $('gc_hint').textContent = `Hola, ${r.name}. Ponle nombre a tu caseta y listo.`;
+      ['formRegister','formLogin'].forEach(id => $(id).classList.add('hidden'));
+      $('formGoogleCaseta').classList.remove('hidden');
+      $('formGoogleCaseta').scrollIntoView({ behavior:'smooth', block:'center' });
+      return;
+    }
+    location.href = '/panel/';
+  } catch (e) { $('l_err').textContent = $('r_err').textContent = e.message; }
+}
+$('gc_go').onclick = async () => {
+  $('gc_err').textContent = '';
+  try {
+    await post('/papi/google', { credential: googleCredential, casetaName: $('gc_caseta').value });
+    location.href = '/panel/';
+  } catch (e) { $('gc_err').textContent = e.message; }
+};
+
+async function initGoogle() {
+  try {
+    const cfg = await (await fetch('/gapi/config')).json();
+    if (cfg.demo) $('demoCard').classList.remove('hidden');
+    if (!cfg.googleClientId) return;
+    const s = document.createElement('script');
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.onload = () => {
+      google.accounts.id.initialize({ client_id: cfg.googleClientId, callback: onGoogle });
+      for (const id of ['g_register','g_login']) {
+        google.accounts.id.renderButton($(id), { theme:'outline', size:'large', width: 280, text:'continue_with', locale:'es' });
+        const sep = document.createElement('div'); sep.className = 'gsep'; sep.textContent = 'o con tu email';
+        $(id).after(sep);
+      }
+    };
+    document.head.appendChild(s);
+  } catch {}
+}
+initGoogle();
 fetch('/papi/me').then(r => { if (r.ok) location.href = '/panel/'; });
 </script>
 </body>

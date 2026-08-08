@@ -64,6 +64,9 @@ export async function createOrder(
 
   const access = await checkAccess(db, customer);
   if (!access.ok) return { ok: false, error: `Sin acceso: ${access.reason}` };
+  if (!access.canOrder) {
+    return { ok: false, error: 'Tu invitación es solo de entrada: no incluye consumo en barra' };
+  }
 
   // ¿A cuenta de quién va?
   const socioId = access.invitation ? access.invitation.socio_id : customer.id;
@@ -71,13 +74,17 @@ export async function createOrder(
     return { ok: false, error: 'Invitado sin socio anfitrión' };
   }
 
+  const productCasetaId = customer.caseta_id ?? waiter?.caseta_id ?? null;
   let total = 0;
   const lines: { product: Product; qty: number }[] = [];
   for (const item of items) {
     if (!Number.isInteger(item.qty) || item.qty <= 0) return { ok: false, error: 'Cantidad inválida' };
-    const product = await one<Product>(db, 'SELECT * FROM products WHERE id = $1 AND active', [
-      item.productId,
-    ]);
+    // Solo productos de la carta de ESTA caseta
+    const product = await one<Product>(
+      db,
+      'SELECT * FROM products WHERE id = $1 AND active AND caseta_id IS NOT DISTINCT FROM $2',
+      [item.productId, productCasetaId],
+    );
     if (!product) return { ok: false, error: `Producto ${item.productId} no existe` };
     total += product.price_cents * item.qty;
     lines.push({ product, qty: item.qty });
@@ -94,21 +101,18 @@ export async function createOrder(
 
   // Pedidos enviados desde el móvil: número de recogida del día (estilo
   // pantalla de hamburguesería), correlativo por caseta y reiniciado a diario.
-  let pickupNumber: number | null = null;
-  if (!waiter) {
-    const next = await one<{ n: number }>(
-      db,
-      `SELECT COALESCE(MAX(pickup_number), 0) + 1 AS n FROM orders
-       WHERE caseta_id IS NOT DISTINCT FROM $1 AND created_at::date = current_date`,
-      [casetaId],
-    );
-    pickupNumber = next!.n;
-  }
-
-  const order = await one<{ id: number }>(
+  // El MAX+1 va dentro del propio INSERT para no duplicar números si dos
+  // pedidos llegan a la vez.
+  const order = await one<{ id: number; pickup_number: number | null }>(
     db,
     `INSERT INTO orders (caseta_id, customer_id, socio_id, invitation_id, waiter_id, status, pickup_number, total_cents)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+     VALUES ($1, $2, $3, $4, $5, $6,
+       CASE WHEN $5::bigint IS NULL THEN
+         (SELECT COALESCE(MAX(pickup_number), 0) + 1 FROM orders
+          WHERE caseta_id IS NOT DISTINCT FROM $1 AND created_at::date = current_date)
+       END,
+       $7)
+     RETURNING id, pickup_number`,
     [
       casetaId,
       customer.id,
@@ -116,10 +120,10 @@ export async function createOrder(
       access.invitation?.id ?? null,
       waiter?.id ?? null,
       waiter ? 'servida' : 'pendiente',
-      pickupNumber,
       total,
     ],
   );
+  const pickupNumber = order!.pickup_number;
   for (const line of lines) {
     await db.query(
       'INSERT INTO order_items (order_id, product_id, qty, unit_price_cents) VALUES ($1, $2, $3, $4)',
@@ -216,6 +220,39 @@ export async function cuentasPorSocio(db: DB, casetaId: number): Promise<any[]> 
     [casetaId],
   );
   return rows;
+}
+
+/**
+ * Desglose de gasto de un socio para SU app: cuánto lleva él y cada uno de
+ * sus invitados (pendiente e histórico), más el detalle comanda a comanda.
+ */
+export async function gastosSocio(
+  db: DB,
+  socioId: number,
+): Promise<{ people: any[]; detail: any[] }> {
+  const { rows: people } = await db.query(
+    `SELECT c.id AS customer_id, c.name AS customer_name, (c.id = $1) AS es_socio,
+            COALESCE(SUM(o.total_cents) FILTER (WHERE NOT o.settled), 0)::int AS pending_cents,
+            COALESCE(SUM(o.total_cents), 0)::int AS total_cents,
+            COUNT(o.id)::int AS n_orders
+     FROM orders o
+     JOIN users c ON c.id = o.customer_id
+     WHERE o.socio_id = $1
+     GROUP BY c.id, c.name
+     ORDER BY es_socio DESC, pending_cents DESC`,
+    [socioId],
+  );
+  const { rows: detail } = await db.query(
+    `SELECT o.id, o.customer_id, o.total_cents, o.settled, o.created_at, o.pickup_number,
+            (SELECT string_agg(oi.qty || '× ' || p.name, ', ' ORDER BY oi.id)
+             FROM order_items oi JOIN products p ON p.id = oi.product_id
+             WHERE oi.order_id = o.id) AS items
+     FROM orders o
+     WHERE o.socio_id = $1
+     ORDER BY o.created_at DESC LIMIT 100`,
+    [socioId],
+  );
+  return { people, detail };
 }
 
 /** Detalle de la cuenta de un socio: cada comanda con quién la consumió. */

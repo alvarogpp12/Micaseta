@@ -13,6 +13,7 @@ export interface NewInvitation {
   accessMode: 'fecha' | 'siempre';
   validDate?: string | null;
   spendLimitCents?: number | null;
+  canOrder?: boolean; // false = invitado "solo entrada"
   maxCompanions?: number;
   parentId?: number | null;
 }
@@ -21,8 +22,8 @@ export async function createInvitation(db: DB, inv: NewInvitation): Promise<Invi
   const row = await one<Invitation>(
     db,
     `INSERT INTO invitations
-     (caseta_id, socio_id, guest_phone, guest_label, parent_id, access_mode, valid_date, spend_limit_cents, max_companions)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+     (caseta_id, socio_id, guest_phone, guest_label, parent_id, access_mode, valid_date, spend_limit_cents, can_order, max_companions)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
     [
       inv.casetaId ?? null,
       inv.socioId,
@@ -32,6 +33,7 @@ export async function createInvitation(db: DB, inv: NewInvitation): Promise<Invi
       inv.accessMode,
       inv.validDate ?? null,
       inv.spendLimitCents ?? null,
+      inv.canOrder ?? true,
       inv.maxCompanions ?? 0,
     ],
   );
@@ -82,11 +84,15 @@ export function inviteShareText(
 export function describeInvitation(inv: Invitation): string {
   const parts: string[] = [];
   parts.push(inv.access_mode === 'siempre' ? '📅 Acceso: cualquier día' : `📅 Acceso: solo el ${inv.valid_date}`);
-  parts.push(
-    inv.spend_limit_cents === null
-      ? '🥂 Consumo: sin límite (a cuenta del socio)'
-      : `🥂 Consumo: hasta ${euros(inv.spend_limit_cents)} (a cuenta del socio)`,
-  );
+  if (!inv.can_order) {
+    parts.push('🎟️ Solo entrada (sin consumo en barra)');
+  } else {
+    parts.push(
+      inv.spend_limit_cents === null
+        ? '🥂 Consumo: sin límite (a cuenta del socio)'
+        : `🥂 Consumo: hasta ${euros(inv.spend_limit_cents)} (a cuenta del socio)`,
+    );
+  }
   if (inv.max_companions > 0) parts.push(`👥 Acompañantes: hasta ${inv.max_companions}`);
   return parts.join('\n');
 }
@@ -169,6 +175,19 @@ export async function listActiveBySocio(db: DB, socioId: number): Promise<Invita
   return rows;
 }
 
+/** Invitaciones vivas de un socio, con el nombre del invitado si ya se registró. */
+export async function listBySocio(db: DB, socioId: number): Promise<any[]> {
+  const { rows } = await db.query(
+    `SELECT i.*, g.name AS guest_name
+     FROM invitations i
+     LEFT JOIN users g ON g.id = i.guest_id
+     WHERE i.socio_id = $1 AND i.parent_id IS NULL AND i.status IN ('pendiente','aceptada')
+     ORDER BY i.created_at DESC LIMIT 50`,
+    [socioId],
+  );
+  return rows;
+}
+
 export async function listByCaseta(db: DB, casetaId: number): Promise<any[]> {
   const { rows } = await db.query(
     `SELECT i.*, s.name AS socio_name, g.name AS guest_name
@@ -226,6 +245,7 @@ export async function checkAccess(db: DB, user: User): Promise<AccessInfo> {
     user,
     invitation: null as Invitation | null,
     hostName: null as string | null,
+    canOrder: true,
     spendLimitCents: null as number | null,
     spentCents: 0,
     remainingCents: null as number | null,
@@ -262,10 +282,13 @@ export async function checkAccess(db: DB, user: User): Promise<AccessInfo> {
 
   return {
     ok: true,
-    reason: `Invitado de ${hostName ?? 'socio'} · a su cuenta`,
+    reason: inv.can_order
+      ? `Invitado de ${hostName ?? 'socio'} · a su cuenta`
+      : `Invitado de ${hostName ?? 'socio'} · solo entrada`,
     user,
     invitation: inv,
     hostName,
+    canOrder: inv.can_order,
     spendLimitCents: inv.spend_limit_cents,
     spentCents: spent,
     remainingCents: remaining,

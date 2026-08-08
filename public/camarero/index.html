@@ -163,6 +163,7 @@
 <script>
 const $ = (id) => document.getElementById(id);
 const eur = (c) => (c / 100).toLocaleString('es-ES', { minimumFractionDigits:2, maximumFractionDigits:2 }) + ' €';
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (ch) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
 let me = null, current = null, products = [], qty = {}, currentCat = null;
 const CAT_LABELS = { cerveza:'Cervezas', vino:'Vinos', refresco:'Refrescos', copa:'Copas', botella:'Botellas', comida:'Comida', general:'Otros' };
 
@@ -292,7 +293,7 @@ function renderGrid() {
     const n = qty[p.id] || 0;
     const tile = document.createElement('div');
     tile.className = 'tile' + (n ? ' sel' : '');
-    tile.innerHTML = `<span class="tn">${p.name}</span><span class="tp">${eur(p.price_cents)}</span>
+    tile.innerHTML = `<span class="tn">${esc(p.name)}</span><span class="tp">${eur(p.price_cents)}</span>
       ${n ? `<span class="qty">${n}</span><div class="tstep"><button class="rm" aria-label="Quitar una">−</button><button class="ad" aria-label="Añadir una">＋</button></div>` : ''}`;
     const add = () => { qty[p.id] = (qty[p.id] || 0) + 1; renderGrid(); updateCart(); };
     tile.onclick = (ev) => { if (ev.target.closest('.tstep')) return; add(); };
@@ -349,9 +350,9 @@ async function loadPedidos() {
     const lista = o.status === 'lista';
     const div = document.createElement('div'); div.className = 'pedido';
     div.innerHTML = `<span class="pnum${lista ? ' rdy' : ''}">${o.pickup_number ?? '·'}</span>
-      <div class="pinfo2"><b>${o.customer_name ?? 'Cliente'}</b>
-        <span class="pit">${o.items ?? ''}</span>
-        <span class="psub">${eur(o.total_cents)} · a cuenta de ${o.socio_name ?? 'socio'}${lista ? ' · en pantalla' : ''}</span></div>
+      <div class="pinfo2"><b>${esc(o.customer_name ?? 'Cliente')}</b>
+        <span class="pit">${esc(o.items ?? '')}</span>
+        <span class="psub">${eur(o.total_cents)} · a cuenta de ${esc(o.socio_name ?? 'socio')}${lista ? ' · en pantalla' : ''}</span></div>
       <button class="btn ${lista ? 'good' : 'primary'} sm">${lista ? 'Entregado' : 'Listo'}</button>`;
     div.querySelector('button').onclick = async (ev) => {
       ev.target.disabled = true;

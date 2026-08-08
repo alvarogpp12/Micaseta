@@ -1,5 +1,37 @@
 # Organigrama y roles
 
+## Organigrama de navegación (quién ve qué app)
+
+WhatsApp es la puerta de entrada a todo: cada persona recibe SU enlace y
+aterriza ya dentro de su mundo. Nadie ve funciones que no son suyas.
+
+```
+🌐 PÚBLICO
+   /              Landing → crear caseta / entrar (email o Google)
+   /invitacion/   Registro del invitado (condiciones → selfie) → redirige a /mi/
+
+📱 APP CLIENTE  /mi/?t=…   una sola app; pestañas según quién eres
+   ├─ [Mi QR]    home = tu carnet (QR grande, caseta, tu estado)
+   ├─ [Pedir]    carta → carrito → TU NÚMERO → "listo, recoge en barra"
+   ├─ [Gastos]   socio: tú + cada invitado tuyo · invitado: su saldo
+   └─ [Invitar]  solo socio: con barra (límite €) / solo entrada → WhatsApp
+   · Socio: 4 pestañas · Invitado con barra: 3 · Invitado solo entrada: solo QR
+
+🧑‍🍳 APP OPERACIÓN  (links mágicos, cero login)
+   /camarero/    pedidos desde el móvil (Listo → Entregado) + comanda en barra
+   /puerta/      escáner → foto + verde/rojo → registrar entrada
+
+🖥️ PANEL DUEÑO  /panel/  (web; configura, no opera)
+   Resumen · Socios (alta + "Su app") · Invitaciones (supervisa/cancela)
+   · Equipo · Pantalla (link TV)
+
+📺 TV  /tv/?t=…   pasiva: EN PREPARACIÓN | LISTOS
+```
+
+Cascada de distribución: dueño crea socio → WhatsApp → socio abre su app →
+socio invita → WhatsApp → invitado se registra → su app. El staff recibe su
+enlace y entra directo a su herramienta.
+
 ## Jerarquía
 
 ```mermaid
