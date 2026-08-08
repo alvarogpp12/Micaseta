@@ -36,6 +36,9 @@ export async function createServer({ db, mock, cloud }: ServerDeps) {
 
   app.get('/health', () => ({ ok: true }));
 
+  // Cada puesto tiene su propia interfaz con el mismo diseño
+  const staffHome = (role: string) => (role === 'puerta' ? '/puerta/' : '/camarero/');
+
   // Panel web de la caseta + registro público de invitados
   registerPanelRoutes(app, db);
 
@@ -49,7 +52,7 @@ export async function createServer({ db, mock, cloud }: ServerDeps) {
     const session = jwt.sign({ s: staff.id }, config.jwtSecret, { expiresIn: '2d' });
     reply
       .setCookie('session', session, { path: '/', httpOnly: true, sameSite: 'lax', maxAge: 2 * 24 * 3600 })
-      .redirect('/staff/');
+      .redirect(staffHome(staff.role));
   });
 
   app.get('/api/demo-qrs', async (req, reply) => {
@@ -88,7 +91,7 @@ export async function createServer({ db, mock, cloud }: ServerDeps) {
       const session = jwt.sign({ s: user.id }, config.jwtSecret, { expiresIn: '30d' });
       reply
         .setCookie('session', session, { path: '/', httpOnly: true, sameSite: 'lax', maxAge: 30 * 24 * 3600 })
-        .redirect('/staff/');
+        .redirect(staffHome(user.role));
     } catch {
       reply.code(401).type('text/html').send('<h3>Link inválido o caducado. Pide uno nuevo escribiendo <b>link</b> al WhatsApp del club.</h3>');
     }

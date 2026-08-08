@@ -80,6 +80,7 @@
   <button data-tab="socios"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Socios</button>
   <button data-tab="invitaciones"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M15 5v14M3 10h12"/></svg>Invitar</button>
   <button data-tab="staff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M15 8h4M15 12h4M5.5 16.5c.5-1.5 2-2.5 3.5-2.5s3 1 3.5 2.5"/></svg>Equipo</button>
+  <button data-tab="pantalla"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Pantalla</button>
 </div></nav>
 <dialog id="dlg"></dialog>
 <script>
@@ -122,6 +123,7 @@ async function render() {
     if (tab === 'socios') await renderSocios(m);
     if (tab === 'invitaciones') await renderInvitaciones(m);
     if (tab === 'staff') await renderStaff(m);
+    if (tab === 'pantalla') await renderPantalla(m);
   } catch (e) { m.innerHTML = `<p class="err">${esc(e.message)}</p>`; }
 }
 
@@ -135,20 +137,8 @@ async function renderResumen(m) {
       <div class="kpi"><div class="l">Pendiente de liquidar</div><div class="v">${eur(o.pendienteCents)}</div></div>
       <div class="kpi"><div class="l">Socios · Invitados</div><div class="v">${o.counts.socios} · ${o.counts.invitados}</div></div>
     </div>
-    <div class="card">
-      <h2>Pantalla de pedidos (TV)</h2>
-      <p class="empty" style="padding:4px 0 0">Ábrela en la tele de la caseta: muestra los números en preparación y los listos para recoger, como en una hamburguesería.</p>
-      <button class="btn btn-sec btn-block" id="tvBtn">Abrir / compartir pantalla</button>
-    </div>
     <h2>Cuentas por socio</h2>
     <div class="card" id="cuentas">${o.cuentas.length ? '' : '<p class="empty">Aún no hay consumo registrado. Empieza dando de alta socios y creando invitaciones.</p>'}</div>`;
-  $('#tvBtn').onclick = async () => {
-    const r = await api('/papi/tv-link');
-    dlg(`<h2>Pantalla de pedidos</h2><p class="mut">Abre este enlace en el navegador de la TV de la caseta (o de cualquier tablet). Se actualiza sola.</p>
-      <a class="btn btn-primary btn-block" style="color:#fff;text-decoration:none" href="${r.url}" target="_blank">Abrir pantalla</a>
-      <button class="btn btn-sec btn-block" onclick="navigator.clipboard.writeText(${JSON.stringify(r.url).replace(/"/g,'&quot;')});this.textContent='Copiado'">Copiar enlace</button>
-      <div class="share">${esc(r.url)}</div>`);
-  };
   const box = $('#cuentas');
   for (const c of o.cuentas) {
     const row = document.createElement('div'); row.className = 'row';
@@ -194,14 +184,14 @@ async function renderSocios(m) {
     row.innerHTML = `<div class="avatar">${initials(s.name)}</div>
       <div class="who"><b>${esc(s.name ?? '')}</b><small>+${s.phone}</small></div>
       <span class="chip ${suspended ? 'c-bad' : 'c-ok'}">${suspended ? 'suspendido' : 'activo'}</span>
-      ${s.qrToken ? '<button class="btn btn-mini btn-soft">Acceso</button>' : ''}
+      ${s.qrToken ? '<button class="btn btn-mini btn-soft">Su app</button>' : ''}
       <button class="btn btn-mini btn-sec">${suspended ? 'Activar' : 'Baja'}</button>`;
     const btns = row.querySelectorAll('button');
     const qrBtn = s.qrToken ? btns[0] : null;
     const susBtn = btns[btns.length - 1];
     if (qrBtn) qrBtn.onclick = () => {
       const socioUrl = location.origin + '/socio/?t=' + encodeURIComponent(s.qrToken);
-      dlg(`<h2>Acceso de ${esc(s.name ?? '')}</h2><p class="mut">Su página personal: ahí tiene su QR y puede pedir desde el móvil a su cuenta.</p>
+      dlg(`<h2>App de ${esc(s.name ?? '')}</h2><p class="mut">La página personal del socio: su QR para entrar y el botón "Pedir desde el móvil" para pedir a su cuenta sin pasar por la barra. Envíasela por WhatsApp.</p>
       <div class="qrframe"><img src="/qr.png?t=${encodeURIComponent(s.qrToken)}" alt="QR del socio"></div>
       <a class="btn btn-sec btn-block" href="${socioUrl}" target="_blank">Abrir su página (probar)</a>` +
       shareBlock('Tu acceso de socio a la caseta. Dentro tienes tu QR y puedes pedir desde el móvil: ' + socioUrl, s.phone, socioUrl));
@@ -263,6 +253,24 @@ async function renderInvitaciones(m) {
     };
     box.appendChild(row);
   }
+}
+
+// ---------- PANTALLA (TV de la caseta) ----------
+async function renderPantalla(m) {
+  const r = await api('/papi/tv-link');
+  m.innerHTML = `
+    <div class="card">
+      <h2>Pantalla de pedidos</h2>
+      <p class="empty" style="padding:4px 0 0">Para la tele o una tablet de la caseta. Muestra los números de los pedidos hechos desde el móvil: primero "en preparación" y, cuando el camarero los marca listos, pasan a "listos para recoger". Se actualiza sola.</p>
+      <a class="btn btn-primary btn-block" style="color:#fff;text-decoration:none" href="${r.url}" target="_blank">Abrir pantalla</a>
+      <button class="btn btn-sec btn-block" id="tvCopy">Copiar enlace</button>
+      <div class="share">${esc(r.url)}</div>
+    </div>
+    <div class="card">
+      <h2>¿Cómo pide la gente desde el móvil?</h2>
+      <p class="empty" style="padding:4px 0 0">Cada socio tiene su página personal (botón "Su app" en la pestaña Socios): ahí está su QR y el botón "Pedir desde el móvil". Los invitados piden desde el enlace de su invitación. Al enviar el pedido reciben su número, y el camarero lo gestiona desde su propia interfaz.</p>
+    </div>`;
+  $('#tvCopy').onclick = () => { navigator.clipboard.writeText(r.url); $('#tvCopy').textContent = 'Copiado'; };
 }
 
 // ---------- EQUIPO ----------
