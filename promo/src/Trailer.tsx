@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  AbsoluteFill, Audio, Sequence, continueRender, delayRender,
+  AbsoluteFill, Audio, Sequence,
   interpolate, spring, staticFile, useCurrentFrame, useVideoConfig,
 } from 'remotion';
 
@@ -10,13 +10,11 @@ export const TRAILER_DURATION = 1320; // 44s
 // ---------- fuente ----------
 import { INTER_DATA_URI } from './inter-font';
 
-// Fuente incrustada como data URI: la carga es local al proceso del navegador,
-// no depende de la red del bundle y no puede colgarse entre pestañas.
-if (typeof document !== 'undefined') {
-  const handle = delayRender('font');
-  const font = new FontFace('Inter', `url(${INTER_DATA_URI}) format('woff2')`, { weight: '100 900' } as FontFaceDescriptors);
-  font.load().then((f) => { (document as any).fonts.add(f); continueRender(handle); }).catch(() => continueRender(handle));
-}
+// Fuente incrustada vía @font-face con data URI: sin delayRender ni promesas
+// que puedan colgar el render; el navegador la decodifica localmente.
+const FontStyle: React.FC = () => (
+  <style>{`@font-face { font-family: Inter; src: url(${INTER_DATA_URI}) format('woff2'); font-weight: 100 900; font-display: block; }`}</style>
+);
 
 // ---------- tokens ----------
 const T = {
@@ -585,6 +583,7 @@ export const Trailer: React.FC = () => {
   const frame = useCurrentFrame();
   return (
     <AbsoluteFill style={{ background: T.bg1 }}>
+      <FontStyle />
       {SCENES.map(({ at, dur, C }, i) => (
         <Sequence key={i} from={at} durationInFrames={dur}>
           <SceneFade dur={dur}><C /></SceneFade>
