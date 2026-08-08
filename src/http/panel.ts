@@ -8,6 +8,7 @@ import * as users from '../services/users.js';
 import * as invitations from '../services/invitations.js';
 import * as orders from '../services/orders.js';
 import { signQrToken, verifyQrToken, qrPng } from '../services/qr.js';
+import * as wallet from '../services/wallet.js';
 import { staffLoginUrl } from '../bot/flows/staff.js';
 import { SEVILLA_MENU } from '../services/demo.js';
 import { parseEuros, todayStr } from '../domain/types.js';
@@ -83,6 +84,7 @@ export function registerPanelRoutes(app: FastifyInstance, db: DB): void {
   app.get('/gapi/config', async () => ({
     googleClientId: config.googleClientId || null,
     demo: config.demoEnabled,
+    wallet: wallet.walletEnabled(),
   }));
 
   app.post('/papi/logout', async (_req, reply) => {
@@ -411,6 +413,7 @@ export function registerPanelRoutes(app: FastifyInstance, db: DB): void {
       accessOk: access.ok,
       accessReason: access.reason,
       canOrder,
+      wallet: wallet.walletEnabled(),
       products: canOrder ? await orders.listProducts(db, user.caseta_id) : [],
     };
 
@@ -434,6 +437,26 @@ export function registerPanelRoutes(app: FastifyInstance, db: DB): void {
       payload.remainingCents = access.remainingCents;
     }
     return payload;
+  });
+
+  /** Pase de Apple Wallet: tarjeta con el nombre y el mismo QR de acceso. */
+  app.get('/gapi/wallet.pkpass', async (req, reply) => {
+    if (!wallet.walletEnabled()) return reply.code(404).send({ error: 'Wallet no configurado' });
+    const t = String((req.query as any).t ?? '');
+    const user = await clientFromToken(t);
+    if (!user) return reply.code(404).send({ error: 'Acceso no válido' });
+    const caseta = user.caseta_id ? await accounts.getCaseta(db, user.caseta_id) : null;
+    const access = await invitations.checkAccess(db, user);
+    const pkpass = wallet.buildPass({
+      user,
+      casetaName: caseta?.name ?? 'Micaseta',
+      qrToken: t,
+      hostName: access.hostName,
+    });
+    reply
+      .type('application/vnd.apple.pkpass')
+      .header('Content-Disposition', 'attachment; filename="micaseta.pkpass"');
+    return pkpass;
   });
 
   /** Pedido desde el móvil (socio o invitado con barra): queda pendiente. */

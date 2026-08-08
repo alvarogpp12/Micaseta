@@ -76,6 +76,14 @@ function VistaQR({ me, onPedir }: any) {
         </p>
       </CardBody></Card>
       {onPedir && <Button className="mt-3.5 w-full" size="lg" onClick={onPedir}>Pedir desde el móvil</Button>}
+      {me.wallet && /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent) && (
+        <a href={'/gapi/wallet.pkpass?t=' + encodeURIComponent(me.qrToken)} className="mt-2.5 block">
+          <button className="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-black font-semibold text-white">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8.98-.2 1.92-.86 3.11-.78 1.44.12 2.51.68 3.21 1.7-2.94 1.76-2.48 5.63.66 6.89-.55 1.42-1.26 2.83-2.06 4.36zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
+            Añadir a Apple Wallet
+          </button>
+        </a>
+      )}
     </>
   );
 }

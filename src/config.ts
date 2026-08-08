@@ -29,6 +29,16 @@ export const config = {
   // base de datos. Activado por defecto solo sin Postgres real, para no
   // ensuciar producción; forzable con DEMO_MODE=1/0.
   demoEnabled: process.env.DEMO_MODE ? process.env.DEMO_MODE === '1' : !process.env.DATABASE_URL,
+  // Pases de Apple Wallet (.pkpass). Requiere certificado "Pass Type ID" de
+  // una cuenta de Apple Developer; sin configurar, el botón no se muestra.
+  wallet: {
+    passTypeId: process.env.WALLET_PASS_TYPE_ID ?? '',
+    teamId: process.env.WALLET_TEAM_ID ?? '',
+    certPem: process.env.WALLET_CERT_PEM ?? '',
+    keyPem: process.env.WALLET_KEY_PEM ?? '',
+    keyPassword: process.env.WALLET_KEY_PASSWORD ?? '',
+    wwdrPem: process.env.WALLET_WWDR_PEM ?? '',
+  },
   // WhatsApp Business Cloud API (proveedor 'cloud')
   whatsappToken: process.env.WHATSAPP_TOKEN ?? '',
   whatsappPhoneId: process.env.WHATSAPP_PHONE_ID ?? '',
