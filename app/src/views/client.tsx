@@ -47,44 +47,68 @@ const Dead = ({ msg }: { msg: string }) => (
   <><TopBar /><Page><div className="rounded-xl bg-destructive/10 p-4 text-center text-sm font-semibold text-destructive">{msg}</div></Page></>
 );
 
+/** El carnet: el único objeto de luz de la app — billete lona con troquel y raya. */
 function VistaQR({ me, onPedir }: any) {
   const esSocio = me.role === 'socio';
   const pend = esSocio ? me.gastos.people.reduce((a: number, p: any) => a + p.pending_cents, 0) : 0;
   return (
-    <>
-      <div className="rounded-2xl bg-gradient-to-br from-primary to-[#6e3aff] p-5 text-white">
-        <div className="text-xs font-semibold uppercase tracking-wider opacity-85">
-          {esSocio ? 'Socio' : `Invitado${me.hostName ? ' · invita ' + me.hostName : ''}`}
+    <div className="flex min-h-[70vh] flex-col justify-center">
+      {!me.accessOk && <div className="mb-4 rounded-xl bg-menta/10 p-3.5 text-[13px] font-bold text-menta">⚠️ {me.accessReason}</div>}
+
+      <div className="rounded-[30px] bg-lona text-tinta shadow-carnet">
+        <div className="p-6 pb-5">
+          <div className="flex justify-between text-[10.5px] font-extrabold uppercase tracking-[.22em]">
+            <span className="text-[#1E7A46]">{esSocio ? 'Socio titular' : me.canOrder ? 'Invitación con barra' : 'Invitación · solo entrada'}</span>
+            <span className="text-[#8A8672]">{new Date().getFullYear()}</span>
+          </div>
+          <h1 className="mt-4 break-words text-[42px] font-black leading-[.98] tracking-tighter">{me.name}</h1>
+          <div className="mt-2.5 flex items-baseline justify-between">
+            <span className="text-[14px] font-bold text-[#4A5346]">{me.caseta}</span>
+            {!esSocio && me.hostName && <span className="text-[11px] font-extrabold uppercase tracking-[.14em] text-[#1E7A46]">Invita {me.hostName}</span>}
+          </div>
         </div>
-        <h1 className="mt-0.5 break-words text-[21px] font-extrabold tracking-tight">{me.name}</h1>
-        <div className="mt-1 text-[13.5px] opacity-90">{me.caseta}</div>
+        <div className="relative border-t-2 border-dashed border-[#D8D2BC]">
+          <span className="absolute -top-3.5 left-[-16px] h-7 w-7 rounded-full bg-background" />
+          <span className="absolute -top-3.5 right-[-16px] h-7 w-7 rounded-full bg-background" />
+        </div>
+        <div className="flex items-center gap-5 p-6 pt-5">
+          <div className="w-[140px] flex-shrink-0 overflow-hidden rounded-xl bg-white p-1.5">
+            <img src={'/qr.png?t=' + encodeURIComponent(me.qrToken)} alt="Tu código QR" className="w-full" />
+          </div>
+          <div className="min-w-0">
+            <b className="block text-[15px] font-extrabold tracking-tight">{me.canOrder ? 'Puerta y barra' : 'Puerta'}</b>
+            <span className="mt-1.5 block text-[12.5px] leading-relaxed text-[#77816F]">
+              {me.canOrder ? 'Un solo código para entrar y pedir a tu cuenta.' : 'Presenta este código en la entrada.'}
+            </span>
+            <em className="mt-3 flex items-center gap-1.5 text-[11px] font-extrabold not-italic uppercase tracking-[.1em] text-[#1E7A46]">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary" />Válido hoy
+            </em>
+          </div>
+        </div>
+        <div className="raya h-2.5 rounded-b-[30px]" />
       </div>
-      {!me.accessOk && <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-[13px] font-semibold text-amber-800">⚠️ {me.accessReason}</div>}
-      <Card className="mt-3.5"><CardBody className="text-center">
-        <p className="mb-3 text-[13.5px] text-muted-foreground">
-          {me.canOrder ? 'Tu código para entrar y pedir. Preséntalo en la puerta.' : 'Tu invitación es solo de entrada. Presenta este código en la puerta.'}
-        </p>
-        <div className="rounded-xl border border-border bg-white p-3">
-          <img src={'/qr.png?t=' + encodeURIComponent(me.qrToken)} alt="Tu código QR" className="w-full" />
+
+      <div className="mt-6 flex items-center justify-between gap-4">
+        {me.wallet && /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent) ? (
+          <a href={'/gapi/wallet.pkpass?t=' + encodeURIComponent(me.qrToken)} className="flex-1">
+            <button className="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-black font-bold text-white ring-1 ring-white/15">
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8.98-.2 1.92-.86 3.11-.78 1.44.12 2.51.68 3.21 1.7-2.94 1.76-2.48 5.63.66 6.89-.55 1.42-1.26 2.83-2.06 4.36zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
+              Apple Wallet
+            </button>
+          </a>
+        ) : onPedir ? (
+          <Button size="lg" className="flex-1" onClick={onPedir}>Pedir desde el móvil</Button>
+        ) : <span className="flex-1" />}
+        <div className="text-right">
+          <span className="block text-[10px] font-extrabold uppercase tracking-[.14em] text-muted-foreground">
+            {esSocio ? 'Pendiente' : me.canOrder ? 'Te queda' : ''}
+          </span>
+          <b className="text-[21px] font-black tabular-nums tracking-tight">
+            {esSocio ? eur(pend) : me.canOrder ? (me.remainingCents === null ? 'Sin límite' : eur(me.remainingCents)) : ''}
+          </b>
         </div>
-        <p className="mt-3 text-[13.5px] text-muted-foreground">
-          {esSocio
-            ? (pend > 0 ? `Cuenta pendiente: ${eur(pend)}` : 'No tienes consumo pendiente.')
-            : me.canOrder
-              ? (me.remainingCents === null ? `Consumo sin límite, a cuenta de ${me.hostName ?? 'tu socio'}` : `Te quedan ${eur(me.remainingCents)} de ${eur(me.spendLimitCents)}`)
-              : ''}
-        </p>
-      </CardBody></Card>
-      {onPedir && <Button className="mt-3.5 w-full" size="lg" onClick={onPedir}>Pedir desde el móvil</Button>}
-      {me.wallet && /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent) && (
-        <a href={'/gapi/wallet.pkpass?t=' + encodeURIComponent(me.qrToken)} className="mt-2.5 block">
-          <button className="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-black font-semibold text-white">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8.98-.2 1.92-.86 3.11-.78 1.44.12 2.51.68 3.21 1.7-2.94 1.76-2.48 5.63.66 6.89-.55 1.42-1.26 2.83-2.06 4.36zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
-            Añadir a Apple Wallet
-          </button>
-        </a>
-      )}
-    </>
+      </div>
+    </div>
   );
 }
 
@@ -105,9 +129,8 @@ function VistaPedir({ me, token, onSent }: any) {
   };
   return (
     <>
-      <h3 className="text-base font-bold">Haz tu pedido</h3>
-      <p className="text-[13px] text-muted-foreground">
-        {me.role === 'socio' ? 'A tu cuenta de socio' : `A cuenta de ${me.hostName ?? 'tu socio'}${me.remainingCents !== null ? ` · te quedan ${eur(me.remainingCents)}` : ''}`}
+      <p className="pt-2 text-[11px] font-extrabold uppercase tracking-[.24em] text-muted-foreground">
+        {me.role === 'socio' ? 'La carta · a tu cuenta' : `La carta · a cuenta de ${me.hostName ?? 'tu socio'}${me.remainingCents !== null ? ` · quedan ${eur(me.remainingCents)}` : ''}`}
       </p>
       <Carta products={me.products} qty={qty} setQty={setQty} />
       <CartBar products={me.products} qty={qty} label="Enviar pedido" onSend={send} err={err} busy={busy} />
@@ -197,9 +220,9 @@ function VistaInvitar({ me, token, reload }: any) {
         <div className="grid grid-cols-2 gap-2.5">
           {([['barra', '🍺 Con barra', 'Puede pedir a tu cuenta'], ['entrada', '🎟️ Solo entrada', 'Su QR abre la puerta, sin consumo']] as const).map(([id, b, s]) => (
             <button key={id} type="button" onClick={() => setType(id)}
-              className={cn('rounded-xl border-[1.5px] p-3 text-left', type === id ? 'border-primary bg-secondary' : 'border-border bg-card')}>
-              <b className="block text-sm">{b}</b>
-              <small className="mt-0.5 block leading-snug text-muted-foreground">{s}</small>
+              className={cn('rounded-xl p-3.5 text-left transition-all', type === id ? 'bg-primary/15 ring-2 ring-primary' : 'bg-secondary')}>
+              <b className="block text-sm font-extrabold">{b}</b>
+              <small className="mt-1 block leading-snug text-muted-foreground">{s}</small>
             </button>
           ))}
         </div>
@@ -295,16 +318,17 @@ export function GuestRegister({ token }: { token: string }) {
     <>
       <TopBar />
       <Page>
-        <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-          <div className="bg-gradient-to-br from-primary to-[#6e3aff] p-5 text-white">
-            <div className="text-xs font-semibold uppercase tracking-wider opacity-85">{inv.socio} te invita a</div>
-            <h1 className="mt-1 text-2xl font-extrabold tracking-tight">{inv.caseta}</h1>
+        <div className="overflow-hidden rounded-[30px] bg-lona text-tinta shadow-carnet">
+          <div className="p-6 pb-4">
+            <div className="text-[10.5px] font-extrabold uppercase tracking-[.22em] text-[#1E7A46]">{inv.socio} te invita a</div>
+            <h1 className="mt-2 text-[34px] font-black leading-none tracking-tighter">{inv.caseta}</h1>
           </div>
-          <div className="p-5">
+          <div className="px-6 pb-5">
             {String(inv.conditions).split('\n').map((line: string, i: number) => (
-              <div key={i} className="border-b border-border py-2 text-[14.5px] last:border-0">{line}</div>
+              <div key={i} className="border-b border-[#E5E2D3] py-2.5 text-[14px] font-semibold last:border-0">{line}</div>
             ))}
           </div>
+          <div className="raya h-2.5" />
         </div>
         <Card className="mt-3.5"><CardBody>
           <h3 className="text-base font-bold">Acepta con tu selfie</h3>
