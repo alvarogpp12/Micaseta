@@ -27,7 +27,7 @@ export function OwnerApp({ me, onLogout }: { me: any; onLogout: () => void }) {
       <Page>
         <FadeView id={tab}>
           {tab === 'resumen' && <Resumen />}
-          {tab === 'socios' && <Socios />}
+          {tab === 'socios' && <Socios onVer={setVerSocio} />}
           {tab === 'invitaciones' && <Invitaciones />}
           {tab === 'equipo' && <Equipo />}
         </FadeView>
