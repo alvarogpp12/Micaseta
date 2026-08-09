@@ -5,3 +5,6 @@ data/
 .DS_Store
 app/node_modules/
 public/app/
+# scripts temporales de capturas/QA
+crit-shots.mjs
+*.tmp.mjs
