@@ -2,23 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: 220 25% 97%;
-  --foreground: 222 40% 11%;
-  --card: 0 0% 100%;
-  --card-foreground: 222 40% 11%;
-  --border: 225 25% 92%;
-  --input: 220 15% 84%;
-  --primary: 236 100% 63%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 231 100% 96%;
-  --secondary-foreground: 236 84% 55%;
-  --muted: 220 20% 95%;
-  --muted-foreground: 221 13% 46%;
-  --destructive: 4 86% 58%;
-  --destructive-foreground: 0 0% 100%;
-  --success: 152 82% 39%;
-  --success-foreground: 0 0% 100%;
+@font-face {
+  font-family: 'InterVar';
+  src: url('/app/inter.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
 }
 
 * { -webkit-tap-highlight-color: transparent; }
@@ -26,5 +14,15 @@ html, body { height: 100%; }
 body { @apply bg-background text-foreground font-sans antialiased; touch-action: manipulation; }
 input, select { font-size: 16px; } /* evita el zoom de iOS al enfocar */
 
+/* Resplandor ambiental de cada pantalla (la caseta de noche) */
+.amb-verde {
+  background:
+    radial-gradient(90% 42% at 50% -12%, rgba(47, 213, 115, .14), transparent 62%),
+    radial-gradient(70% 30% at 12% 108%, rgba(47, 213, 115, .06), transparent 60%);
+}
+.glow-turno { text-shadow: 0 0 90px rgba(47, 213, 115, .32); }
+.raya { background: repeating-linear-gradient(135deg, #1E7A46 0 12px, #F6F5EF 12px 24px); }
+
 @keyframes pop { from { transform: scale(1); } to { transform: scale(1.06); } }
 .animate-pop { animation: pop 1s ease infinite alternate; }
+@media (prefers-reduced-motion: reduce) { .animate-pop { animation: none; } }

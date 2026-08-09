@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import jsQR from 'jsqr';
-import { Copy, Minus, Plus, Send } from 'lucide-react';
+import { ArrowRight, Copy, Minus, Plus } from 'lucide-react';
 import { api, eur, waShare, CAT_LABELS, sortProducts } from './lib/api';
 import { Button, Card, CardBody, Chip, Err, Input, Label, Modal, cn } from './ui';
 
-// ── Carta + carrito (la usan cliente y camarero, con distinto botón final) ──
+// ── La carta editorial: categorías como titulares, filas a sangre ──
 
 export function Carta({ products, qty, setQty }: any) {
   const cats: string[] = [...new Set(sortProducts(products).map((p: any) => p.category))] as string[];
@@ -12,35 +12,31 @@ export function Carta({ products, qty, setQty }: any) {
   const active = cats.includes(cat as string) ? cat : cats[0];
   return (
     <div>
-      <div className="scrollbar-none -mx-1 flex gap-2 overflow-x-auto px-1 py-2">
+      <div className="-mx-1 flex items-baseline gap-5 overflow-x-auto whitespace-nowrap px-1 pb-1 pt-2 [scrollbar-width:none]">
         {cats.map((c) => (
           <button key={c} onClick={() => setCat(c)}
-            className={cn('flex-shrink-0 rounded-full px-4 py-2 text-[13.5px] font-bold',
-              c === active ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground')}>
+            className={cn('flex-shrink-0 text-[26px] font-black tracking-tighter transition-colors',
+              c === active ? 'text-foreground' : 'text-foreground/20')}>
             {CAT_LABELS[c] ?? c}
           </button>
         ))}
       </div>
-      <div className="grid grid-cols-2 gap-2.5">
+      <div className="mt-3 pb-2">
         {sortProducts(products).filter((p: any) => p.category === active).map((p: any) => {
           const n = qty[p.id] || 0;
           const add = () => setQty({ ...qty, [p.id]: n + 1 });
           return (
-            <div key={p.id} onClick={add}
-              className={cn('relative flex min-h-[92px] cursor-pointer select-none flex-col rounded-xl border-[1.5px] bg-card p-3',
-                n ? 'border-primary bg-secondary' : 'border-border')}>
-              <span className="pr-5 text-sm font-semibold leading-snug">{p.name}</span>
-              <span className="mt-auto pt-2 text-[13px] font-semibold text-muted-foreground">{eur(p.price_cents)}</span>
+            <div key={p.id} onClick={n ? undefined : add}
+              className={cn('flex cursor-pointer select-none items-center gap-3 py-[15px]',
+                n ? '-mx-3 my-0.5 rounded-lg bg-secondary px-3' : 'border-b border-border px-0.5')}>
+              <b className="min-w-0 flex-1 text-[16px] font-extrabold tracking-tight">{p.name}</b>
+              <span className="text-[17px] font-black tabular-nums tracking-tight">{eur(p.price_cents)}</span>
               {n > 0 && (
-                <>
-                  <span className="absolute -right-1.5 -top-2 grid h-6 min-w-6 place-items-center rounded-full bg-primary px-1.5 text-[13px] font-extrabold text-primary-foreground shadow">{n}</span>
-                  <div className="absolute bottom-2 right-2 flex gap-1.5" onClick={(e) => e.stopPropagation()}>
-                    <button onClick={() => setQty({ ...qty, [p.id]: Math.max(0, n - 1) })}
-                      className="grid h-8 w-8 place-items-center rounded-full border border-border bg-card"><Minus size={16} /></button>
-                    <button onClick={add}
-                      className="grid h-8 w-8 place-items-center rounded-full bg-primary text-primary-foreground"><Plus size={16} /></button>
-                  </div>
-                </>
+                <span className="flex items-center rounded-full bg-primary p-1 text-primary-foreground" onClick={(e) => e.stopPropagation()}>
+                  <button className="grid h-8 w-8 place-items-center" onClick={() => setQty({ ...qty, [p.id]: n - 1 })}><Minus size={16} /></button>
+                  <b className="min-w-5 text-center text-[15px] font-black">{n}</b>
+                  <button className="grid h-8 w-8 place-items-center" onClick={add}><Plus size={16} /></button>
+                </span>
               )}
             </div>
           );
@@ -54,21 +50,23 @@ export function CartBar({ products, qty, label, onSend, err, busy }: any) {
   const n = Object.values(qty).reduce((a: number, b: any) => a + b, 0) as number;
   let total = 0;
   for (const p of products) total += (qty[p.id] || 0) * p.price_cents;
+  if (n === 0 && !err) return null;
   return (
-    <div className="fixed inset-x-0 bottom-[52px] z-30 border-t border-border bg-card px-4 py-2.5 shadow-[0_-4px_16px_rgba(16,24,40,.07)]">
-      <div className="mx-auto flex max-w-md items-center gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="text-xs font-semibold text-muted-foreground">{n === 0 ? 'Toca productos para añadirlos' : `${n} artículo${n === 1 ? '' : 's'}`}</div>
-          <div className="text-lg font-extrabold tracking-tight">{eur(total)}</div>
-        </div>
-        <Button onClick={onSend} disabled={n === 0 || busy}><Send size={16} /> {label}</Button>
-      </div>
-      <div className="mx-auto max-w-md"><Err>{err}</Err></div>
+    <div className="fixed inset-x-0 z-30 mx-auto max-w-md px-5" style={{ bottom: 'calc(6.5rem + env(safe-area-inset-bottom))' }}>
+      {err && <p className="mb-2 text-center text-[13px] font-bold text-destructive">{err}</p>}
+      <button onClick={onSend} disabled={busy || n === 0}
+        className="flex w-full items-center gap-3 rounded-full bg-primary py-2.5 pl-6 pr-2.5 text-primary-foreground shadow-glow transition-transform active:scale-[.98] disabled:opacity-50">
+        <span className="text-[15px] font-extrabold tracking-tight">{label}</span>
+        <span className="ml-auto text-[19px] font-black tabular-nums tracking-tight">{eur(total)}</span>
+        <span className="grid h-11 w-11 place-items-center rounded-full bg-primary-foreground text-primary">
+          <ArrowRight size={18} strokeWidth={2.5} />
+        </span>
+      </button>
     </div>
   );
 }
 
-// ── Número gigante + seguimiento del pedido (estilo Glovo/Burger King) ──
+// ── El turno: número gigante con halo, fases segmentadas ──
 
 export function OrderTracker({ token, orderId, pickupNumber, totalCents, onBack, hostName }: any) {
   const [status, setStatus] = useState('pendiente');
@@ -86,23 +84,38 @@ export function OrderTracker({ token, orderId, pickupNumber, totalCents, onBack,
     return () => clearInterval(id);
   }, [orderId]);
   const listo = status === 'lista';
+  const servido = status === 'servida';
   return (
-    <Card><CardBody className="py-8 text-center">
-      <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Tu número</p>
-      <div className={cn('my-2 text-7xl font-black tracking-tighter tabular-nums', listo ? 'text-success' : 'text-primary')}>{pickupNumber ?? '—'}</div>
-      <Chip tone={listo ? 'ok' : 'primary'} className={cn('px-4 py-2 text-sm', listo && 'animate-pop')}>
-        {status === 'pendiente' && 'En preparación…'}
-        {status === 'lista' && '¡Listo! Recógelo en la barra'}
-        {status === 'servida' && 'Entregado · ¡que aproveche!'}
-      </Chip>
-      <h3 className="mt-4 font-bold">Pedido enviado · {eur(totalCents)}</h3>
-      <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
-        {status === 'servida'
-          ? `Cargado a la cuenta de ${hostName ?? 'tu socio'}.`
-          : listo ? 'Tu número está en la pantalla de la caseta.' : 'Cuando esté listo, tu número saldrá en la pantalla de la caseta y te avisaremos aquí.'}
+    <div className="flex flex-col items-center pt-6 text-center">
+      <p className="text-[11px] font-extrabold uppercase tracking-[.26em] text-muted-foreground">Tu pedido</p>
+      <div className={cn('glow-turno my-1 text-[200px] font-black leading-[.9] tracking-tighter tabular-nums', listo || servido ? 'text-primary' : 'text-lona')}>
+        {pickupNumber ?? '—'}
+      </div>
+      <span className={cn('inline-flex items-center gap-2.5 rounded-full px-5 py-3 text-[14px] font-extrabold',
+        listo ? 'animate-pop bg-primary text-primary-foreground shadow-glow' : servido ? 'bg-primary/15 text-primary' : 'bg-menta/10 text-menta')}>
+        {!servido && <span className={cn('h-2 w-2 rounded-full', listo ? 'bg-primary-foreground' : 'animate-pop bg-menta')} />}
+        {status === 'pendiente' && 'En preparación'}
+        {listo && '¡Listo! Recógelo en la barra'}
+        {servido && 'Entregado · ¡que aproveche!'}
+      </span>
+      <p className="mt-5 text-[15px] font-bold">Pedido enviado · {eur(totalCents)}</p>
+      <p className="mt-2 max-w-[30ch] text-[13px] leading-relaxed text-muted-foreground">
+        {servido ? `Cargado a la cuenta de ${hostName ?? 'tu socio'}.`
+          : listo ? 'Tu número está en la pantalla de la caseta.'
+          : 'Cuando esté listo, tu número saldrá en la pantalla de la caseta y este móvil vibrará.'}
       </p>
-      <Button variant="outline" className="mt-5 w-full" onClick={onBack}>Volver</Button>
-    </CardBody></Card>
+      <div className="mt-7 flex w-[240px] gap-1.5">
+        <span className="h-1.5 flex-1 rounded-full bg-primary" />
+        <span className={cn('h-1.5 flex-1 rounded-full', listo || servido ? 'bg-primary' : 'bg-menta shadow-[0_0_14px_rgba(167,233,192,.6)]')} />
+        <span className={cn('h-1.5 flex-1 rounded-full', servido ? 'bg-primary' : listo ? 'bg-menta shadow-[0_0_14px_rgba(167,233,192,.6)]' : 'bg-white/10')} />
+      </div>
+      <div className="mt-2.5 flex w-[240px] justify-between text-[11px] font-bold">
+        <span className="text-primary">Enviado</span>
+        <span className={listo || servido ? 'text-primary' : 'text-menta'}>En barra</span>
+        <span className={servido ? 'text-primary' : listo ? 'text-menta' : 'text-muted-foreground'}>Listo</span>
+      </div>
+      <Button variant="outline" className="mt-9 w-full" onClick={onBack}>Volver</Button>
+    </div>
   );
 }
 
@@ -148,17 +161,17 @@ export function Scanner({ onScan, hint }: { onScan: (qr: string) => void; hint?:
 
   return (
     <Card><CardBody>
-      {hint && <p className="mb-3 text-[13px] text-muted-foreground">{hint}</p>}
-      <video ref={videoRef} playsInline className={cn('w-full rounded-lg bg-black', !on && 'hidden')} />
-      {!on && <Button className="w-full" onClick={start}>Escanear código QR</Button>}
+      {hint && <p className="mb-4 text-[13px] leading-relaxed text-muted-foreground">{hint}</p>}
+      <video ref={videoRef} playsInline className={cn('w-full rounded-xl bg-black', !on && 'hidden')} />
+      {!on && <Button className="w-full" size="lg" onClick={start}>Escanear código QR</Button>}
       <Label>O introduce el código manualmente</Label>
       <div className="flex gap-2">
         <Input value={manual} onChange={(e: any) => setManual(e.target.value)} placeholder="Código del QR" />
-        <Button variant="outline" onClick={() => manual.trim() && onScan(manual.trim())}>Ir</Button>
+        <Button variant="secondary" onClick={() => manual.trim() && onScan(manual.trim())}>Ir</Button>
       </div>
       {demos.length > 0 && (
-        <div className="mt-4">
-          <p className="mb-2 text-xs font-semibold text-muted-foreground">Modo demo — simula un escaneo</p>
+        <div className="mt-5">
+          <p className="mb-2 text-[10px] font-extrabold uppercase tracking-[.14em] text-muted-foreground">Modo demo — simula un escaneo</p>
           <div className="flex flex-col gap-2">
             {demos.map((d) => <Button key={d.label} variant="outline" size="sm" className="justify-start" onClick={() => onScan(d.token)}>{d.label}</Button>)}
           </div>
@@ -172,16 +185,16 @@ export function Scanner({ onScan, hint }: { onScan: (qr: string) => void; hint?:
 
 export function PersonCard({ info, big }: { info: any; big?: boolean }) {
   return (
-    <div className={cn('flex items-center gap-3.5', big && 'flex-col text-center')}>
+    <div className={cn('flex items-center gap-4', big && 'flex-col text-center')}>
       <img
-        src={info.photoUrl || 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="#eef0ff"/><text x="40" y="52" font-size="30" text-anchor="middle" fill="#98a2ff">?</text></svg>')}
-        alt="" className={cn('rounded-xl border border-border bg-muted object-cover', big ? 'h-36 w-36' : 'h-[76px] w-[76px]')}
+        src={info.photoUrl || 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="#122B1C"/><text x="40" y="52" font-size="30" text-anchor="middle" fill="#2FD573">?</text></svg>')}
+        alt="" className={cn('rounded-xl bg-secondary object-cover', big ? 'h-36 w-36' : 'h-[76px] w-[76px]')}
       />
       <div className={cn('min-w-0', !big && 'flex-1')}>
-        <div className="truncate text-[16px] font-bold">{info.name || 'Sin nombre'}{(info.role === 'socio' || info.role === 'admin') && ' · SOCIO'}</div>
-        {info.hostName && <div className="text-[12.5px] text-muted-foreground">Invita: {info.hostName}</div>}
-        <div className="mt-1.5"><Chip tone={info.ok ? 'ok' : 'bad'}>{info.ok ? 'ACCESO OK' : 'SIN ACCESO'}</Chip></div>
-        {info.reason && <div className="mt-1 text-[12.5px] text-muted-foreground">{info.reason}</div>}
+        <div className="truncate text-[17px] font-black tracking-tight">{info.name || 'Sin nombre'}{(info.role === 'socio' || info.role === 'admin') && ' · SOCIO'}</div>
+        {info.hostName && <div className="text-[12.5px] font-semibold text-muted-foreground">Invita: {info.hostName}</div>}
+        <div className="mt-2"><Chip tone={info.ok ? 'ok' : 'bad'}>{info.ok ? 'ACCESO OK' : 'SIN ACCESO'}</Chip></div>
+        {info.reason && <div className="mt-1.5 text-[12.5px] text-muted-foreground">{info.reason}</div>}
       </div>
     </div>
   );
@@ -193,15 +206,15 @@ export function ShareModal({ open, onClose, title, text, url, phone, note }: any
   const [copied, setCopied] = useState(false);
   return (
     <Modal open={open} onClose={onClose}>
-      <h2 className="text-lg font-bold">{title}</h2>
-      {note && <p className="mt-1 text-[13.5px] leading-relaxed text-muted-foreground">{note}</p>}
-      <a href={waShare(text, phone)} target="_blank" rel="noreferrer" className="mt-4 block">
+      <h2 className="text-lg font-black tracking-tight">{title}</h2>
+      {note && <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">{note}</p>}
+      <a href={waShare(text, phone)} target="_blank" rel="noreferrer" className="mt-5 block">
         <Button className="w-full">Enviar por WhatsApp</Button>
       </a>
-      <Button variant="outline" className="mt-2.5 w-full" onClick={() => { navigator.clipboard.writeText(url); setCopied(true); }}>
+      <Button variant="secondary" className="mt-2.5 w-full" onClick={() => { navigator.clipboard.writeText(url); setCopied(true); }}>
         <Copy size={15} /> {copied ? 'Copiado' : 'Copiar enlace'}
       </Button>
-      <div className="mt-3 break-all rounded-lg bg-muted p-3 text-xs text-muted-foreground">{url}</div>
+      <div className="mt-3 break-all rounded-lg bg-secondary p-3 text-xs text-muted-foreground">{url}</div>
       <Button variant="ghost" className="mt-3 w-full" onClick={onClose}>Cerrar</Button>
     </Modal>
   );

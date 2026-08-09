@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800;900&display=swap" rel="stylesheet">
 <style>
-  :root { --bg:#0d1117; --panel:#161b26; --border:#252c3b; --text:#f2f4f8; --muted:#8b93a5; --primary:#5b6cff; --ok:#12b76a; }
+  :root { --bg:#06110B; --panel:#0B1D13; --border:rgba(239,245,238,.08); --text:#EFF5EE; --muted:#7E9384; --primary:#2FD573; --ok:#2FD573; }
   * { box-sizing:border-box; margin:0; }
   html, body { height:100%; }
   body { background:var(--bg); color:var(--text); font-family:Inter,-apple-system,"Segoe UI",system-ui,sans-serif; -webkit-font-smoothing:antialiased; overflow:hidden; display:flex; flex-direction:column; cursor:none; }
@@ -18,11 +18,11 @@
   main { flex:1; display:grid; grid-template-columns:1fr 1.4fr; gap:2vw; padding:0 3vw 3vh; min-height:0; }
   .col { background:var(--panel); border:1px solid var(--border); border-radius:1.5vw; padding:2.5vh 2vw; display:flex; flex-direction:column; min-height:0; overflow:hidden; }
   .col h2 { font-size:clamp(14px, 2vw, 30px); font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); text-align:center; margin-bottom:2vh; }
-  .col.ready { border-color:rgba(18,183,106,.5); box-shadow:inset 0 0 0 2px rgba(18,183,106,.25); }
-  .col.ready h2 { color:#3ddc93; }
+  .col.ready { border-color:rgba(47,213,115,.5); box-shadow:inset 0 0 0 2px rgba(47,213,115,.25); }
+  .col.ready h2 { color:#2FD573; }
   .nums { flex:1; display:flex; flex-wrap:wrap; gap:1.2vw; align-content:flex-start; justify-content:center; overflow:hidden; }
-  .num { min-width:8vw; padding:1.2vh 1.5vw; border-radius:1vw; display:grid; place-items:center; font-weight:900; font-variant-numeric:tabular-nums; letter-spacing:-.02em; background:#1d2432; color:var(--muted); font-size:clamp(26px, 4.5vw, 88px); }
-  .ready .num { background:var(--ok); color:#fff; font-size:clamp(34px, 6.5vw, 130px); box-shadow:0 0 4vw rgba(18,183,106,.35); }
+  .num { min-width:8vw; padding:1.2vh 1.5vw; border-radius:1vw; display:grid; place-items:center; font-weight:900; font-variant-numeric:tabular-nums; letter-spacing:-.02em; background:#122B1C; color:#A7E9C0; font-size:clamp(26px, 4.5vw, 88px); }
+  .ready .num { background:var(--ok); color:#05130B; font-size:clamp(34px, 6.5vw, 130px); box-shadow:0 0 4vw rgba(47,213,115,.4); }
   .ready .num.new { animation:pop 1s ease infinite alternate; }
   @keyframes pop { from { transform:scale(1); } to { transform:scale(1.08); } }
   .empty { color:var(--muted); font-size:clamp(13px, 1.6vw, 24px); font-weight:600; text-align:center; margin:auto; opacity:.7; }

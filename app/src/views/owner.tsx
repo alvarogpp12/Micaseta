@@ -36,13 +36,21 @@ function Resumen() {
   if (!o) return <Spinner />;
   return (
     <>
-      <div className="grid grid-cols-2 gap-3">
-        <KPI label="Consumo de hoy" value={eur(o.hoy.total)} />
-        <KPI label="Entradas hoy" value={o.entradas} />
-        <KPI label="Pendiente de liquidar" value={eur(o.pendienteCents)} />
-        <KPI label="Socios · Invitados" value={`${o.counts.socios} · ${o.counts.invitados}`} />
+      <div className="pt-3">
+        <p className="text-[11px] font-extrabold uppercase tracking-[.24em] text-muted-foreground">Caja de hoy</p>
+        <div className="mt-1 flex items-baseline gap-3">
+          <b className="text-[56px] font-black leading-none tracking-tighter tabular-nums">{eur(o.hoy.total)}</b>
+        </div>
+        <div className="mt-5 flex border-t border-border">
+          {[[o.entradas, 'Entradas'], [eur(o.pendienteCents), 'Pendiente'], [`${o.counts.socios} · ${o.counts.invitados}`, 'Socios · Inv.']].map(([v, l], i) => (
+            <div key={l as string} className={i ? 'flex-1 border-l border-border pl-4 pt-4' : 'flex-1 pt-4'}>
+              <b className="block text-[21px] font-black tracking-tight tabular-nums">{v}</b>
+              <span className="mt-1 block text-[10px] font-extrabold uppercase tracking-[.12em] text-muted-foreground">{l}</span>
+            </div>
+          ))}
+        </div>
       </div>
-      <h3 className="mb-2 mt-5 text-sm font-bold text-foreground/80">Cuentas por socio</h3>
+      <h3 className="mb-2 mt-7 text-[13px] font-extrabold tracking-tight">Cuentas por socio</h3>
       <Card><CardBody>
         {o.cuentas.length === 0 && <Empty>Aún no hay consumo registrado. Da de alta socios y comparte su app.</Empty>}
         {o.cuentas.map((c: any) => (
