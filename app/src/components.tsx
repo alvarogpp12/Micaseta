@@ -4,6 +4,7 @@ import { ArrowRight, Copy, Minus, Plus } from 'lucide-react';
 import { api, eur, waShare, CAT_LABELS, sortProducts } from './lib/api';
 import { Button, Card, CardBody, Chip, Err, Input, Label, Modal, cn } from './ui';
 import { Cascade, NumberTicker } from './components/fx';
+import { toast } from 'sonner';
 
 // ── La carta editorial: categorías como titulares, filas a sangre ──
 
@@ -214,7 +215,7 @@ export function ShareModal({ open, onClose, title, text, url, phone, note }: any
       <a href={waShare(text, phone)} target="_blank" rel="noreferrer" className="mt-5 block">
         <Button className="w-full">Enviar por WhatsApp</Button>
       </a>
-      <Button variant="secondary" className="mt-2.5 w-full" onClick={() => { navigator.clipboard.writeText(url); setCopied(true); }}>
+      <Button variant="secondary" className="mt-2.5 w-full" onClick={() => { navigator.clipboard.writeText(url); setCopied(true); toast('Enlace copiado'); }}>
         <Copy size={15} /> {copied ? 'Copiado' : 'Copiar enlace'}
       </Button>
       <div className="mt-3 break-all rounded-lg bg-secondary p-3 text-xs text-muted-foreground">{url}</div>

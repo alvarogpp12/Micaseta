@@ -4,6 +4,7 @@ import { api, eur, fmtFecha } from '../lib/api';
 import { Avatar, BottomNav, Button, Card, CardBody, Chip, Empty, Err, Input, KPI, Label, Page, Spinner, TopBar, cn } from '../ui';
 import { Carta, CartBar, OrderTracker, ShareModal } from '../components';
 import { FadeView, TiltCard } from '../components/fx';
+import { toast } from 'sonner';
 
 /** App del cliente: socio e invitado, misma app, pestañas según rol. */
 export function ClientApp({ token }: { token: string }) {
@@ -259,6 +260,7 @@ function VistaInvitar({ me, token, reload }: any) {
             <Button variant="ghost" size="sm" onClick={async () => {
               if (!confirm('¿Cancelar esta invitación? Su QR dejará de funcionar.')) return;
               await api(`/gapi/mi/invitaciones/${i.id}/cancelar`, { t: token });
+              toast('Invitación cancelada: su QR ya no funciona');
               reload();
             }}>✕</Button>
           </div>
