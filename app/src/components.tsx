@@ -3,6 +3,7 @@ import jsQR from 'jsqr';
 import { ArrowRight, Copy, Minus, Plus } from 'lucide-react';
 import { api, eur, waShare, CAT_LABELS, sortProducts } from './lib/api';
 import { Button, Card, CardBody, Chip, Err, Input, Label, Modal, cn } from './ui';
+import { Cascade, NumberTicker } from './components/fx';
 
 // ── La carta editorial: categorías como titulares, filas a sangre ──
 
@@ -21,12 +22,13 @@ export function Carta({ products, qty, setQty }: any) {
           </button>
         ))}
       </div>
-      <div className="mt-3 pb-2">
-        {sortProducts(products).filter((p: any) => p.category === active).map((p: any) => {
+      <div className="mt-3 pb-2" key={String(active)}>
+        {sortProducts(products).filter((p: any) => p.category === active).map((p: any, idx: number) => {
           const n = qty[p.id] || 0;
           const add = () => setQty({ ...qty, [p.id]: n + 1 });
           return (
-            <div key={p.id} onClick={n ? undefined : add}
+            <Cascade key={p.id} i={idx}>
+            <div onClick={n ? undefined : add}
               className={cn('flex cursor-pointer select-none items-center gap-3 py-[15px]',
                 n ? '-mx-3 my-0.5 rounded-lg bg-secondary px-3' : 'border-b border-border px-0.5')}>
               <b className="min-w-0 flex-1 text-[16px] font-extrabold tracking-tight">{p.name}</b>
@@ -39,6 +41,7 @@ export function Carta({ products, qty, setQty }: any) {
                 </span>
               )}
             </div>
+            </Cascade>
           );
         })}
       </div>
@@ -89,7 +92,7 @@ export function OrderTracker({ token, orderId, pickupNumber, totalCents, onBack,
     <div className="flex flex-col items-center pt-6 text-center">
       <p className="text-[11px] font-extrabold uppercase tracking-[.26em] text-muted-foreground">Tu pedido</p>
       <div className={cn('glow-turno my-1 text-[200px] font-black leading-[.9] tracking-tighter tabular-nums', listo || servido ? 'text-primary' : 'text-lona')}>
-        {pickupNumber ?? '—'}
+        <NumberTicker value={pickupNumber ?? null} />
       </div>
       <span className={cn('inline-flex items-center gap-2.5 rounded-full px-5 py-3 text-[14px] font-extrabold',
         listo ? 'animate-pop bg-primary text-primary-foreground shadow-glow' : servido ? 'bg-primary/15 text-primary' : 'bg-menta/10 text-menta')}>

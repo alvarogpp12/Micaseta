@@ -3,6 +3,7 @@ import { BarChart3, Users, Ticket, BadgeCheck } from 'lucide-react';
 import { api, eur, fmtFecha } from '../lib/api';
 import { Avatar, BottomNav, Button, Card, CardBody, Chip, Empty, Err, Input, KPI, Label, Modal, Page, Spinner, TopBar } from '../ui';
 import { ShareModal } from '../components';
+import { FadeView } from '../components/fx';
 
 /** Panel del dueño, como un rol más dentro de la app única. */
 export function OwnerApp({ me, onLogout }: { me: any; onLogout: () => void }) {
@@ -11,10 +12,12 @@ export function OwnerApp({ me, onLogout }: { me: any; onLogout: () => void }) {
     <>
       <TopBar title={me.caseta} right={<button className="rounded-lg border border-border px-3 py-1.5 text-[13px] font-semibold text-muted-foreground" onClick={onLogout}>Salir</button>} />
       <Page>
-        {tab === 'resumen' && <Resumen />}
-        {tab === 'socios' && <Socios />}
-        {tab === 'invitaciones' && <Invitaciones />}
-        {tab === 'equipo' && <Equipo />}
+        <FadeView id={tab}>
+          {tab === 'resumen' && <Resumen />}
+          {tab === 'socios' && <Socios />}
+          {tab === 'invitaciones' && <Invitaciones />}
+          {tab === 'equipo' && <Equipo />}
+        </FadeView>
       </Page>
       <BottomNav tab={tab} onTab={setTab} tabs={[
         { id: 'resumen', label: 'Resumen', icon: <BarChart3 size={21} /> },

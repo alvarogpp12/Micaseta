@@ -3,6 +3,7 @@ import { QrCode, Beer, Wallet, UserPlus, Camera } from 'lucide-react';
 import { api, eur, fmtFecha } from '../lib/api';
 import { Avatar, BottomNav, Button, Card, CardBody, Chip, Empty, Err, Input, KPI, Label, Page, Spinner, TopBar, cn } from '../ui';
 import { Carta, CartBar, OrderTracker, ShareModal } from '../components';
+import { FadeView, TiltCard } from '../components/fx';
 
 /** App del cliente: socio e invitado, misma app, pestañas según rol. */
 export function ClientApp({ token }: { token: string }) {
@@ -29,14 +30,16 @@ export function ClientApp({ token }: { token: string }) {
     <>
       <TopBar title={me.caseta} />
       <Page>
-        {tab === 'qr' && !sent && <VistaQR me={me} onPedir={me.canOrder ? () => setTab('pedir') : undefined} />}
-        {tab === 'pedir' && !sent && <VistaPedir me={me} token={token} onSent={setSent} />}
-        {sent && (
-          <OrderTracker token={token} {...sent} hostName={esSocio ? null : me.hostName}
-            onBack={() => { setSent(null); setTab('qr'); load(); }} />
-        )}
-        {tab === 'gastos' && !sent && <VistaGastos me={me} />}
-        {tab === 'invitar' && !sent && <VistaInvitar me={me} token={token} reload={load} />}
+        <FadeView id={sent ? 'sent' : tab}>
+          {tab === 'qr' && !sent && <VistaQR me={me} onPedir={me.canOrder ? () => setTab('pedir') : undefined} />}
+          {tab === 'pedir' && !sent && <VistaPedir me={me} token={token} onSent={setSent} />}
+          {sent && (
+            <OrderTracker token={token} {...sent} hostName={esSocio ? null : me.hostName}
+              onBack={() => { setSent(null); setTab('qr'); load(); }} />
+          )}
+          {tab === 'gastos' && !sent && <VistaGastos me={me} />}
+          {tab === 'invitar' && !sent && <VistaInvitar me={me} token={token} reload={load} />}
+        </FadeView>
       </Page>
       {!sent && <BottomNav tabs={tabs} tab={tab} onTab={setTab} />}
     </>
@@ -55,6 +58,7 @@ function VistaQR({ me, onPedir }: any) {
     <div className="flex min-h-[70vh] flex-col justify-center">
       {!me.accessOk && <div className="mb-4 rounded-xl bg-menta/10 p-3.5 text-[13px] font-bold text-menta">⚠️ {me.accessReason}</div>}
 
+      <TiltCard>
       <div className="overflow-hidden rounded-[30px] bg-lona text-tinta shadow-carnet">
         <div className="raya h-2.5" />
         <div className="p-6 pb-5">
@@ -87,6 +91,7 @@ function VistaQR({ me, onPedir }: any) {
           </div>
         </div>
       </div>
+      </TiltCard>
 
       <div className="mt-6 flex items-center justify-between gap-4">
         {me.wallet && /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent) ? (

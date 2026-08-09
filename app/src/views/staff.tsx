@@ -3,6 +3,7 @@ import { ClipboardList, ScanLine, CheckCircle2 } from 'lucide-react';
 import { api, eur } from '../lib/api';
 import { BottomNav, Button, Card, CardBody, Empty, Err, Page, Spinner, TopBar, cn } from '../ui';
 import { Carta, CartBar, PersonCard, Scanner } from '../components';
+import { FadeView } from '../components/fx';
 
 /** Camarero: cola de pedidos del móvil + comanda en barra con escáner. */
 export function WaiterApp({ me }: { me: any }) {
@@ -11,8 +12,10 @@ export function WaiterApp({ me }: { me: any }) {
     <>
       <TopBar title={`${me.name} · Camarero`} />
       <Page>
-        {tab === 'pedidos' && <Pedidos />}
-        {tab === 'comanda' && <Comanda />}
+        <FadeView id={tab}>
+          {tab === 'pedidos' && <Pedidos />}
+          {tab === 'comanda' && <Comanda />}
+        </FadeView>
       </Page>
       <BottomNav tab={tab} onTab={setTab} tabs={[
         { id: 'pedidos', label: 'Pedidos', icon: <ClipboardList size={21} /> },
