@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BarChart3, Users, Ticket, BadgeCheck, MonitorPlay } from 'lucide-react';
+import { BarChart3, Users, Ticket, BadgeCheck } from 'lucide-react';
 import { api, eur, fmtFecha } from '../lib/api';
 import { Avatar, BottomNav, Button, Card, CardBody, Chip, Empty, Err, Input, KPI, Label, Modal, Page, Spinner, TopBar } from '../ui';
 import { ShareModal } from '../components';
@@ -15,14 +15,12 @@ export function OwnerApp({ me, onLogout }: { me: any; onLogout: () => void }) {
         {tab === 'socios' && <Socios />}
         {tab === 'invitaciones' && <Invitaciones />}
         {tab === 'equipo' && <Equipo />}
-        {tab === 'pantalla' && <Pantalla />}
       </Page>
       <BottomNav tab={tab} onTab={setTab} tabs={[
         { id: 'resumen', label: 'Resumen', icon: <BarChart3 size={21} /> },
         { id: 'socios', label: 'Socios', icon: <Users size={21} /> },
         { id: 'invitaciones', label: 'Invitados', icon: <Ticket size={21} /> },
         { id: 'equipo', label: 'Equipo', icon: <BadgeCheck size={21} /> },
-        { id: 'pantalla', label: 'Pantalla', icon: <MonitorPlay size={21} /> },
       ]} />
     </>
   );
@@ -237,22 +235,6 @@ function Equipo() {
       </CardBody></Card>
       <ShareModal open={!!share} onClose={() => setShare(null)} {...(share ?? {})} />
     </>
-  );
-}
-
-function Pantalla() {
-  const [url, setUrl] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-  useEffect(() => { api('/papi/tv-link', undefined, 'GET').then((r) => setUrl(r.url)).catch(() => {}); }, []);
-  if (!url) return <Spinner />;
-  return (
-    <Card><CardBody>
-      <h3 className="text-base font-bold">Pantalla de pedidos</h3>
-      <Empty>Para la tele o una tablet de la caseta. Muestra los números de los pedidos hechos desde el móvil: "en preparación" y, cuando el camarero los marca listos, "listos para recoger". Se actualiza sola.</Empty>
-      <a href={url} target="_blank" rel="noreferrer"><Button className="mt-2 w-full">Abrir pantalla</Button></a>
-      <Button variant="outline" className="mt-2.5 w-full" onClick={() => { navigator.clipboard.writeText(url); setCopied(true); }}>{copied ? 'Copiado' : 'Copiar enlace'}</Button>
-      <div className="mt-3 break-all rounded-lg bg-muted p-3 text-xs text-muted-foreground">{url}</div>
-    </CardBody></Card>
   );
 }
 
