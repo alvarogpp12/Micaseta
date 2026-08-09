@@ -23,7 +23,19 @@ async function build() {
 }
 
 export default async function handler(req: any, res: any) {
-  ready ??= build();
-  const app = await ready;
-  app.server.emit('request', req, res);
+  try {
+    ready ??= build();
+    const app = await ready;
+    app.server.emit('request', req, res);
+  } catch (err: any) {
+    // La BD no conecta: no matamos la función — devolvemos el motivo real
+    // y reintentamos en la siguiente petición.
+    ready = null;
+    res.statusCode = 503;
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.end(JSON.stringify({
+      error: 'No se pudo conectar con la base de datos',
+      detail: String(err?.message ?? err),
+    }));
+  }
 }
