@@ -7,37 +7,33 @@ import { FadeView } from '../components/fx';
 import { toast } from 'sonner';
 import { ClientApp } from './client';
 
-/** Panel del dueño, como un rol más dentro de la app única. */
+/**
+ * El dueño ES un socio: su app es LA app (Mi QR · Pedir · Gastos · Invitar)
+ * con una única pestaña extra de gestión. Nada duplicado, ningún portal.
+ */
 export function OwnerApp({ me, onLogout }: { me: any; onLogout: () => void }) {
-  const [tab, setTab] = useState('resumen');
-  const [verSocio, setVerSocio] = useState<string | null>(null);
-  // La app del socio se abre DENTRO del panel, no en otra página
-  if (verSocio) return (
-    <div className="relative">
-      <button onClick={() => setVerSocio(null)}
-        className="fixed left-1/2 top-3 z-50 -translate-x-1/2 rounded-full bg-lona px-5 py-2.5 text-[13px] font-extrabold text-tinta shadow-dock">
-        ✕ Volver al panel
-      </button>
-      <ClientApp token={verSocio} />
-    </div>
+  if (!me.qrToken) return <Spinner />;
+  return (
+    <ClientApp
+      token={me.qrToken}
+      topRight={<button className="rounded-full bg-secondary px-3.5 py-1.5 text-[12px] font-bold text-muted-foreground" onClick={onLogout}>Salir</button>}
+      extra={{
+        id: 'caseta',
+        label: 'Caseta',
+        icon: <BarChart3 size={21} />,
+        content: <Gestion />,
+      }}
+    />
   );
+}
+
+/** La gestión completa en una sola pestaña: caja, socios y equipo. */
+function Gestion() {
   return (
     <>
-      <TopBar title={me.caseta} right={<button className="rounded-lg border border-border px-3 py-1.5 text-[13px] font-semibold text-muted-foreground" onClick={onLogout}>Salir</button>} />
-      <Page>
-        <FadeView id={tab}>
-          {tab === 'resumen' && <Resumen />}
-          {tab === 'socios' && <Socios onVer={setVerSocio} />}
-          {tab === 'invitaciones' && <Invitaciones />}
-          {tab === 'equipo' && <Equipo />}
-        </FadeView>
-      </Page>
-      <BottomNav tab={tab} onTab={setTab} tabs={[
-        { id: 'resumen', label: 'Resumen', icon: <BarChart3 size={21} /> },
-        { id: 'socios', label: 'Socios', icon: <Users size={21} /> },
-        { id: 'invitaciones', label: 'Invitados', icon: <Ticket size={21} /> },
-        { id: 'equipo', label: 'Equipo', icon: <BadgeCheck size={21} /> },
-      ]} />
+      <Resumen />
+      <div className="mt-8"><Socios /></div>
+      <div className="mt-8"><Equipo /></div>
     </>
   );
 }
@@ -108,7 +104,7 @@ function Resumen() {
   );
 }
 
-function Socios({ onVer }: { onVer: (t: string) => void }) {
+function Socios() {
   const [socios, setSocios] = useState<any[] | null>(null);
   const [form, setForm] = useState({ name: '', phone: '' });
   const [err, setErr] = useState('');
@@ -141,58 +137,16 @@ function Socios({ onVer }: { onVer: (t: string) => void }) {
               <Avatar name={s.name} />
               <div className="min-w-[110px] flex-1">
                 <b className="block truncate text-[14.5px]">{s.name}</b>
-                <small className="text-muted-foreground">+{s.phone}</small>
+                <small className="text-muted-foreground">{String(s.phone).startsWith('admin-') ? 'Administrador' : '+' + s.phone}</small>
               </div>
               <Chip tone={susp ? 'bad' : 'ok'}>{susp ? 'suspendido' : 'activo'}</Chip>
-              {url && <Button variant="secondary" size="sm" onClick={() => onVer(s.qrToken)}>Su app</Button>}
-              {url && <Button variant="ghost" size="sm" onClick={() => setShare({
+              {url && !String(s.phone).startsWith('admin-') && <Button variant="secondary" size="sm" onClick={() => setShare({
                 title: `App de ${s.name}`, url,
                 text: 'Tu acceso de socio a la caseta. Dentro tienes tu QR, pedir desde el móvil, tus gastos y tus invitaciones: ' + url,
                 phone: s.phone,
                 note: 'Su app personal: QR, pedir, gastos e invitar. Envíasela una sola vez.',
               })}>Enviar</Button>}
               <Button variant="outline" size="sm" onClick={async () => { await api(`/papi/socios/${s.id}/suspender`, {}); load(); }}>{susp ? 'Activar' : 'Baja'}</Button>
-            </div>
-          );
-        })}
-      </CardBody></Card>
-      <ShareModal open={!!share} onClose={() => setShare(null)} {...(share ?? {})} />
-    </>
-  );
-}
-
-function Invitaciones() {
-  const [invs, setInvs] = useState<any[] | null>(null);
-  const [share, setShare] = useState<any>(null);
-  const load = () => api('/papi/invitations', undefined, 'GET').then(setInvs).catch(() => {});
-  useEffect(() => { load(); }, []);
-  if (!invs) return <Spinner />;
-  return (
-    <>
-      <Card><CardBody>
-        <h3 className="text-base font-bold">Invitaciones de la caseta</h3>
-        <Empty>Cada socio invita desde su propia app (Socios → "Su app"). Aquí las ves todas y puedes cancelar cualquiera.</Empty>
-      </CardBody></Card>
-      <h3 className="mb-2 mt-5 text-sm font-bold text-foreground/80">Invitaciones · {invs.length}</h3>
-      <Card><CardBody>
-        {invs.length === 0 && <Empty>Ninguna todavía.</Empty>}
-        {invs.map((i: any) => {
-          const gname = i.guest_name ?? i.guest_label ?? (i.guest_phone ? '+' + i.guest_phone : 'Invitado');
-          return (
-            <div key={i.id} className="flex flex-wrap items-center gap-2.5 border-b border-border py-3 last:border-0">
-              <Avatar name={gname} />
-              <div className="min-w-[110px] flex-1">
-                <b className="block truncate text-[14.5px]">{gname}</b>
-                <small className="text-muted-foreground">invita {i.socio_name} · {i.can_order === false ? 'solo entrada' : 'con barra'}</small>
-              </div>
-              <Chip tone={i.status === 'aceptada' ? 'ok' : i.status === 'pendiente' ? 'muted' : 'bad'}>{i.status}</Chip>
-              <Button variant="secondary" size="sm" onClick={() => setShare({ title: 'Compartir invitación', text: i.shareText, url: i.shareUrl, phone: i.guest_phone })}>Compartir</Button>
-              {['pendiente', 'aceptada'].includes(i.status) && (
-                <Button variant="ghost" size="sm" onClick={async () => {
-                  if (!confirm('¿Cancelar esta invitación? Su QR dejará de funcionar al instante.')) return;
-                  await api(`/papi/invitations/${i.id}/cancelar`, {}); load();
-                }}>✕</Button>
-              )}
             </div>
           );
         })}
