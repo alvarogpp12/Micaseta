@@ -5,10 +5,22 @@ import { Avatar, BottomNav, Button, Card, CardBody, Chip, Empty, Err, Input, KPI
 import { ShareModal } from '../components';
 import { FadeView } from '../components/fx';
 import { toast } from 'sonner';
+import { ClientApp } from './client';
 
 /** Panel del dueño, como un rol más dentro de la app única. */
 export function OwnerApp({ me, onLogout }: { me: any; onLogout: () => void }) {
   const [tab, setTab] = useState('resumen');
+  const [verSocio, setVerSocio] = useState<string | null>(null);
+  // La app del socio se abre DENTRO del panel, no en otra página
+  if (verSocio) return (
+    <div className="relative">
+      <button onClick={() => setVerSocio(null)}
+        className="fixed left-1/2 top-3 z-50 -translate-x-1/2 rounded-full bg-lona px-5 py-2.5 text-[13px] font-extrabold text-tinta shadow-dock">
+        ✕ Volver al panel
+      </button>
+      <ClientApp token={verSocio} />
+    </div>
+  );
   return (
     <>
       <TopBar title={me.caseta} right={<button className="rounded-lg border border-border px-3 py-1.5 text-[13px] font-semibold text-muted-foreground" onClick={onLogout}>Salir</button>} />
@@ -96,7 +108,7 @@ function Resumen() {
   );
 }
 
-function Socios() {
+function Socios({ onVer }: { onVer: (t: string) => void }) {
   const [socios, setSocios] = useState<any[] | null>(null);
   const [form, setForm] = useState({ name: '', phone: '' });
   const [err, setErr] = useState('');
@@ -132,12 +144,13 @@ function Socios() {
                 <small className="text-muted-foreground">+{s.phone}</small>
               </div>
               <Chip tone={susp ? 'bad' : 'ok'}>{susp ? 'suspendido' : 'activo'}</Chip>
-              {url && <Button variant="secondary" size="sm" onClick={() => setShare({
+              {url && <Button variant="secondary" size="sm" onClick={() => onVer(s.qrToken)}>Su app</Button>}
+              {url && <Button variant="ghost" size="sm" onClick={() => setShare({
                 title: `App de ${s.name}`, url,
                 text: 'Tu acceso de socio a la caseta. Dentro tienes tu QR, pedir desde el móvil, tus gastos y tus invitaciones: ' + url,
                 phone: s.phone,
                 note: 'Su app personal: QR, pedir, gastos e invitar. Envíasela una sola vez.',
-              })}>Su app</Button>}
+              })}>Enviar</Button>}
               <Button variant="outline" size="sm" onClick={async () => { await api(`/papi/socios/${s.id}/suspender`, {}); load(); }}>{susp ? 'Activar' : 'Baja'}</Button>
             </div>
           );
