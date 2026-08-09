@@ -4,6 +4,7 @@ import { api, eur, fmtFecha } from '../lib/api';
 import { Avatar, BottomNav, Button, Card, CardBody, Chip, Empty, Err, Input, KPI, Label, Modal, Page, Spinner, TopBar } from '../ui';
 import { ShareModal } from '../components';
 import { FadeView } from '../components/fx';
+import { toast } from 'sonner';
 
 /** Panel del dueño, como un rol más dentro de la app única. */
 export function OwnerApp({ me, onLogout }: { me: any; onLogout: () => void }) {
@@ -66,7 +67,9 @@ function Resumen() {
             {c.pending_cents > 0 && (
               <Button variant="success" size="sm" onClick={async () => {
                 if (!confirm(`¿Marcar como pagada la cuenta de ${c.socio_name} (${eur(c.pending_cents)})?`)) return;
-                await api(`/papi/cuentas/${c.socio_id}/liquidar`, {}); load();
+                await api(`/papi/cuentas/${c.socio_id}/liquidar`, {});
+                toast(`Cuenta de ${c.socio_name} liquidada`);
+                load();
               }}>Liquidar</Button>
             )}
           </div>

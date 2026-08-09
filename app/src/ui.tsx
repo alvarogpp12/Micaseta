@@ -1,4 +1,5 @@
 import React from 'react';
+import { Drawer } from 'vaul';
 
 /** Primitivos "La caseta de noche": capas en vez de bordes, píldoras, glow. */
 
@@ -91,25 +92,18 @@ export function Avatar({ name }: { name?: string | null }) {
   );
 }
 
-/** Modal sobre <dialog> nativo, capa noche-2. */
+/** Hoja inferior (sheet) sobre Vaul — el drawer de shadcn — con nuestros tokens. */
 export function Modal({ open, onClose, children }: any) {
-  const ref = React.useRef<HTMLDialogElement>(null);
-  React.useEffect(() => {
-    const d = ref.current;
-    if (!d) return;
-    if (open && !d.open) d.showModal();
-    if (!open && d.open) d.close();
-  }, [open]);
-  if (!open) return null;
   return (
-    <dialog
-      ref={ref}
-      onClose={onClose}
-      onClick={(e) => { if (e.target === ref.current) onClose(); }}
-      className="w-[calc(100%-2.5rem)] max-w-md rounded-2xl border-0 bg-card p-0 text-foreground shadow-2xl backdrop:bg-black/60"
-    >
-      <div className="p-6">{children}</div>
-    </dialog>
+    <Drawer.Root open={open} onOpenChange={(o: boolean) => { if (!o) onClose(); }}>
+      <Drawer.Portal>
+        <Drawer.Overlay className="fixed inset-0 z-40 bg-black/60" />
+        <Drawer.Content className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md rounded-t-[28px] bg-card text-foreground outline-none">
+          <div className="mx-auto mt-3 h-1.5 w-12 rounded-full bg-white/15" />
+          <div className="max-h-[85vh] overflow-y-auto p-6 pb-[calc(1.75rem+env(safe-area-inset-bottom))]">{children}</div>
+        </Drawer.Content>
+      </Drawer.Portal>
+    </Drawer.Root>
   );
 }
 
