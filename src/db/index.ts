@@ -20,6 +20,7 @@ export async function openDb(databaseUrl?: string, pgliteDir?: string): Promise<
       connectionString: databaseUrl,
       max: 1, // serverless: una conexión por instancia; el pooler de Supabase multiplexa
       ssl: databaseUrl.includes('localhost') ? undefined : { rejectUnauthorized: false },
+      connectionTimeoutMillis: 8000, // falla rápido y con mensaje, no cuelga la función
     });
     const db: DB = {
       query: async (text, params) => {
