@@ -9,6 +9,7 @@ import * as invitations from '../services/invitations.js';
 import * as orders from '../services/orders.js';
 import { signQrToken, verifyQrToken, qrPng } from '../services/qr.js';
 import * as wallet from '../services/wallet.js';
+import * as email from '../services/email.js';
 import { staffLoginUrl } from '../bot/flows/staff.js';
 import { SEVILLA_MENU } from '../services/demo.js';
 import { parseEuros, todayStr } from '../domain/types.js';
@@ -44,6 +45,8 @@ export function registerPanelRoutes(app: FastifyInstance, db: DB): void {
     });
     if (!result.ok) return reply.code(422).send({ error: result.error });
     setSession(reply, accounts.signPanelSession(result.account));
+    // Correo de bienvenida (si hay proveedor configurado); nunca bloquea
+    void email.sendWelcomeEmail(result.account.email, result.account.name, result.caseta.name, requestBaseUrl(req));
     return { ok: true, caseta: result.caseta.name };
   });
 
@@ -75,6 +78,7 @@ export function registerPanelRoutes(app: FastifyInstance, db: DB): void {
       });
       if (!result.ok) return reply.code(422).send({ error: result.error });
       account = result.account;
+      void email.sendWelcomeEmail(account.email, account.name, casetaName, requestBaseUrl(req));
     }
     setSession(reply, accounts.signPanelSession(account));
     return { ok: true };

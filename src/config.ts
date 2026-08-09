@@ -25,6 +25,9 @@ export const config = {
   dataDir: 'data',
   // Login con Google (One Tap / botón). Sin client id, el botón no se muestra.
   googleClientId: process.env.GOOGLE_CLIENT_ID ?? '',
+  // Correo transaccional (Resend). Sin API key, no se envían correos.
+  resendApiKey: process.env.RESEND_API_KEY ?? '',
+  emailFrom: process.env.EMAIL_FROM ?? 'Micaseta <onboarding@resend.dev>',
   // Modo demo (/demo/camarero, /demo/puerta): crea una caseta de prueba en la
   // base de datos. Activado por defecto solo sin Postgres real, para no
   // ensuciar producción; forzable con DEMO_MODE=1/0.
