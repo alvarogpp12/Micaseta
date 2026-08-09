@@ -55,7 +55,8 @@ function VistaQR({ me, onPedir }: any) {
     <div className="flex min-h-[70vh] flex-col justify-center">
       {!me.accessOk && <div className="mb-4 rounded-xl bg-menta/10 p-3.5 text-[13px] font-bold text-menta">⚠️ {me.accessReason}</div>}
 
-      <div className="rounded-[30px] bg-lona text-tinta shadow-carnet">
+      <div className="overflow-hidden rounded-[30px] bg-lona text-tinta shadow-carnet">
+        <div className="raya h-2.5" />
         <div className="p-6 pb-5">
           <div className="flex justify-between text-[10.5px] font-extrabold uppercase tracking-[.22em]">
             <span className="text-[#1E7A46]">{esSocio ? 'Socio titular' : me.canOrder ? 'Invitación con barra' : 'Invitación · solo entrada'}</span>
@@ -85,7 +86,6 @@ function VistaQR({ me, onPedir }: any) {
             </em>
           </div>
         </div>
-        <div className="raya h-2.5 rounded-b-[30px]" />
       </div>
 
       <div className="mt-6 flex items-center justify-between gap-4">
@@ -319,6 +319,7 @@ export function GuestRegister({ token }: { token: string }) {
       <TopBar />
       <Page>
         <div className="overflow-hidden rounded-[30px] bg-lona text-tinta shadow-carnet">
+          <div className="raya h-2.5" />
           <div className="p-6 pb-4">
             <div className="text-[10.5px] font-extrabold uppercase tracking-[.22em] text-[#1E7A46]">{inv.socio} te invita a</div>
             <h1 className="mt-2 text-[34px] font-black leading-none tracking-tighter">{inv.caseta}</h1>
@@ -328,7 +329,6 @@ export function GuestRegister({ token }: { token: string }) {
               <div key={i} className="border-b border-[#E5E2D3] py-2.5 text-[14px] font-semibold last:border-0">{line}</div>
             ))}
           </div>
-          <div className="raya h-2.5" />
         </div>
         <Card className="mt-3.5"><CardBody>
           <h3 className="text-base font-bold">Acepta con tu selfie</h3>
