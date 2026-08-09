@@ -6,8 +6,9 @@ import { Carta, CartBar, OrderTracker, ShareModal } from '../components';
 import { FadeView, TiltCard } from '../components/fx';
 import { toast } from 'sonner';
 
-/** App del cliente: socio e invitado, misma app, pestañas según rol. */
-export function ClientApp({ token }: { token: string }) {
+/** App del cliente: socio e invitado, misma app, pestañas según rol.
+ *  El dueño la usa también, con una pestaña extra de gestión (extra). */
+export function ClientApp({ token, extra, topRight }: { token: string; extra?: { id: string; label: string; icon: React.ReactNode; content: React.ReactNode }; topRight?: React.ReactNode }) {
   const [me, setMe] = useState<any>(null);
   const [error, setError] = useState('');
   const [tab, setTab] = useState('qr');
@@ -25,11 +26,12 @@ export function ClientApp({ token }: { token: string }) {
     ...(me.canOrder ? [{ id: 'pedir', label: 'Pedir', icon: <Beer size={21} /> }] : []),
     ...(esSocio || me.canOrder ? [{ id: 'gastos', label: 'Gastos', icon: <Wallet size={21} /> }] : []),
     ...(esSocio ? [{ id: 'invitar', label: 'Invitar', icon: <UserPlus size={21} /> }] : []),
+    ...(extra ? [{ id: extra.id, label: extra.label, icon: extra.icon }] : []),
   ];
 
   return (
     <>
-      <TopBar title={me.caseta} />
+      <TopBar title={me.caseta} right={topRight} />
       <Page>
         <FadeView id={sent ? 'sent' : tab}>
           {tab === 'qr' && !sent && <VistaQR me={me} onPedir={me.canOrder ? () => setTab('pedir') : undefined} />}
@@ -40,6 +42,7 @@ export function ClientApp({ token }: { token: string }) {
           )}
           {tab === 'gastos' && !sent && <VistaGastos me={me} />}
           {tab === 'invitar' && !sent && <VistaInvitar me={me} token={token} reload={load} />}
+          {extra && tab === extra.id && !sent && extra.content}
         </FadeView>
       </Page>
       {!sent && <BottomNav tabs={tabs} tab={tab} onTab={setTab} />}

@@ -96,7 +96,25 @@ export function registerPanelRoutes(app: FastifyInstance, db: DB): void {
     const account = await auth(req, reply);
     if (!account) return;
     const caseta = await accounts.getCaseta(db, account.caseta_id);
-    return { name: account.name, email: account.email, caseta: caseta?.name, casetaId: account.caseta_id };
+    // El dueño ES un socio: su usuario-socio se crea (una vez) al entrar,
+    // y su app es la misma app de socio con una pestaña extra de gestión.
+    let socio = await users.findByPhone(db, `admin-${account.id}`);
+    if (!socio) {
+      socio = await users.createUser(db, {
+        phone: `admin-${account.id}`,
+        name: account.name,
+        role: 'socio',
+        status: 'activo',
+        casetaId: account.caseta_id,
+      });
+    }
+    return {
+      name: account.name,
+      email: account.email,
+      caseta: caseta?.name,
+      casetaId: account.caseta_id,
+      qrToken: signQrToken(socio),
+    };
   });
 
   // ---- Resumen ----
