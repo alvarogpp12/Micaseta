@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { QrCode, Beer, Wallet, UserPlus, Camera } from 'lucide-react';
+import { QrCode, Beer, Wallet, UserPlus, Camera, Ticket, X } from 'lucide-react';
 import { api, eur, fmtFecha } from '../lib/api';
-import { Avatar, BottomNav, Button, Card, CardBody, Chip, Empty, Err, Input, KPI, Label, Page, Spinner, TopBar, cn } from '../ui';
+import { Avatar, BottomNav, Button, Card, CardBody, Chip, Empty, Err, Input, KPI, Label, Page, SectionTitle, Spinner, TopBar, cn } from '../ui';
 import { Carta, CartBar, OrderTracker, ShareModal } from '../components';
 import { FadeView, TiltCard } from '../components/fx';
 import { toast } from 'sonner';
@@ -181,7 +181,7 @@ function VistaGastos({ me }: any) {
               <span className="font-bold">{eur(p.pending_cents)}</span>
             </button>
             {open === p.customer_id && (
-              <div className="mb-3 rounded-lg bg-muted px-3">
+              <div className="mb-3 rounded-lg bg-secondary/60 px-3">
                 {me.gastos.detail.filter((d: any) => d.customer_id === p.customer_id).map((d: any) => (
                   <div key={d.id} className="flex items-center gap-2 border-b border-border/60 py-2.5 last:border-0">
                     <div className="min-w-0 flex-1">
@@ -227,17 +227,18 @@ function VistaInvitar({ me, token, reload }: any) {
         <Input value={form.guestPhone} onChange={(e: any) => setForm({ ...form, guestPhone: e.target.value })} placeholder="698 765 432" inputMode="tel" />
         <Label>Tipo de invitación</Label>
         <div className="grid grid-cols-2 gap-2.5">
-          {([['barra', '🍺 Con barra', 'Puede pedir a tu cuenta'], ['entrada', '🎟️ Solo entrada', 'Su QR abre la puerta, sin consumo']] as const).map(([id, b, s]) => (
+          {([['barra', Beer, 'Con barra', 'Puede pedir a tu cuenta'], ['entrada', Ticket, 'Solo entrada', 'Su QR abre la puerta, sin consumo']] as const).map(([id, Icon, b, s]) => (
             <button key={id} type="button" onClick={() => setType(id)}
               className={cn('rounded-xl p-3.5 text-left transition-all', type === id ? 'bg-primary/15 ring-2 ring-primary' : 'bg-secondary')}>
-              <b className="block text-sm font-extrabold">{b}</b>
+              <Icon size={18} className={type === id ? 'text-primary' : 'text-muted-foreground'} />
+              <b className="mt-1.5 block text-sm font-extrabold">{b}</b>
               <small className="mt-1 block leading-snug text-muted-foreground">{s}</small>
             </button>
           ))}
         </div>
         <div className={cn('grid grid-cols-2 gap-2.5', type === 'entrada' && 'hidden')}>
-          <div><Label>Límite € <span className="font-normal text-muted-foreground">(vacío = sin límite)</span></Label>
-            <Input value={form.limit} onChange={(e: any) => setForm({ ...form, limit: e.target.value })} placeholder="50" inputMode="decimal" /></div>
+          <div><Label>Límite de gasto</Label>
+            <Input value={form.limit} onChange={(e: any) => setForm({ ...form, limit: e.target.value })} placeholder="Sin límite" inputMode="decimal" /></div>
           <div><Label>Solo un día</Label>
             <Input type="date" value={form.date} onChange={(e: any) => setForm({ ...form, date: e.target.value })} /></div>
         </div>
@@ -245,27 +246,28 @@ function VistaInvitar({ me, token, reload }: any) {
         <Err>{err}</Err>
       </CardBody></Card>
 
-      <h3 className="mb-2 mt-5 text-sm font-bold text-foreground/80">Mis invitaciones</h3>
+      <SectionTitle className="mt-5">Mis invitaciones</SectionTitle>
       <Card><CardBody>
         {(me.invitaciones ?? []).length === 0 && <Empty>Todavía no has invitado a nadie.</Empty>}
         {(me.invitaciones ?? []).map((i: any) => (
-          <div key={i.id} className="flex flex-wrap items-center gap-2.5 border-b border-border py-3 last:border-0">
+          <div key={i.id} className="flex items-center gap-2 border-b border-border py-3 last:border-0">
             <Avatar name={i.guestName} />
-            <div className="min-w-[110px] flex-1">
+            <div className="min-w-0 flex-1">
               <b className="block truncate text-[14.5px]">{i.guestName ?? 'Invitado'}</b>
-              <small className="text-muted-foreground">
-                {i.canOrder ? (i.spendLimitCents === null ? 'con barra · sin límite' : `con barra · hasta ${eur(i.spendLimitCents)}`) : 'solo entrada'}
+              <small className="block truncate text-muted-foreground">
+                <span className={i.status === 'aceptada' ? 'font-bold text-primary' : 'font-bold'}>{i.status}</span>
+                {' · '}
+                {i.canOrder ? (i.spendLimitCents === null ? 'sin límite' : `${i.spendLimitCents % 100 === 0 ? i.spendLimitCents / 100 : (i.spendLimitCents / 100).toLocaleString('es-ES')} €`) : 'entrada'}
                 {i.validDate ? ' · ' + i.validDate : ''}
               </small>
             </div>
-            <Chip tone={i.status === 'aceptada' ? 'ok' : 'muted'}>{i.status}</Chip>
-            <Button variant="outline" size="sm" onClick={() => setShare({ title: 'Compartir invitación', text: i.shareText, url: i.shareUrl })}>Compartir</Button>
-            <Button variant="ghost" size="sm" onClick={async () => {
+            <Button variant="secondary" size="sm" className="px-3" onClick={() => setShare({ title: 'Compartir invitación', text: i.shareText, url: i.shareUrl })}>Compartir</Button>
+            <Button variant="secondary" size="sm" className="h-9 w-9 flex-shrink-0 p-0 text-muted-foreground" aria-label="Cancelar invitación" onClick={async () => {
               if (!confirm('¿Cancelar esta invitación? Su QR dejará de funcionar.')) return;
               await api(`/gapi/mi/invitaciones/${i.id}/cancelar`, { t: token });
               toast('Invitación cancelada: su QR ya no funciona');
               reload();
-            }}>✕</Button>
+            }}><X size={16} /></Button>
           </div>
         ))}
       </CardBody></Card>

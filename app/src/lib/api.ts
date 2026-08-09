@@ -16,6 +16,13 @@ export const waShare = (text: string, phone?: string | null) =>
   (phone ? `https://wa.me/${String(phone).replace(/\D/g, '')}` : 'https://wa.me/') +
   `?text=${encodeURIComponent(text)}`;
 
+/** +34633333351 → "+34 633 333 351"; deja tal cual lo que no reconozca. */
+export const fmtPhone = (p: string | number) => {
+  const s = String(p).replace(/^\+/, '');
+  const m = s.match(/^(34)(\d{3})(\d{3})(\d{3})$/);
+  return m ? `+${m[1]} ${m[2]} ${m[3]} ${m[4]}` : '+' + s;
+};
+
 export const fmtFecha = (d: string | Date) =>
   new Date(d).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 

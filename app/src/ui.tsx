@@ -51,6 +51,11 @@ export const Label = ({ className = '', ...p }: any) => (
   <label className={cn('mb-1.5 mt-4 block text-[11px] font-extrabold uppercase tracking-[.14em] text-muted-foreground', className)} {...p} />
 );
 
+/** Título de sección único en toda la app: mismo kicker que "Caja de hoy". */
+export const SectionTitle = ({ className = '', ...p }: any) => (
+  <h3 className={cn('mb-2.5 mt-7 text-[11px] font-extrabold uppercase tracking-[.18em] text-muted-foreground', className)} {...p} />
+);
+
 export function Chip({ tone = 'muted', className = '', ...p }: any) {
   const tones: Record<string, string> = {
     muted: 'bg-secondary text-muted-foreground',

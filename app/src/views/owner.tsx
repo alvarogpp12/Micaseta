@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { BarChart3, Users, Ticket, BadgeCheck } from 'lucide-react';
-import { api, eur, fmtFecha } from '../lib/api';
-import { Avatar, BottomNav, Button, Card, CardBody, Chip, Empty, Err, Input, KPI, Label, Modal, Page, Spinner, TopBar } from '../ui';
+import { BarChart3, ChevronRight } from 'lucide-react';
+import { api, eur, fmtFecha, fmtPhone } from '../lib/api';
+import { Avatar, BottomNav, Button, Card, CardBody, Chip, Empty, Err, Input, KPI, Label, Modal, Page, SectionTitle, Spinner, TopBar } from '../ui';
 import { ShareModal } from '../components';
 import { FadeView } from '../components/fx';
 import { toast } from 'sonner';
@@ -60,27 +60,20 @@ function Resumen() {
           ))}
         </div>
       </div>
-      <h3 className="mb-2 mt-7 text-[13px] font-extrabold tracking-tight">Cuentas por socio</h3>
+      <SectionTitle>Cuentas por socio</SectionTitle>
       <Card><CardBody>
         {o.cuentas.length === 0 && <Empty>Aún no hay consumo registrado. Da de alta socios y comparte su app.</Empty>}
         {o.cuentas.map((c: any) => (
-          <div key={c.socio_id} className="flex flex-wrap items-center gap-2.5 border-b border-border py-3 last:border-0">
+          <button key={c.socio_id} className="flex w-full items-center gap-3 border-b border-border py-3 text-left last:border-0"
+            onClick={async () => setDetalle({ id: c.socio_id, name: c.socio_name, pending: c.pending_cents, rows: await api(`/papi/cuentas/${c.socio_id}`, undefined, 'GET') })}>
             <Avatar name={c.socio_name} />
-            <div className="min-w-[110px] flex-1">
+            <div className="min-w-0 flex-1">
               <b className="block truncate text-[14.5px]">{c.socio_name ?? 'Socio'}</b>
-              <small className="text-muted-foreground">{c.n_orders} comandas · total {eur(c.total_cents)}</small>
+              <small className="text-muted-foreground">{c.n_orders} comanda{c.n_orders === 1 ? '' : 's'}</small>
             </div>
-            <span className="font-bold">{eur(c.pending_cents)}</span>
-            <Button variant="outline" size="sm" onClick={async () => setDetalle({ name: c.socio_name, rows: await api(`/papi/cuentas/${c.socio_id}`, undefined, 'GET') })}>Ver</Button>
-            {c.pending_cents > 0 && (
-              <Button variant="success" size="sm" onClick={async () => {
-                if (!confirm(`¿Marcar como pagada la cuenta de ${c.socio_name} (${eur(c.pending_cents)})?`)) return;
-                await api(`/papi/cuentas/${c.socio_id}/liquidar`, {});
-                toast(`Cuenta de ${c.socio_name} liquidada`);
-                load();
-              }}>Liquidar</Button>
-            )}
-          </div>
+            <span className="font-bold tabular-nums">{eur(c.pending_cents)}</span>
+            <ChevronRight size={17} className="flex-shrink-0 text-muted-foreground" />
+          </button>
         ))}
       </CardBody></Card>
       <Modal open={!!detalle} onClose={() => setDetalle(null)}>
@@ -98,7 +91,16 @@ function Resumen() {
             </div>
           ))}
         </div>
-        <Button variant="outline" className="mt-4 w-full" onClick={() => setDetalle(null)}>Cerrar</Button>
+        {detalle?.pending > 0 && (
+          <Button className="mt-4 w-full" onClick={async () => {
+            if (!confirm(`¿Marcar como pagada la cuenta de ${detalle.name} (${eur(detalle.pending)})?`)) return;
+            await api(`/papi/cuentas/${detalle.id}/liquidar`, {});
+            toast(`Cuenta de ${detalle.name} liquidada`);
+            setDetalle(null);
+            load();
+          }}>Marcar como pagada · {eur(detalle.pending)}</Button>
+        )}
+        <Button variant="outline" className="mt-2.5 w-full" onClick={() => setDetalle(null)}>Cerrar</Button>
       </Modal>
     </>
   );
@@ -126,27 +128,29 @@ function Socios() {
         }}>Dar de alta</Button>
         <Err>{err}</Err>
       </CardBody></Card>
-      <h3 className="mb-2 mt-5 text-sm font-bold text-foreground/80">Socios · {socios.length}</h3>
+      <SectionTitle className="mt-5">Socios · {socios.length}</SectionTitle>
       <Card><CardBody>
         {socios.length === 0 && <Empty>Todavía no hay socios.</Empty>}
         {socios.map((s: any) => {
           const susp = s.status === 'suspendido';
           const url = s.qrToken ? location.origin + '/app/?t=' + encodeURIComponent(s.qrToken) : null;
           return (
-            <div key={s.id} className="flex flex-wrap items-center gap-2.5 border-b border-border py-3 last:border-0">
+            <div key={s.id} className="flex items-center gap-2.5 border-b border-border py-3 last:border-0">
               <Avatar name={s.name} />
-              <div className="min-w-[110px] flex-1">
+              <div className="min-w-0 flex-1">
                 <b className="block truncate text-[14.5px]">{s.name}</b>
-                <small className="text-muted-foreground">{String(s.phone).startsWith('admin-') ? 'Administrador' : '+' + s.phone}</small>
+                <small className="block truncate text-muted-foreground">
+                  {susp && <span className="font-bold text-destructive">suspendido · </span>}
+                  {String(s.phone).startsWith('admin-') ? 'Administrador' : fmtPhone(s.phone)}
+                </small>
               </div>
-              <Chip tone={susp ? 'bad' : 'ok'}>{susp ? 'suspendido' : 'activo'}</Chip>
-              {url && !String(s.phone).startsWith('admin-') && <Button variant="secondary" size="sm" onClick={() => setShare({
+              {url && !String(s.phone).startsWith('admin-') && <Button variant="secondary" size="sm" className="px-3.5" onClick={() => setShare({
                 title: `App de ${s.name}`, url,
                 text: 'Tu acceso de socio a la caseta. Dentro tienes tu QR, pedir desde el móvil, tus gastos y tus invitaciones: ' + url,
                 phone: s.phone,
                 note: 'Su app personal: QR, pedir, gastos e invitar. Envíasela una sola vez.',
               })}>Enviar</Button>}
-              <Button variant="outline" size="sm" onClick={async () => { await api(`/papi/socios/${s.id}/suspender`, {}); load(); }}>{susp ? 'Activar' : 'Baja'}</Button>
+              <Button variant="ghost" size="sm" className="px-3" onClick={async () => { await api(`/papi/socios/${s.id}/suspender`, {}); load(); }}>{susp ? 'Activar' : 'Baja'}</Button>
             </div>
           );
         })}
@@ -174,7 +178,7 @@ function Equipo() {
         </div>
         <Label>Puesto</Label>
         <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}
-          className="h-11 w-full rounded-lg border border-input bg-card px-3">
+          className="h-12 w-full rounded-lg bg-secondary px-4 text-foreground outline-none transition-shadow focus:ring-2 focus:ring-primary/60">
           <option value="mesero">Camarero — comandas</option>
           <option value="puerta">Puerta — entradas</option>
         </select>
@@ -188,20 +192,23 @@ function Equipo() {
         }}>Dar de alta</Button>
         <Err>{err}</Err>
       </CardBody></Card>
-      <h3 className="mb-2 mt-5 text-sm font-bold text-foreground/80">Equipo · {staff.length}</h3>
+      <SectionTitle className="mt-5">Equipo · {staff.length}</SectionTitle>
       <Card><CardBody>
         {staff.length === 0 && <Empty>Nadie todavía.</Empty>}
         {staff.map((s: any) => {
           const susp = s.status === 'suspendido';
           return (
-            <div key={s.id} className="flex flex-wrap items-center gap-2.5 border-b border-border py-3 last:border-0">
+            <div key={s.id} className="flex items-center gap-2.5 border-b border-border py-3 last:border-0">
               <Avatar name={s.name} />
-              <div className="min-w-[110px] flex-1">
+              <div className="min-w-0 flex-1">
                 <b className="block truncate text-[14.5px]">{s.name}</b>
-                <small className="text-muted-foreground">{s.role === 'puerta' ? 'Puerta' : 'Camarero'} · +{s.phone}</small>
+                <small className="block truncate text-muted-foreground">
+                  {susp && <span className="font-bold text-destructive">suspendido · </span>}
+                  {s.role === 'puerta' ? 'Puerta' : 'Camarero'} · {fmtPhone(s.phone)}
+                </small>
               </div>
-              {s.loginUrl && <Button variant="secondary" size="sm" onClick={() => setShare({ title: `Acceso de ${s.name}`, text: 'Tu acceso a la caseta: ' + s.loginUrl, url: s.loginUrl, phone: s.phone })}>Acceso</Button>}
-              <Button variant="outline" size="sm" onClick={async () => { await api(`/papi/socios/${s.id}/suspender`, {}); load(); }}>{susp ? 'Activar' : 'Baja'}</Button>
+              {s.loginUrl && <Button variant="secondary" size="sm" className="px-3.5" onClick={() => setShare({ title: `Acceso de ${s.name}`, text: 'Tu acceso a la caseta: ' + s.loginUrl, url: s.loginUrl, phone: s.phone })}>Acceso</Button>}
+              <Button variant="ghost" size="sm" className="px-3" onClick={async () => { await api(`/papi/socios/${s.id}/suspender`, {}); load(); }}>{susp ? 'Activar' : 'Baja'}</Button>
             </div>
           );
         })}
