@@ -38,12 +38,16 @@ function Pedidos() {
         const lista = o.status === 'lista';
         return (
           <div key={o.id} className="flex items-center gap-3 border-b border-border py-3 last:border-0">
-            <span className={cn('grid h-10 min-w-10 flex-shrink-0 place-items-center rounded-lg px-1.5 text-base font-extrabold',
-              lista ? 'bg-success text-success-foreground' : 'bg-muted')}>{o.pickup_number ?? '·'}</span>
+            <span className={cn('grid h-10 min-w-10 flex-shrink-0 place-items-center rounded-lg px-1.5 text-base font-extrabold tabular-nums',
+              lista ? 'bg-primary text-primary-foreground shadow-glow' : 'bg-secondary text-secondary-foreground')}>{o.pickup_number ?? '·'}</span>
             <div className="min-w-0 flex-1">
               <b className="block truncate text-[14.5px]">{o.customer_name ?? 'Cliente'}</b>
               <span className="block text-[13px] leading-snug">{o.items}</span>
-              <small className="text-muted-foreground">{eur(o.total_cents)} · a cuenta de {o.socio_name}{lista ? ' · en pantalla' : ''}</small>
+              <small className="block truncate text-muted-foreground">
+                {eur(o.total_cents)}
+                {o.socio_name && o.socio_name !== o.customer_name ? ` · a cuenta de ${o.socio_name}` : ''}
+                {lista ? ' · en pantalla' : ''}
+              </small>
             </div>
             <Button size="sm" variant={lista ? 'success' : 'default'} onClick={async (e: any) => {
               e.target.disabled = true;
@@ -101,7 +105,7 @@ function Comanda() {
       <Card><CardBody>
         <PersonCard info={info} />
         {info.remainingCents !== null && info.remainingCents !== undefined && info.ok && (
-          <div className="mt-3 rounded-lg bg-muted px-3 py-2 text-[13px] font-semibold text-muted-foreground">
+          <div className="mt-3 rounded-lg bg-secondary/60 px-3 py-2 text-[13px] font-semibold text-muted-foreground">
             Disponible: <b className="text-foreground">{eur(info.remainingCents)}</b> de {eur(info.spendLimitCents)}
           </div>
         )}

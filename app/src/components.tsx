@@ -115,7 +115,7 @@ export function OrderTracker({ token, orderId, pickupNumber, totalCents, onBack,
       </div>
       <div className="mt-2.5 flex w-[240px] justify-between text-[11px] font-bold">
         <span className="text-primary">Enviado</span>
-        <span className={listo || servido ? 'text-primary' : 'text-menta'}>En barra</span>
+        <span className={listo || servido ? 'text-primary' : 'text-menta'}>En preparación</span>
         <span className={servido ? 'text-primary' : listo ? 'text-menta' : 'text-muted-foreground'}>Listo</span>
       </div>
       <Button variant="outline" className="mt-9 w-full" onClick={onBack}>Volver</Button>
@@ -188,12 +188,16 @@ export function Scanner({ onScan, hint }: { onScan: (qr: string) => void; hint?:
 // ── Ficha de la persona escaneada ──
 
 export function PersonCard({ info, big }: { info: any; big?: boolean }) {
+  const initials = (info.name ?? '?').trim().split(/\s+/).slice(0, 2).map((w: string) => w[0]?.toUpperCase() ?? '').join('') || '?';
   return (
     <div className={cn('flex items-center gap-4', big && 'flex-col text-center')}>
-      <img
-        src={info.photoUrl || 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="#122B1C"/><text x="40" y="52" font-size="30" text-anchor="middle" fill="#2FD573">?</text></svg>')}
-        alt="" className={cn('rounded-xl bg-secondary object-cover', big ? 'h-36 w-36' : 'h-[76px] w-[76px]')}
-      />
+      {info.photoUrl ? (
+        <img src={info.photoUrl} alt="" className={cn('flex-shrink-0 rounded-xl bg-secondary object-cover', big ? 'h-36 w-36' : 'h-[76px] w-[76px]')} />
+      ) : (
+        <div className={cn('grid flex-shrink-0 place-items-center rounded-xl bg-primary/15 font-black tracking-tight text-primary', big ? 'h-36 w-36 text-[44px]' : 'h-[76px] w-[76px] text-[26px]')}>
+          {initials}
+        </div>
+      )}
       <div className={cn('min-w-0', !big && 'flex-1')}>
         <div className="truncate text-[17px] font-black tracking-tight">{info.name || 'Sin nombre'}{(info.role === 'socio' || info.role === 'admin') && ' · SOCIO'}</div>
         {info.hostName && <div className="text-[12.5px] font-semibold text-muted-foreground">Invita: {info.hostName}</div>}
