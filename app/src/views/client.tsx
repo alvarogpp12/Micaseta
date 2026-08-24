@@ -29,9 +29,17 @@ export function ClientApp({ token, extra, topRight }: { token: string; extra?: {
     ...(extra ? [{ id: extra.id, label: extra.label, icon: extra.icon }] : []),
   ];
 
+  const salir = () => {
+    if (!confirm('¿Cerrar tu carnet en este dispositivo? Podrás volver a abrirlo con tu enlace de WhatsApp.')) return;
+    try { localStorage.removeItem('micaseta_t'); } catch {}
+    location.href = '/app/';
+  };
+
   return (
     <>
-      <TopBar title={me.caseta} right={topRight} />
+      <TopBar title={me.caseta} right={topRight ?? (
+        <button className="rounded-full bg-secondary px-3.5 py-1.5 text-[12px] font-bold text-muted-foreground" onClick={salir}>Salir</button>
+      )} />
       <Page>
         <FadeView id={sent ? 'sent' : tab}>
           {tab === 'qr' && !sent && <VistaQR me={me} onPedir={me.canOrder ? () => setTab('pedir') : undefined} />}
