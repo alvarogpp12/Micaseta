@@ -34,7 +34,7 @@
 <header>
   <span class="wordmark">micaseta<i>.</i></span>
   <h1 id="caseta"></h1>
-  <span class="wordmark" style="visibility:hidden">micaseta<i>.</i></span>
+  <span class="wordmark" id="aforo" style="color:#A7E9C0"></span>
 </header>
 <main id="main">
   <section class="col">
@@ -80,6 +80,7 @@ async function tick() {
     $('dead').style.display = 'none';
     $('main').style.display = 'grid';
     $('caseta').textContent = data.caseta;
+    $('aforo').textContent = data.aforo ? `${data.aforo.exacto ? '' : '~'}${data.aforo.n} dentro` : '';
     renderNums($('preparing'), data.preparing, false);
     renderNums($('ready'), data.ready, true);
     setTimeout(() => { lastReady = new Set(data.ready); }, 4000);
