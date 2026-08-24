@@ -7,6 +7,7 @@ export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS casetas (
   id         BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   name       TEXT NOT NULL,
+  join_code  TEXT UNIQUE,                -- código de 6 dígitos para el alta del equipo
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -112,6 +113,7 @@ ALTER TABLE orders ADD COLUMN IF NOT EXISTS pickup_number INTEGER;
 ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_status_check;
 ALTER TABLE orders ADD CONSTRAINT orders_status_check CHECK (status IN ('pendiente','lista','servida'));
 ALTER TABLE invitations ADD COLUMN IF NOT EXISTS can_order BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE casetas ADD COLUMN IF NOT EXISTS join_code TEXT UNIQUE;
 ALTER TABLE accounts ADD COLUMN IF NOT EXISTS google_sub TEXT UNIQUE;
 ALTER TABLE accounts ALTER COLUMN password_hash DROP NOT NULL;
 

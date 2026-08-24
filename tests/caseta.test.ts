@@ -208,6 +208,20 @@ describe('flujo completo de caseta (web)', () => {
     expect(linked?.id).toBe(reg2.account.id);
   });
 
+  it('el equipo se une con el código de la caseta', async () => {
+    const reg = await accounts.registerCaseta(db, {
+      casetaName: 'J', ownerName: 'J', email: 'j@j.es', password: '12345678',
+    });
+    if (!reg.ok) throw new Error('registro falló');
+    const code = await accounts.ensureJoinCode(db, reg.caseta.id);
+    expect(code).toMatch(/^\d{6}$/);
+    // idempotente: siempre el mismo código
+    expect(await accounts.ensureJoinCode(db, reg.caseta.id)).toBe(code);
+    // el código localiza la caseta (admite espacios); uno falso, no
+    expect((await accounts.casetaByJoinCode(db, `${code.slice(0, 3)} ${code.slice(3)}`))?.id).toBe(reg.caseta.id);
+    expect(await accounts.casetaByJoinCode(db, '000000')).toBeNull();
+  });
+
   it('no se puede registrar dos casetas con el mismo email', async () => {
     const input = { casetaName: 'A', ownerName: 'X', email: 'x@x.es', password: '12345678' };
     expect((await accounts.registerCaseta(db, input)).ok).toBe(true);

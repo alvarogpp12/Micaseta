@@ -139,3 +139,28 @@ export async function accountFromSession(db: DB, token: string | undefined): Pro
 export function getCaseta(db: DB, id: number): Promise<Caseta | null> {
   return one<Caseta>(db, 'SELECT * FROM casetas WHERE id = $1', [id]);
 }
+
+// ---- Código de caseta: alta autoservicio del equipo (camareros y puerta) ----
+
+const genJoinCode = () => String(crypto.randomInt(100000, 1000000));
+
+/** Devuelve el código de la caseta, generándolo la primera vez (casetas antiguas). */
+export async function ensureJoinCode(db: DB, casetaId: number): Promise<string> {
+  const caseta = await getCaseta(db, casetaId);
+  if (caseta?.join_code) return caseta.join_code;
+  for (let i = 0; i < 5; i++) {
+    const code = genJoinCode();
+    try {
+      await db.query('UPDATE casetas SET join_code = $1 WHERE id = $2 AND join_code IS NULL', [code, casetaId]);
+      const after = await getCaseta(db, casetaId);
+      if (after?.join_code) return after.join_code;
+    } catch { /* colisión de código único: reintenta */ }
+  }
+  throw new Error('No se pudo generar el código de la caseta');
+}
+
+export function casetaByJoinCode(db: DB, code: string): Promise<Caseta | null> {
+  const clean = code.replace(/\D/g, '');
+  if (clean.length !== 6) return Promise.resolve(null);
+  return one<Caseta>(db, 'SELECT * FROM casetas WHERE join_code = $1', [clean]);
+}
