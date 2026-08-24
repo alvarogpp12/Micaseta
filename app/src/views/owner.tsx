@@ -161,8 +161,13 @@ function Socios() {
 }
 
 function Equipo() {
-  const [joinCode, setJoinCode] = useState<string | null>(null);
-  useEffect(() => { api('/papi/me', undefined, 'GET').then((m) => setJoinCode(m.joinCode ?? null)).catch(() => {}); }, []);
+  const [codigo, setCodigo] = useState<{ code: string; expiresInSec: number } | null>(null);
+  useEffect(() => {
+    const cargar = () => api('/papi/me', undefined, 'GET').then((m) => setCodigo(m.staffCode ?? null)).catch(() => {});
+    cargar();
+    const id = setInterval(cargar, 60000); // el código rota cada hora: refresca la cuenta atrás
+    return () => clearInterval(id);
+  }, []);
   const [staff, setStaff] = useState<any[] | null>(null);
   const [form, setForm] = useState({ name: '', phone: '', role: 'mesero' });
   const [err, setErr] = useState('');
@@ -172,15 +177,17 @@ function Equipo() {
   if (!staff) return <Spinner />;
   return (
     <>
-      {joinCode && (
+      {codigo && (
         <Card className="mb-3"><CardBody className="flex items-center gap-4 py-4">
           <div className="min-w-0 flex-1">
-            <b className="block text-[14px] font-extrabold tracking-tight">Código de tu caseta</b>
-            <small className="leading-snug text-muted-foreground">Tu equipo entra en la app, elige su puesto y lo teclea. Sin enlaces.</small>
+            <b className="block text-[14px] font-extrabold tracking-tight">Código del equipo</b>
+            <small className="leading-snug text-muted-foreground">
+              Entran en la app, eligen puesto y lo teclean. Por seguridad <b className="text-menta">se renueva en {Math.max(1, Math.round(codigo.expiresInSec / 60))} min</b>.
+            </small>
           </div>
-          <button onClick={() => { navigator.clipboard.writeText(joinCode); toast('Código copiado'); }}
+          <button onClick={() => { navigator.clipboard.writeText(codigo.code); toast('Código copiado'); }}
             className="rounded-xl bg-primary/15 px-4 py-2.5 text-[20px] font-black tabular-nums tracking-[.18em] text-primary">
-            {joinCode.slice(0, 3)} {joinCode.slice(3)}
+            {codigo.code.slice(0, 3)} {codigo.code.slice(3)}
           </button>
         </CardBody></Card>
       )}

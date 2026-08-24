@@ -230,6 +230,28 @@ describe('flujo completo de caseta (web)', () => {
     expect(await accounts.casetaByJoinCode(db, '000000')).toBeNull();
   });
 
+  it('el código del equipo rota cada hora y acepta la ventana anterior', async () => {
+    const reg = await accounts.registerCaseta(db, {
+      casetaName: 'R', ownerName: 'R', email: 'r@r.es', password: '12345678',
+    });
+    if (!reg.ok) throw new Error('registro falló');
+    const c = reg.caseta.id;
+    const HORA = 60 * 60 * 1000;
+    const t0 = 1_700_000_000_000;
+
+    const a = accounts.staffCode(c, t0);
+    expect(a.code).toMatch(/^\d{6}$/);
+    // estable dentro de la misma hora, distinto en la siguiente
+    expect(accounts.staffCode(c, t0 + 10 * 60 * 1000).code).toBe(a.code);
+    const b = accounts.staffCode(c, t0 + HORA);
+    expect(b.code).not.toBe(a.code);
+
+    // el vigente y el de la hora anterior validan; el de hace dos horas, no
+    expect((await accounts.casetaByStaffCode(db, b.code, t0 + HORA))?.id).toBe(c);
+    expect((await accounts.casetaByStaffCode(db, a.code, t0 + HORA))?.id).toBe(c);
+    expect(await accounts.casetaByStaffCode(db, a.code, t0 + 2 * HORA)).toBeNull();
+  });
+
   it('no se puede registrar dos casetas con el mismo email', async () => {
     const input = { casetaName: 'A', ownerName: 'X', email: 'x@x.es', password: '12345678' };
     expect((await accounts.registerCaseta(db, input)).ok).toBe(true);
