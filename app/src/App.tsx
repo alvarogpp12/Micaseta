@@ -18,6 +18,10 @@ export default function App() {
   const invite = params.get('i');
   const token = params.get('t');
 
+  // El carnet se recuerda en el dispositivo: al instalar el acceso directo,
+  // la app abre en /app/ sin ?t y recupera el token guardado.
+  if (token) try { localStorage.setItem('micaseta_t', token); } catch {}
+
   if (invite) return <GuestRegister token={invite} />;
   if (token) return <ClientApp token={token} />;
   return <SessionGate />;
@@ -37,11 +41,17 @@ function SessionGate() {
       setState({ kind: 'owner', me: owner });
       return;
     } catch {}
+    // Sin sesión: si este dispositivo guardó un carnet, ábrelo
+    try {
+      const stored = localStorage.getItem('micaseta_t');
+      if (stored) { setState({ kind: 'client', me: stored }); return; }
+    } catch {}
     setState({ kind: 'login' });
   };
   useEffect(() => { resolve(); }, []);
 
   if (state.kind === 'loading') return <><TopBar /><Spinner /></>;
+  if (state.kind === 'client') return <ClientApp token={state.me} />;
   if (state.kind === 'waiter') return <WaiterApp me={state.me} />;
   if (state.kind === 'door') return <DoorApp me={state.me} />;
   if (state.kind === 'owner') return (
