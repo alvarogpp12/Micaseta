@@ -159,6 +159,39 @@ export async function ensureJoinCode(db: DB, casetaId: number): Promise<string> 
   throw new Error('No se pudo generar el código de la caseta');
 }
 
+/**
+ * Código del equipo ROTATORIO (estilo TOTP): se deriva de la caseta y de la
+ * ventana horaria con HMAC del secreto del servidor — cambia solo cada hora,
+ * sin cron, y un código filtrado caduca en <=60 min. Al validar se acepta
+ * también la ventana anterior (tolerancia para el que lo teclea al filo).
+ * El join_code fijo queda reservado para dispositivos (sensor de aforo).
+ */
+const VENTANA_CODIGO_MS = 60 * 60 * 1000;
+
+function staffCodeFor(casetaId: number, windowIdx: number): string {
+  const h = crypto.createHmac('sha256', config.jwtSecret).update(`staff-${casetaId}-${windowIdx}`).digest();
+  return String((h.readUInt32BE(0) % 900000) + 100000);
+}
+
+export function staffCode(casetaId: number, now = Date.now()): { code: string; expiresInSec: number } {
+  const w = Math.floor(now / VENTANA_CODIGO_MS);
+  return {
+    code: staffCodeFor(casetaId, w),
+    expiresInSec: Math.ceil(((w + 1) * VENTANA_CODIGO_MS - now) / 1000),
+  };
+}
+
+export async function casetaByStaffCode(db: DB, code: string, now = Date.now()): Promise<Caseta | null> {
+  const clean = String(code).replace(/\D/g, '');
+  if (clean.length !== 6) return null;
+  const w = Math.floor(now / VENTANA_CODIGO_MS);
+  const { rows } = await db.query<{ id: number }>('SELECT id FROM casetas');
+  for (const r of rows) {
+    if (staffCodeFor(r.id, w) === clean || staffCodeFor(r.id, w - 1) === clean) return getCaseta(db, r.id);
+  }
+  return null;
+}
+
 export function casetaByJoinCode(db: DB, code: string): Promise<Caseta | null> {
   const clean = code.replace(/\D/g, '');
   if (clean.length !== 6) return Promise.resolve(null);

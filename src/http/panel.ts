@@ -119,7 +119,8 @@ export function registerPanelRoutes(app: FastifyInstance, db: DB): void {
       caseta: caseta?.name,
       casetaId: account.caseta_id,
       qrToken: signQrToken(socio),
-      joinCode: await accounts.ensureJoinCode(db, account.caseta_id),
+      staffCode: accounts.staffCode(account.caseta_id),
+      sensorCode: await accounts.ensureJoinCode(db, account.caseta_id),
     };
   });
 
@@ -130,8 +131,10 @@ export function registerPanelRoutes(app: FastifyInstance, db: DB): void {
    */
   app.post('/gapi/staff/alta', async (req, reply) => {
     const body = req.body as any;
-    const caseta = await accounts.casetaByJoinCode(db, String(body?.code ?? ''));
-    if (!caseta) return reply.code(404).send({ error: 'Código de caseta no válido. Pídeselo al responsable.' });
+    const caseta = await accounts.casetaByStaffCode(db, String(body?.code ?? ''));
+    if (!caseta) {
+      return reply.code(404).send({ error: 'Código no válido o caducado: pide el vigente al responsable (cambia cada hora).' });
+    }
     const role = body?.role === 'puerta' ? 'puerta' : 'mesero';
     const name = String(body?.name ?? '').trim();
     const phone = normalizePhone(String(body?.phone ?? ''));
