@@ -161,6 +161,8 @@ function Socios() {
 }
 
 function Equipo() {
+  const [joinCode, setJoinCode] = useState<string | null>(null);
+  useEffect(() => { api('/papi/me', undefined, 'GET').then((m) => setJoinCode(m.joinCode ?? null)).catch(() => {}); }, []);
   const [staff, setStaff] = useState<any[] | null>(null);
   const [form, setForm] = useState({ name: '', phone: '', role: 'mesero' });
   const [err, setErr] = useState('');
@@ -170,6 +172,18 @@ function Equipo() {
   if (!staff) return <Spinner />;
   return (
     <>
+      {joinCode && (
+        <Card className="mb-3"><CardBody className="flex items-center gap-4 py-4">
+          <div className="min-w-0 flex-1">
+            <b className="block text-[14px] font-extrabold tracking-tight">Código de tu caseta</b>
+            <small className="leading-snug text-muted-foreground">Tu equipo entra en la app, elige su puesto y lo teclea. Sin enlaces.</small>
+          </div>
+          <button onClick={() => { navigator.clipboard.writeText(joinCode); toast('Código copiado'); }}
+            className="rounded-xl bg-primary/15 px-4 py-2.5 text-[20px] font-black tabular-nums tracking-[.18em] text-primary">
+            {joinCode.slice(0, 3)} {joinCode.slice(3)}
+          </button>
+        </CardBody></Card>
+      )}
       <Card><CardBody>
         <h3 className="text-base font-bold">Nuevo miembro del equipo</h3>
         <div className="grid grid-cols-2 gap-2.5">
@@ -218,9 +232,11 @@ function Equipo() {
   );
 }
 
-/** Login/registro del dueño: email+contraseña o Google. */
+/** Login/registro del dueño (email o Google) + alta autoservicio del equipo. */
 export function LoginView({ onDone }: { onDone: () => void }) {
-  const [mode, setMode] = useState<'login' | 'register' | 'gcaseta'>('login');
+  const [mode, setMode] = useState<'login' | 'register' | 'gcaseta' | 'staff'>('login');
+  const [staffRole, setStaffRole] = useState<'mesero' | 'puerta'>('mesero');
+  const [staff, setStaff] = useState({ name: '', phone: '', code: '' });
   const [form, setForm] = useState({ casetaName: '', ownerName: '', email: '', password: '' });
   const [err, setErr] = useState('');
   const [gName, setGName] = useState('');
@@ -257,10 +273,48 @@ export function LoginView({ onDone }: { onDone: () => void }) {
     try {
       if (mode === 'login') await api('/papi/login', { email: form.email, password: form.password });
       else if (mode === 'register') await api('/papi/register', form);
+      else if (mode === 'staff') await api('/gapi/staff/alta', { ...staff, role: staffRole });
       else await api('/papi/google', { credential: gCred.current, casetaName: form.casetaName });
       onDone();
     } catch (e: any) { setErr(e.message); }
   };
+
+  if (mode === 'staff') return (
+    <>
+      <TopBar />
+      <Page className="pt-10">
+        <div className="mb-6 text-center">
+          <h1 className="text-2xl font-black tracking-tight">Únete a tu caseta</h1>
+          <p className="mt-1.5 text-sm text-muted-foreground">Teclea el código de 6 dígitos que te ha dado el responsable.</p>
+        </div>
+        <Card><CardBody className="p-5">
+          <Label>Tu puesto</Label>
+          <div className="grid grid-cols-2 gap-2.5">
+            {([['mesero', 'Camarero', 'Comandas y pedidos'], ['puerta', 'Puerta', 'Control de entrada']] as const).map(([id, b, s]) => (
+              <button key={id} type="button" onClick={() => setStaffRole(id)}
+                className={id === staffRole ? 'rounded-xl bg-primary/15 p-3.5 text-left ring-2 ring-primary' : 'rounded-xl bg-secondary p-3.5 text-left'}>
+                <b className="block text-sm font-extrabold">{b}</b>
+                <small className="mt-1 block leading-snug text-muted-foreground">{s}</small>
+              </button>
+            ))}
+          </div>
+          <Label>Código de la caseta</Label>
+          <Input value={staff.code} onChange={(e: any) => setStaff({ ...staff, code: e.target.value })}
+            placeholder="000 000" inputMode="numeric" autoComplete="one-time-code"
+            className="text-center text-[22px] font-black tracking-[.3em] tabular-nums" />
+          <Label>Tu nombre</Label>
+          <Input value={staff.name} onChange={(e: any) => setStaff({ ...staff, name: e.target.value })} placeholder="Pepe Ruiz" />
+          <Label>Tu móvil</Label>
+          <Input value={staff.phone} onChange={(e: any) => setStaff({ ...staff, phone: e.target.value })} placeholder="612 345 678" inputMode="tel" />
+          <Button className="mt-5 w-full" size="lg" onClick={submit}>Entrar a trabajar</Button>
+          <Err>{err}</Err>
+          <p className="mt-4 text-center text-[13.5px] text-muted-foreground">
+            ¿Eres el responsable? <button className="font-bold text-primary" onClick={() => setMode('login')}>Entra aquí</button>
+          </p>
+        </CardBody></Card>
+      </Page>
+    </>
+  );
 
   return (
     <>
@@ -292,6 +346,13 @@ export function LoginView({ onDone }: { onDone: () => void }) {
                 : <>¿Ya tienes cuenta? <button className="font-bold text-primary" onClick={() => setMode('login')}>Entra</button></>}
             </p>
           )}
+        </CardBody></Card>
+        <Card className="mt-4"><CardBody className="flex items-center gap-3 py-4">
+          <div className="min-w-0 flex-1">
+            <b className="block text-[14.5px] font-extrabold tracking-tight">¿Trabajas en una caseta?</b>
+            <small className="text-muted-foreground">Camareros y puerta entran con el código de su caseta.</small>
+          </div>
+          <Button variant="secondary" size="sm" onClick={() => setMode('staff')}>Unirme</Button>
         </CardBody></Card>
         {demo && (
           <Card className="mt-4"><CardBody className="text-center">

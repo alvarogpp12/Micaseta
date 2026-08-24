@@ -118,7 +118,35 @@ export function registerPanelRoutes(app: FastifyInstance, db: DB): void {
       caseta: caseta?.name,
       casetaId: account.caseta_id,
       qrToken: signQrToken(socio),
+      joinCode: await accounts.ensureJoinCode(db, account.caseta_id),
     };
+  });
+
+  /**
+   * Alta autoservicio del equipo: el camarero o puerta entra en la app,
+   * elige su puesto y teclea el código de 6 dígitos de la caseta.
+   * Queda asociado a esa caseta y con sesión iniciada.
+   */
+  app.post('/gapi/staff/alta', async (req, reply) => {
+    const body = req.body as any;
+    const caseta = await accounts.casetaByJoinCode(db, String(body?.code ?? ''));
+    if (!caseta) return reply.code(404).send({ error: 'Código de caseta no válido. Pídeselo al responsable.' });
+    const role = body?.role === 'puerta' ? 'puerta' : 'mesero';
+    const name = String(body?.name ?? '').trim();
+    const phone = normalizePhone(String(body?.phone ?? ''));
+    if (!name) return reply.code(422).send({ error: 'Dinos tu nombre' });
+    if (!phone) return reply.code(422).send({ error: 'Teléfono no válido (ej: 612345678)' });
+    const existing = await users.findByPhone(db, phone);
+    if (existing && existing.caseta_id && existing.caseta_id !== caseta.id) {
+      return reply.code(422).send({ error: 'Ese teléfono ya pertenece a otra caseta' });
+    }
+    if (existing && existing.caseta_id === caseta.id && !['mesero', 'puerta'].includes(existing.role)) {
+      return reply.code(422).send({ error: 'Ese teléfono ya pertenece a un socio o invitado de la caseta' });
+    }
+    const member = await users.upsertByAdmin(db, phone, name, role, caseta.id);
+    const session = jwt.sign({ s: member.id }, config.jwtSecret, { expiresIn: '30d' });
+    reply.setCookie('session', session, { path: '/', httpOnly: true, sameSite: 'lax', maxAge: 30 * 24 * 3600 });
+    return { ok: true, role, caseta: caseta.name };
   });
 
   // ---- Resumen ----

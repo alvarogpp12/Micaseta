@@ -5,6 +5,7 @@ export type InvitationStatus = 'pendiente' | 'aceptada' | 'rechazada' | 'cancela
 export interface Caseta {
   id: number;
   name: string;
+  join_code: string | null;
   created_at: string | Date;
 }
 
