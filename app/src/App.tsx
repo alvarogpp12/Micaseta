@@ -50,10 +50,16 @@ function SessionGate() {
   };
   useEffect(() => { resolve(); }, []);
 
+  const logoutStaff = async () => {
+    try { await api('/api/logout', {}); } catch {}
+    setState({ kind: 'loading' });
+    resolve();
+  };
+
   if (state.kind === 'loading') return <><TopBar /><Spinner /></>;
   if (state.kind === 'client') return <ClientApp token={state.me} />;
-  if (state.kind === 'waiter') return <WaiterApp me={state.me} />;
-  if (state.kind === 'door') return <DoorApp me={state.me} />;
+  if (state.kind === 'waiter') return <WaiterApp me={state.me} onLogout={logoutStaff} />;
+  if (state.kind === 'door') return <DoorApp me={state.me} onLogout={logoutStaff} />;
   if (state.kind === 'owner') return (
     <OwnerApp me={state.me} onLogout={async () => { await api('/papi/logout', {}); setState({ kind: 'login' }); }} />
   );

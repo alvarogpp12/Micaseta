@@ -118,6 +118,12 @@ export async function createServer({ db, mock, cloud }: ServerDeps) {
     return { id: staff.id, name: staff.name, role: staff.role };
   });
 
+  // Cerrar la sesión de camarero/puerta en este dispositivo
+  app.post('/api/logout', async (_req, reply) => {
+    reply.clearCookie('session', { path: '/' });
+    return { ok: true };
+  });
+
   // ---- Escaneo de QR ----
 
   app.post('/api/scan', async (req, reply) => {

@@ -5,12 +5,16 @@ import { BottomNav, Button, Card, CardBody, Empty, Err, Page, Spinner, TopBar, c
 import { Carta, CartBar, PersonCard, Scanner } from '../components';
 import { FadeView } from '../components/fx';
 
+const Salir = ({ onClick }: { onClick: () => void }) => (
+  <button className="rounded-full bg-secondary px-3.5 py-1.5 text-[12px] font-bold text-muted-foreground" onClick={onClick}>Salir</button>
+);
+
 /** Camarero: cola de pedidos del móvil + comanda en barra con escáner. */
-export function WaiterApp({ me }: { me: any }) {
+export function WaiterApp({ me, onLogout }: { me: any; onLogout: () => void }) {
   const [tab, setTab] = useState('pedidos');
   return (
     <>
-      <TopBar title={`${me.name} · Camarero`} />
+      <TopBar title={`${me.name} · Camarero`} right={<Salir onClick={onLogout} />} />
       <Page>
         <FadeView id={tab}>
           {tab === 'pedidos' && <Pedidos />}
@@ -122,7 +126,7 @@ function Comanda() {
 }
 
 /** Puerta: escáner → foto grande + verde/rojo → registrar entrada. */
-export function DoorApp({ me }: { me: any }) {
+export function DoorApp({ me, onLogout }: { me: any; onLogout: () => void }) {
   const [current, setCurrent] = useState<any>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -134,7 +138,7 @@ export function DoorApp({ me }: { me: any }) {
 
   return (
     <>
-      <TopBar title={`${me.name} · Puerta`} />
+      <TopBar title={`${me.name} · Puerta`} right={<Salir onClick={onLogout} />} />
       <Page>
         {!current && <Scanner onScan={onScan} hint="Escanea el QR, comprueba la foto y registra la entrada." />}
         {current && (
