@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BarChart3, ChevronRight } from 'lucide-react';
+import { BarChart3, ChevronRight } from '../components/icons';
 import { api, eur, fmtFecha, fmtPhone } from '../lib/api';
 import { Avatar, BottomNav, Button, Card, CardBody, Chip, Empty, Err, Input, KPI, Label, Modal, Page, SectionTitle, Spinner, TopBar } from '../ui';
 import { ShareModal } from '../components';
@@ -47,7 +47,7 @@ function Resumen() {
   return (
     <>
       <div className="pt-3">
-        <p className="text-[11px] font-extrabold uppercase tracking-[.24em] text-muted-foreground">Caja de hoy</p>
+        <p className="text-[13px] font-bold text-muted-foreground">Caja de hoy</p>
         <div className="mt-1 flex items-baseline gap-3">
           <b className="text-[56px] font-black leading-none tracking-tighter tabular-nums">{eur(o.hoy.total)}</b>
         </div>
@@ -55,7 +55,7 @@ function Resumen() {
           {[[`${o.aforo?.exacto ? '' : '~'}${o.aforo?.n ?? 0}`, 'Dentro ahora'], [o.entradas, 'Entradas'], [eur(o.pendienteCents), 'Pendiente']].map(([v, l], i) => (
             <div key={l as string} className={i ? 'flex-1 border-l border-border pl-4 pt-4' : 'flex-1 pt-4'}>
               <b className="block text-[21px] font-black tracking-tight tabular-nums">{v}</b>
-              <span className="mt-1 block text-[10px] font-extrabold uppercase tracking-[.12em] text-muted-foreground">{l}</span>
+              <span className="mt-1 block text-[11.5px] font-bold text-muted-foreground">{l}</span>
             </div>
           ))}
         </div>
@@ -363,7 +363,7 @@ export function LoginView({ onDone }: { onDone: () => void }) {
         </CardBody></Card>
         {demo && (
           <Card className="mt-4"><CardBody className="text-center">
-            <p className="mb-3 text-[13px] text-muted-foreground">¿Solo quieres verlo? Prueba la caseta demo.</p>
+            <p className="mb-3 text-[13px] text-muted-foreground">¿Solo quieres verlo? Prueba la caseta demo sin registrarte.</p>
             <div className="flex justify-center gap-2.5">
               <a href="/demo/camarero"><Button variant="outline" size="sm">Como camarero</Button></a>
               <a href="/demo/puerta"><Button variant="outline" size="sm">Como puerta</Button></a>

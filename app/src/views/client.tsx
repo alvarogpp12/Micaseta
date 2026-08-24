@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { QrCode, Beer, Wallet, UserPlus, Camera, Ticket, X } from 'lucide-react';
+import { QrCode, Beer, Wallet, UserPlus, Camera, Ticket, X } from '../components/icons';
 import { api, eur, fmtFecha } from '../lib/api';
 import { Avatar, BottomNav, Button, Card, CardBody, Chip, Empty, Err, Input, KPI, Label, Page, SectionTitle, Spinner, TopBar, cn } from '../ui';
 import { Carta, CartBar, OrderTracker, ShareModal } from '../components';
@@ -74,14 +74,14 @@ function VistaQR({ me, onPedir }: any) {
       <div className="overflow-hidden rounded-[30px] bg-lona text-tinta shadow-carnet">
         <div className="raya h-2.5" />
         <div className="p-6 pb-5">
-          <div className="flex justify-between text-[10.5px] font-extrabold uppercase tracking-[.22em]">
+          <div className="flex justify-between text-[12px] font-extrabold tracking-[.02em]">
             <span className="text-[#1E7A46]">{esSocio ? 'Socio titular' : me.canOrder ? 'Invitación con barra' : 'Invitación · solo entrada'}</span>
             <span className="text-[#8A8672]">{new Date().getFullYear()}</span>
           </div>
           <h1 className="mt-4 break-words text-[42px] font-black leading-[.98] tracking-tighter">{me.name}</h1>
           <div className="mt-2.5 flex items-baseline justify-between">
             <span className="text-[14px] font-bold text-[#4A5346]">{me.caseta}</span>
-            {!esSocio && me.hostName && <span className="text-[11px] font-extrabold uppercase tracking-[.14em] text-[#1E7A46]">Invita {me.hostName}</span>}
+            {!esSocio && me.hostName && <span className="text-[12px] font-extrabold tracking-[.01em] text-[#1E7A46]">Invita {me.hostName}</span>}
           </div>
         </div>
         <div className="relative border-t-2 border-dashed border-[#D8D2BC]">
@@ -97,7 +97,7 @@ function VistaQR({ me, onPedir }: any) {
             <span className="mt-1.5 block text-[12.5px] leading-relaxed text-[#77816F]">
               {me.canOrder ? 'Un solo código para entrar y pedir a tu cuenta.' : 'Presenta este código en la entrada.'}
             </span>
-            <em className="mt-3 flex items-center gap-1.5 text-[11px] font-extrabold not-italic uppercase tracking-[.1em] text-[#1E7A46]">
+            <em className="mt-3 flex items-center gap-1.5 text-[12px] font-extrabold not-italic tracking-[.01em] text-[#1E7A46]">
               <span className="h-1.5 w-1.5 rounded-full bg-primary" />Válido hoy
             </em>
           </div>
@@ -117,7 +117,7 @@ function VistaQR({ me, onPedir }: any) {
           <Button size="lg" className="flex-1" onClick={onPedir}>Pedir desde el móvil</Button>
         ) : <span className="flex-1" />}
         <div className="text-right">
-          <span className="block text-[10px] font-extrabold uppercase tracking-[.14em] text-muted-foreground">
+          <span className="block text-[11.5px] font-bold text-muted-foreground">
             {esSocio ? 'Pendiente' : me.canOrder ? 'Te queda' : ''}
           </span>
           <b className="text-[21px] font-black tabular-nums tracking-tight">
@@ -146,8 +146,8 @@ function VistaPedir({ me, token, onSent }: any) {
   };
   return (
     <>
-      <p className="pt-2 text-[11px] font-extrabold uppercase tracking-[.24em] text-muted-foreground">
-        {me.role === 'socio' ? 'La carta · a tu cuenta' : `La carta · a cuenta de ${me.hostName ?? 'tu socio'}${me.remainingCents !== null ? ` · quedan ${eur(me.remainingCents)}` : ''}`}
+      <p className="pt-2 text-[13px] font-bold text-muted-foreground">
+        {me.role === 'socio' ? 'La carta · todo va a tu cuenta' : `La carta · a cuenta de ${me.hostName ?? 'tu socio'}${me.remainingCents !== null ? ` · quedan ${eur(me.remainingCents)}` : ''}`}
       </p>
       <Carta products={me.products} qty={qty} setQty={setQty} />
       <CartBar products={me.products} qty={qty} label="Enviar pedido" onSend={send} err={err} busy={busy} />
@@ -341,7 +341,7 @@ export function GuestRegister({ token }: { token: string }) {
         <div className="overflow-hidden rounded-[30px] bg-lona text-tinta shadow-carnet">
           <div className="raya h-2.5" />
           <div className="p-6 pb-4">
-            <div className="text-[10.5px] font-extrabold uppercase tracking-[.22em] text-[#1E7A46]">{inv.socio} te invita a</div>
+            <div className="text-[12px] font-extrabold tracking-[.02em] text-[#1E7A46]">{inv.socio} te invita a</div>
             <h1 className="mt-2 text-[34px] font-black leading-none tracking-tighter">{inv.caseta}</h1>
           </div>
           <div className="px-6 pb-5">

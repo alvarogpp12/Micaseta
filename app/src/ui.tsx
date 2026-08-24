@@ -48,12 +48,12 @@ export const Input = ({ className = '', ...p }: any) => (
 );
 
 export const Label = ({ className = '', ...p }: any) => (
-  <label className={cn('mb-1.5 mt-4 block text-[11px] font-extrabold uppercase tracking-[.14em] text-muted-foreground', className)} {...p} />
+  <label className={cn('mb-1.5 mt-4 block text-[12.5px] font-bold text-muted-foreground', className)} {...p} />
 );
 
-/** Título de sección único en toda la app: mismo kicker que "Caja de hoy". */
+/** Título de sección único en toda la app: título real, sin mayúsculas sostenidas. */
 export const SectionTitle = ({ className = '', ...p }: any) => (
-  <h3 className={cn('mb-2.5 mt-7 text-[11px] font-extrabold uppercase tracking-[.18em] text-muted-foreground', className)} {...p} />
+  <h3 className={cn('mb-2.5 mt-7 text-[15px] font-extrabold tracking-[-.02em] text-foreground', className)} {...p} />
 );
 
 export function Chip({ tone = 'muted', className = '', ...p }: any) {
@@ -82,7 +82,7 @@ export const Empty = ({ children }: any) => (
 export function KPI({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <Card><CardBody className="px-4 py-4">
-      <div className="mb-1 text-[10px] font-extrabold uppercase tracking-[.14em] text-muted-foreground">{label}</div>
+      <div className="mb-1 text-[11.5px] font-bold text-muted-foreground">{label}</div>
       <div className="truncate text-[22px] font-black tracking-tight tabular-nums">{value}</div>
     </CardBody></Card>
   );
@@ -144,14 +144,19 @@ export function TopBar({ title, right }: { title?: React.ReactNode; right?: Reac
         <span className="text-[16px] font-black tracking-tight">
           micaseta<i className="not-italic text-primary">.</i>
         </span>
-        {title && <span className="truncate px-2 text-[12px] font-semibold uppercase tracking-[.14em] text-muted-foreground">{title}</span>}
+        {title && <span className="truncate px-2 text-[13px] font-bold text-muted-foreground">{title}</span>}
         {right ?? <span />}
       </div>
     </header>
   );
 }
 
-/** Página con ancho de app móvil y aire para el dock. */
+/** Página con ancho de app móvil y aire para el dock.
+ *  El resplandor ambiental va en una capa fija a pantalla completa: dentro de
+ *  <main> (max-w-md) el gradiente se recortaba en un rectángulo visible. */
 export const Page = ({ className = '', ...p }: any) => (
-  <main className={cn('amb-verde mx-auto min-h-screen w-full max-w-md px-5 pb-40 pt-3', className)} {...p} />
+  <>
+    <div className="amb-verde pointer-events-none fixed inset-0 z-0" />
+    <main className={cn('relative z-10 mx-auto min-h-screen w-full max-w-md px-5 pb-40 pt-3', className)} {...p} />
+  </>
 );

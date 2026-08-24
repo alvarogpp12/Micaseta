@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import jsQR from 'jsqr';
-import { ArrowRight, Copy, Minus, Plus } from 'lucide-react';
+import { ArrowRight, Copy, Minus, Plus } from './components/icons';
 import { api, eur, waShare, CAT_LABELS, sortProducts } from './lib/api';
 import { Button, Card, CardBody, Chip, Err, Input, Label, Modal, cn } from './ui';
 import { Cascade, NumberTicker } from './components/fx';
@@ -91,7 +91,7 @@ export function OrderTracker({ token, orderId, pickupNumber, totalCents, onBack,
   const servido = status === 'servida';
   return (
     <div className="flex flex-col items-center pt-6 text-center">
-      <p className="text-[11px] font-extrabold uppercase tracking-[.26em] text-muted-foreground">Tu pedido</p>
+      <p className="text-[13px] font-bold text-muted-foreground">Tu pedido</p>
       <div className={cn('glow-turno my-1 text-[200px] font-black leading-[.9] tracking-tighter tabular-nums', listo || servido ? 'text-primary' : 'text-lona')}>
         <NumberTicker value={pickupNumber ?? null} />
       </div>
@@ -175,7 +175,7 @@ export function Scanner({ onScan, hint }: { onScan: (qr: string) => void; hint?:
       </div>
       {demos.length > 0 && (
         <div className="mt-5">
-          <p className="mb-2 text-[10px] font-extrabold uppercase tracking-[.14em] text-muted-foreground">Modo demo — simula un escaneo</p>
+          <p className="mb-2 text-[12px] font-bold text-muted-foreground">Modo demo — simula un escaneo</p>
           <div className="flex flex-col gap-2">
             {demos.map((d) => <Button key={d.label} variant="outline" size="sm" className="justify-start" onClick={() => onScan(d.token)}>{d.label}</Button>)}
           </div>
@@ -199,9 +199,9 @@ export function PersonCard({ info, big }: { info: any; big?: boolean }) {
         </div>
       )}
       <div className={cn('min-w-0', !big && 'flex-1')}>
-        <div className="truncate text-[17px] font-black tracking-tight">{info.name || 'Sin nombre'}{(info.role === 'socio' || info.role === 'admin') && ' · SOCIO'}</div>
+        <div className="truncate text-[17px] font-black tracking-tight">{info.name || 'Sin nombre'}{(info.role === 'socio' || info.role === 'admin') && ' · Socio'}</div>
         {info.hostName && <div className="text-[12.5px] font-semibold text-muted-foreground">Invita: {info.hostName}</div>}
-        <div className="mt-2"><Chip tone={info.ok ? 'ok' : 'bad'}>{info.ok ? 'ACCESO OK' : 'SIN ACCESO'}</Chip></div>
+        <div className="mt-2"><Chip tone={info.ok ? 'ok' : 'bad'}>{info.ok ? 'Acceso OK' : 'Sin acceso'}</Chip></div>
         {info.reason && <div className="mt-1.5 text-[12.5px] text-muted-foreground">{info.reason}</div>}
       </div>
     </div>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ClipboardList, ScanLine, CheckCircle2 } from 'lucide-react';
+import { ClipboardList, ScanLine, CheckCircle2 } from '../components/icons';
 import { api, eur } from '../lib/api';
 import { BottomNav, Button, Card, CardBody, Empty, Err, Page, Spinner, TopBar, cn } from '../ui';
 import { Carta, CartBar, PersonCard, Scanner } from '../components';
