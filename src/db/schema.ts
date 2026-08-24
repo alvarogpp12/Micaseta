@@ -98,6 +98,17 @@ CREATE TABLE IF NOT EXISTS order_items (
   unit_price_cents INTEGER NOT NULL
 );
 
+-- Aforo: eventos +1/-1 de un contador físico de puerta (opcional).
+-- Sin sensor, el aforo se estima por check-ins y actividad en barra.
+CREATE TABLE IF NOT EXISTS aforo_events (
+  id         BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  caseta_id  BIGINT REFERENCES casetas(id),
+  delta      INTEGER NOT NULL,
+  source     TEXT NOT NULL DEFAULT 'sensor',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_aforo_caseta ON aforo_events(caseta_id, created_at);
+
 -- Estado de conversación del bot de WhatsApp (cuando esté conectado).
 CREATE TABLE IF NOT EXISTS bot_sessions (
   phone      TEXT PRIMARY KEY,

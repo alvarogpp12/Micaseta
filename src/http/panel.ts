@@ -10,6 +10,7 @@ import * as orders from '../services/orders.js';
 import { signQrToken, verifyQrToken, qrPng } from '../services/qr.js';
 import * as wallet from '../services/wallet.js';
 import * as email from '../services/email.js';
+import * as aforoSvc from '../services/aforo.js';
 import { staffLoginUrl } from '../bot/flows/staff.js';
 import { SEVILLA_MENU } from '../services/demo.js';
 import { parseEuros, todayStr } from '../domain/types.js';
@@ -185,7 +186,25 @@ export function registerPanelRoutes(app: FastifyInstance, db: DB): void {
       [c],
     );
     const cuentas = await orders.cuentasPorSocio(db, c);
-    return { hoy, entradas: entradas!.n, counts, pendienteCents: pendiente!.total, cuentas };
+    const aforo = await aforoSvc.aforo(db, c);
+    return { hoy, entradas: entradas!.n, counts, pendienteCents: pendiente!.total, cuentas, aforo };
+  });
+
+  /**
+   * Contador físico de puerta (ESP32/comercial): envía +1 al entrar alguien
+   * y -1 al salir. Se autentica con el código de la caseta.
+   *   curl -X POST /gapi/aforo -d '{"code":"945032","delta":1}'
+   */
+  app.post('/gapi/aforo', async (req, reply) => {
+    const body = req.body as any;
+    const caseta = await accounts.casetaByJoinCode(db, String(body?.code ?? ''));
+    if (!caseta) return reply.code(404).send({ error: 'Código de caseta no válido' });
+    const delta = Number(body?.delta);
+    if (!Number.isInteger(delta) || Math.abs(delta) > 20) {
+      return reply.code(422).send({ error: 'delta debe ser un entero (+entra / -sale)' });
+    }
+    await aforoSvc.registrarEvento(db, caseta.id, delta, String(body?.source ?? 'sensor').slice(0, 30));
+    return { ok: true, ...(await aforoSvc.aforo(db, caseta.id)) };
   });
 
   // ---- Socios ----
@@ -311,7 +330,8 @@ export function registerPanelRoutes(app: FastifyInstance, db: DB): void {
     }
     const caseta = await accounts.getCaseta(db, casetaId);
     const board = await orders.tvBoard(db, casetaId);
-    return { caseta: caseta?.name ?? 'Micaseta', ...board };
+    const aforo = await aforoSvc.aforo(db, casetaId);
+    return { caseta: caseta?.name ?? 'Micaseta', ...board, aforo };
   });
 
   // ---- Invitaciones ----

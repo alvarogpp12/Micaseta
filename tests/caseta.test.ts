@@ -4,6 +4,7 @@ import * as accounts from '../src/services/accounts.js';
 import * as users from '../src/services/users.js';
 import * as invitations from '../src/services/invitations.js';
 import * as orders from '../src/services/orders.js';
+import * as aforoSvc from '../src/services/aforo.js';
 
 let db: DB;
 
@@ -144,6 +145,13 @@ describe('flujo completo de caseta (web)', () => {
     const second = await orders.createOrder(db, r.guest, null, [{ productId: beer.id, qty: 1 }]);
     expect(second.ok).toBe(true);
     expect(second.pickupNumber).toBe(2);
+
+    // Aforo estimado: la actividad en barra cuenta como presencia
+    expect(await aforoSvc.aforo(db, c)).toEqual({ n: 1, exacto: false });
+    // Con sensor de puerta, el aforo pasa a ser exacto (suma de deltas)
+    await aforoSvc.registrarEvento(db, c, 5);
+    await aforoSvc.registrarEvento(db, c, -2);
+    expect(await aforoSvc.aforo(db, c)).toEqual({ n: 3, exacto: true });
 
     // Y computa en la cuenta del socio (3 + 1 cervezas)
     const cuentas = await orders.cuentasPorSocio(db, c);

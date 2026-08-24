@@ -52,7 +52,7 @@ function Resumen() {
           <b className="text-[56px] font-black leading-none tracking-tighter tabular-nums">{eur(o.hoy.total)}</b>
         </div>
         <div className="mt-5 flex border-t border-border">
-          {[[o.entradas, 'Entradas'], [eur(o.pendienteCents), 'Pendiente'], [`${o.counts.socios} · ${o.counts.invitados}`, 'Socios · Inv.']].map(([v, l], i) => (
+          {[[`${o.aforo?.exacto ? '' : '~'}${o.aforo?.n ?? 0}`, 'Dentro ahora'], [o.entradas, 'Entradas'], [eur(o.pendienteCents), 'Pendiente']].map(([v, l], i) => (
             <div key={l as string} className={i ? 'flex-1 border-l border-border pl-4 pt-4' : 'flex-1 pt-4'}>
               <b className="block text-[21px] font-black tracking-tight tabular-nums">{v}</b>
               <span className="mt-1 block text-[10px] font-extrabold uppercase tracking-[.12em] text-muted-foreground">{l}</span>
