@@ -139,23 +139,27 @@ export function Modal({ open, onClose, children }: any) {
   );
 }
 
-/** Dock claro de 4: blur, canto izquierdo con la banda, punto cobalto en el activo. */
+/** Dock de 4 en vidrio (glassmorphism estilo Apple): píldora translúcida con
+ *  blur + saturación, borde de luz, y una "lente" de cristal sobre el activo. */
 export function Dock({ tabs, tab, onTab }: { tabs: { id: string; label: string; icon: React.ReactNode }[]; tab: string; onTab: (id: string) => void }) {
   if (tabs.length < 2) return null;
   return (
     <nav className="fixed inset-x-4 z-40 mx-auto max-w-md" style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
-      <div className="flex items-stretch overflow-hidden rounded-[20px] border border-border bg-white/90 shadow-dock backdrop-blur-xl">
-        <i className="banda-v w-[5px]" />
+      <div
+        className="flex items-stretch gap-1 rounded-full border border-white/60 bg-white/55 p-1.5 shadow-[0_18px_44px_rgba(20,22,29,.18),inset_0_1px_0_rgba(255,255,255,.8),inset_0_-1px_0_rgba(20,22,29,.04)]"
+        style={{ backdropFilter: 'blur(24px) saturate(1.8)', WebkitBackdropFilter: 'blur(24px) saturate(1.8)' }}
+      >
         {tabs.map((t) => {
           const on = tab === t.id;
           return (
             <button
               key={t.id}
               onClick={() => onTab(t.id)}
-              className={cn('relative grid flex-1 place-items-center gap-[3px] py-[11px] pb-3 text-[10px] font-bold transition-colors',
-                on ? 'text-foreground' : 'text-[#98A0B2]')}
+              className={cn('relative grid flex-1 place-items-center gap-[3px] rounded-full py-2 pb-[9px] text-[10px] font-bold transition-all duration-200',
+                on
+                  ? 'bg-white/75 text-primary shadow-[0_4px_14px_rgba(20,22,29,.1),inset_0_1px_0_rgba(255,255,255,.9),0_0_0_0.5px_rgba(255,255,255,.6)]'
+                  : 'text-[#6A7183] active:scale-95')}
             >
-              {on && <span className="absolute right-[calc(50%-17px)] top-[7px] h-[5px] w-[5px] rounded-full bg-primary" />}
               {t.icon}
               <span>{t.label}</span>
             </button>

@@ -69,33 +69,44 @@ const saludo = () => {
   return h < 7 || h >= 20 ? 'Buenas noches' : h < 14 ? 'Buenos días' : 'Buenas tardes';
 };
 
-/** El pase: credencial papel con banda de cordón, troquel, perforación y QR grande. */
+/** El pase: el billete de siempre — banda, kicker/año, nombre grande, troquel
+ *  y QR a la izquierda con su texto — en papel y cobalto. */
 function Pase({ me }: any) {
   const esSocio = me.role === 'socio';
   const kicker = esSocio ? 'Socio titular' : me.canOrder ? 'Invitación con consumo' : 'Invitación · solo entrada';
   return (
-    <div className="relative overflow-hidden rounded-pase border border-papel-borde bg-papel text-tinta shadow-pase">
-      <div className="banda h-3" />
-      <span className="absolute left-1/2 top-6 h-[9px] w-[46px] -translate-x-1/2 rounded-full bg-white" />
-      <div className="kick flex justify-between px-[22px] pt-5 text-[11.5px] font-bold tracking-[.01em]">
-        <span className="text-primary">{kicker}</span>
-        <span className="flex items-center gap-1.5 text-tinta-suave">
-          <i className={cn('h-1.5 w-1.5 rounded-full', me.accessOk ? 'bg-success' : 'bg-destructive')} />
-          {me.accessOk ? 'Válido hoy' : 'Sin acceso'}
-        </span>
+    <div className="overflow-hidden rounded-pase border border-papel-borde bg-papel text-tinta shadow-pase">
+      <div className="banda h-2.5" />
+      <div className="p-6 pb-5">
+        <div className="kick flex justify-between text-[12px] font-extrabold tracking-[.02em]">
+          <span className="text-primary">{kicker}</span>
+          <span className="text-tinta-humo tabular-nums">{new Date().getFullYear()}</span>
+        </div>
+        <h1 className="mt-4 break-words text-[42px] font-black leading-[.98] tracking-[-.045em]">{me.name}</h1>
+        <div className="mt-2.5 flex items-baseline justify-between">
+          <span className="text-[14px] font-bold text-tinta-suave">{me.caseta}</span>
+          {!esSocio && me.hostName && <span className="kick text-[12px] font-extrabold tracking-[.01em] text-primary">Invita {me.hostName}</span>}
+        </div>
       </div>
-      <h2 className="break-words px-[22px] pb-4 pt-2.5 text-[31px] font-black leading-none tracking-[-.04em]">{me.name}</h2>
       <div className="relative border-t-2 border-dashed border-papel-borde">
-        <span className="absolute -top-[13px] left-[-15px] h-[26px] w-[26px] rounded-full bg-white" />
-        <span className="absolute -top-[13px] right-[-15px] h-[26px] w-[26px] rounded-full bg-white" />
+        <span className="absolute -top-3.5 left-[-16px] h-7 w-7 rounded-full bg-white" />
+        <span className="absolute -top-3.5 right-[-16px] h-7 w-7 rounded-full bg-white" />
       </div>
-      <div className="grid place-items-center px-[22px] pb-[18px] pt-[18px]">
-        <span className="w-[168px] rounded-[14px] bg-white p-[9px] shadow-[0_1px_0_rgba(0,0,0,.05)]">
-          <img src={'/qr.png?t=' + encodeURIComponent(me.qrToken)} alt="Tu código QR" className="block w-full" />
-        </span>
-        <small className="kick mt-2 text-[10.5px] font-bold tracking-[.04em] text-tinta-humo tabular-nums">
-          {me.caseta} · {new Date().getFullYear()}{!me.role || me.role === 'socio' ? '' : me.hostName ? ` · invita ${me.hostName}` : ''}
-        </small>
+      <div className="flex items-center gap-5 p-6 pt-5">
+        <div className="w-[140px] flex-shrink-0 overflow-hidden rounded-[14px] bg-white p-1.5 shadow-[0_1px_0_rgba(0,0,0,.05)]">
+          <img src={'/qr.png?t=' + encodeURIComponent(me.qrToken)} alt="Tu código QR" className="w-full" />
+        </div>
+        <div className="min-w-0">
+          <b className="block text-[15px] font-extrabold tracking-tight">{me.canOrder ? 'Puerta y barra' : 'Puerta'}</b>
+          <span className="mt-1.5 block text-[12.5px] leading-relaxed text-tinta-humo">
+            {me.canOrder ? 'Un solo código para entrar y pedir a tu cuenta.' : 'Presenta este código en la entrada.'}
+          </span>
+          <em className={cn('kick mt-3 flex items-center gap-1.5 text-[12px] font-extrabold not-italic tracking-[.01em]',
+            me.accessOk ? 'text-success' : 'text-destructive')}>
+            <span className={cn('h-1.5 w-1.5 rounded-full', me.accessOk ? 'bg-success' : 'bg-destructive')} />
+            {me.accessOk ? 'Válido hoy' : 'Sin acceso'}
+          </em>
+        </div>
       </div>
     </div>
   );
