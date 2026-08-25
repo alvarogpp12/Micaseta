@@ -1,36 +1,33 @@
 import React, { useEffect, useState } from 'react';
-import { BarChart3, ChevronRight } from '../components/icons';
 import { api, eur, fmtFecha, fmtPhone } from '../lib/api';
-import { Avatar, BottomNav, Button, Card, CardBody, Chip, Empty, Err, Input, KPI, Label, Modal, Page, SectionTitle, Spinner, TopBar } from '../ui';
+import { Avatar, Button, Card, CardBody, Chip, Empty, Err, Input, Kick, Label, LinkBtn, Modal, Page, Spinner, Stats, TopBar, cn } from '../ui';
 import { ShareModal } from '../components';
-import { FadeView } from '../components/fx';
 import { toast } from 'sonner';
 import { ClientApp } from './client';
 
 /**
- * El dueño ES un socio: su app es LA app (Mi QR · Pedir · Gastos · Invitar)
- * con una única pestaña extra de gestión. Nada duplicado, ningún portal.
+ * El dueño ES un socio: su app es LA app (dashboard de dos estados) con la
+ * gestión del club como módulo extra que se abre desde Inicio.
  */
 export function OwnerApp({ me, onLogout }: { me: any; onLogout: () => void }) {
   if (!me.qrToken) return <Spinner />;
   return (
     <ClientApp
       token={me.qrToken}
-      topRight={<button className="rounded-full bg-secondary px-3.5 py-1.5 text-[12px] font-bold text-muted-foreground" onClick={onLogout}>Salir</button>}
-      extra={{
-        id: 'caseta',
-        label: 'Caseta',
-        icon: <BarChart3 size={21} />,
-        content: <Gestion />,
-      }}
+      onExit={onLogout}
+      extra={{ id: 'club', label: 'Tu club', content: <Gestion /> }}
     />
   );
 }
 
-/** La gestión completa en una sola pestaña: caja, socios y equipo. */
+/** La gestión completa: aforo en vivo, caja, cuentas, socios y equipo. */
 function Gestion() {
   return (
     <>
+      <div className="px-1.5 pb-3 pt-1">
+        <b className="text-[24px] font-black tracking-[-.03em]">Tu club, ahora</b>
+        <small className="mt-1 block text-[12.5px] text-muted-foreground">La noche va así</small>
+      </div>
       <Resumen />
       <div className="mt-8"><Socios /></div>
       <div className="mt-8"><Equipo /></div>
@@ -46,38 +43,41 @@ function Resumen() {
   if (!o) return <Spinner />;
   return (
     <>
-      <div className="pt-3">
-        <p className="text-[13px] font-bold text-muted-foreground">Caja de hoy</p>
-        <div className="mt-1 flex items-baseline gap-3">
-          <b className="text-[56px] font-black leading-none tracking-tighter tabular-nums">{eur(o.hoy.total)}</b>
+      <Card className="mb-3"><CardBody>
+        <div className="flex items-center justify-between">
+          <Kick className="mb-0">Dentro ahora</Kick>
+          {o.aforo?.exacto && <Chip tone="ok">Puerta activa</Chip>}
         </div>
-        <div className="mt-5 flex border-t border-border">
-          {[[`${o.aforo?.exacto ? '' : '~'}${o.aforo?.n ?? 0}`, 'Dentro ahora'], [o.entradas, 'Entradas'], [eur(o.pendienteCents), 'Pendiente']].map(([v, l], i) => (
-            <div key={l as string} className={i ? 'flex-1 border-l border-border pl-4 pt-4' : 'flex-1 pt-4'}>
-              <b className="block text-[21px] font-black tracking-tight tabular-nums">{v}</b>
-              <span className="mt-1 block text-[11.5px] font-bold text-muted-foreground">{l}</span>
-            </div>
-          ))}
+        <div className="mt-2 flex items-baseline gap-3">
+          <span className="text-[44px] font-black leading-none tracking-[-.04em] tabular-nums">{o.aforo?.exacto ? '' : '~'}{o.aforo?.n ?? 0}</span>
+          <span className="text-[13px] font-bold text-muted-foreground">personas</span>
         </div>
-      </div>
-      <SectionTitle>Cuentas por socio</SectionTitle>
+      </CardBody></Card>
+
+      <Card className="mb-3"><div className="banda h-1" /><CardBody>
+        <Kick>Caja de hoy</Kick>
+        <span className="text-[36px] font-black leading-none tracking-[-.04em] tabular-nums">{eur(o.hoy.total)}</span>
+        <Stats items={[[o.entradas, 'Entradas'], [eur(o.pendienteCents), 'Pendiente']]} />
+      </CardBody></Card>
+
       <Card><CardBody>
-        {o.cuentas.length === 0 && <Empty>Aún no hay consumo registrado. Da de alta socios y comparte su app.</Empty>}
+        <Kick>Cuentas por socio</Kick>
+        {o.cuentas.length === 0 && <Empty>Aún no hay consumo registrado. Da de alta socios y comparte su pase.</Empty>}
         {o.cuentas.map((c: any) => (
           <button key={c.socio_id} className="flex w-full items-center gap-3 border-b border-border py-3 text-left last:border-0"
             onClick={async () => setDetalle({ id: c.socio_id, name: c.socio_name, pending: c.pending_cents, rows: await api(`/papi/cuentas/${c.socio_id}`, undefined, 'GET') })}>
             <Avatar name={c.socio_name} />
             <div className="min-w-0 flex-1">
-              <b className="block truncate text-[14.5px]">{c.socio_name ?? 'Socio'}</b>
-              <small className="text-muted-foreground">{c.n_orders} comanda{c.n_orders === 1 ? '' : 's'}</small>
+              <b className="block truncate text-[14px] font-extrabold">{c.socio_name ?? 'Socio'}</b>
+              <small className="text-[11.5px] text-muted-foreground">{c.n_orders} comanda{c.n_orders === 1 ? '' : 's'}</small>
             </div>
-            <span className="font-bold tabular-nums">{eur(c.pending_cents)}</span>
-            <ChevronRight size={17} className="flex-shrink-0 text-muted-foreground" />
+            <span className="text-[14px] font-bold tabular-nums">{eur(c.pending_cents)}</span>
           </button>
         ))}
       </CardBody></Card>
+
       <Modal open={!!detalle} onClose={() => setDetalle(null)}>
-        <h2 className="text-lg font-bold">Cuenta de {detalle?.name}</h2>
+        <h2 className="text-lg font-black tracking-tight">Cuenta de {detalle?.name}</h2>
         <div className="mt-2 max-h-[55vh] overflow-y-auto">
           {detalle?.rows.length === 0 && <Empty>Sin comandas.</Empty>}
           {detalle?.rows.map((d: any) => (
@@ -86,8 +86,8 @@ function Resumen() {
                 <b className="block truncate text-[13.5px]">{d.customer_name}{d.es_socio ? ' (socio)' : ''}</b>
                 <small className="text-muted-foreground">{fmtFecha(d.created_at)}</small>
               </div>
-              <Chip tone={d.settled ? 'ok' : 'muted'}>{d.settled ? 'liquidada' : 'pendiente'}</Chip>
-              <span className="text-sm font-bold">{eur(d.total_cents)}</span>
+              <Chip tone={d.settled ? 'ok' : 'muted'}>{d.settled ? 'Liquidada' : 'Pendiente'}</Chip>
+              <span className="text-sm font-bold tabular-nums">{eur(d.total_cents)}</span>
             </div>
           ))}
         </div>
@@ -100,7 +100,7 @@ function Resumen() {
             load();
           }}>Marcar como pagada · {eur(detalle.pending)}</Button>
         )}
-        <Button variant="outline" className="mt-2.5 w-full" onClick={() => setDetalle(null)}>Cerrar</Button>
+        <Button variant="ghost" className="mt-2.5 w-full" onClick={() => setDetalle(null)}>Cerrar</Button>
       </Modal>
     </>
   );
@@ -116,11 +116,11 @@ function Socios() {
   if (!socios) return <Spinner />;
   return (
     <>
-      <Card><CardBody>
-        <h3 className="text-base font-bold">Nuevo socio</h3>
+      <Card className="mb-3"><CardBody>
+        <Kick>Nuevo socio</Kick>
         <div className="grid grid-cols-2 gap-2.5">
-          <div><Label>Nombre</Label><Input value={form.name} onChange={(e: any) => setForm({ ...form, name: e.target.value })} placeholder="Juan Pérez" /></div>
-          <div><Label>Móvil</Label><Input value={form.phone} onChange={(e: any) => setForm({ ...form, phone: e.target.value })} placeholder="612 345 678" inputMode="tel" /></div>
+          <div><Label className="mt-0">Nombre</Label><Input value={form.name} onChange={(e: any) => setForm({ ...form, name: e.target.value })} placeholder="Juan Pérez" /></div>
+          <div><Label className="mt-0">Móvil</Label><Input value={form.phone} onChange={(e: any) => setForm({ ...form, phone: e.target.value })} placeholder="612 345 678" inputMode="tel" /></div>
         </div>
         <Button className="mt-4 w-full" onClick={async () => {
           setErr('');
@@ -128,8 +128,8 @@ function Socios() {
         }}>Dar de alta</Button>
         <Err>{err}</Err>
       </CardBody></Card>
-      <SectionTitle className="mt-5">Socios · {socios.length}</SectionTitle>
       <Card><CardBody>
+        <Kick>Socios · {socios.length}</Kick>
         {socios.length === 0 && <Empty>Todavía no hay socios.</Empty>}
         {socios.map((s: any) => {
           const susp = s.status === 'suspendido';
@@ -138,18 +138,18 @@ function Socios() {
             <div key={s.id} className="flex items-center gap-2.5 border-b border-border py-3 last:border-0">
               <Avatar name={s.name} />
               <div className="min-w-0 flex-1">
-                <b className="block truncate text-[14.5px]">{s.name}</b>
-                <small className="block truncate text-muted-foreground">
+                <b className="block truncate text-[14px] font-extrabold">{s.name}</b>
+                <small className="block truncate text-[11.5px] text-muted-foreground">
                   {susp && <span className="font-bold text-destructive">suspendido · </span>}
                   {String(s.phone).startsWith('admin-') ? 'Administrador' : fmtPhone(s.phone)}
                 </small>
               </div>
-              {url && !String(s.phone).startsWith('admin-') && <Button variant="secondary" size="sm" className="px-3.5" onClick={() => setShare({
-                title: `App de ${s.name}`, url,
-                text: 'Tu acceso de socio a la caseta. Dentro tienes tu QR, pedir desde el móvil, tus gastos y tus invitaciones: ' + url,
+              {url && !String(s.phone).startsWith('admin-') && <LinkBtn onClick={() => setShare({
+                title: `Pase de ${s.name}`, url,
+                text: 'Tu acceso de socio al club. Dentro tienes tu pase, pedir desde el móvil, tus gastos y tus invitaciones: ' + url,
                 phone: s.phone,
-                note: 'Su app personal: QR, pedir, gastos e invitar. Envíasela una sola vez.',
-              })}>Enviar</Button>}
+                note: 'Su app personal: pase, pedir, gastos e invitar. Envíasela una sola vez.',
+              })}>Enviar ›</LinkBtn>}
               <Button variant="ghost" size="sm" className="px-3" onClick={async () => { await api(`/papi/socios/${s.id}/suspender`, {}); load(); }}>{susp ? 'Activar' : 'Baja'}</Button>
             </div>
           );
@@ -181,26 +181,26 @@ function Equipo() {
         <Card className="mb-3"><CardBody className="flex items-center gap-4 py-4">
           <div className="min-w-0 flex-1">
             <b className="block text-[14px] font-extrabold tracking-tight">Código del equipo</b>
-            <small className="leading-snug text-muted-foreground">
-              Entran en la app, eligen puesto y lo teclean. Por seguridad <b className="text-menta">se renueva en {Math.max(1, Math.round(codigo.expiresInSec / 60))} min</b>.
+            <small className="text-[11.5px] leading-snug text-muted-foreground">
+              Entran en la app, eligen puesto y lo teclean. Por seguridad <b className="text-primary">se renueva en {Math.max(1, Math.round(codigo.expiresInSec / 60))} min</b>.
             </small>
           </div>
           <button onClick={() => { navigator.clipboard.writeText(codigo.code); toast('Código copiado'); }}
-            className="rounded-xl bg-primary/15 px-4 py-2.5 text-[20px] font-black tabular-nums tracking-[.18em] text-primary">
+            className="rounded-lg bg-primary/[.14] px-4 py-2.5 text-[20px] font-black tabular-nums tracking-[.18em] text-primary">
             {codigo.code.slice(0, 3)} {codigo.code.slice(3)}
           </button>
         </CardBody></Card>
       )}
-      <Card><CardBody>
-        <h3 className="text-base font-bold">Nuevo miembro del equipo</h3>
+      <Card className="mb-3"><CardBody>
+        <Kick>Nuevo miembro del equipo</Kick>
         <div className="grid grid-cols-2 gap-2.5">
-          <div><Label>Nombre</Label><Input value={form.name} onChange={(e: any) => setForm({ ...form, name: e.target.value })} placeholder="Pepe Ruiz" /></div>
-          <div><Label>Móvil</Label><Input value={form.phone} onChange={(e: any) => setForm({ ...form, phone: e.target.value })} placeholder="622 222 222" inputMode="tel" /></div>
+          <div><Label className="mt-0">Nombre</Label><Input value={form.name} onChange={(e: any) => setForm({ ...form, name: e.target.value })} placeholder="Pepe Ruiz" /></div>
+          <div><Label className="mt-0">Móvil</Label><Input value={form.phone} onChange={(e: any) => setForm({ ...form, phone: e.target.value })} placeholder="622 222 222" inputMode="tel" /></div>
         </div>
         <Label>Puesto</Label>
         <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}
-          className="h-12 w-full rounded-lg bg-secondary px-4 text-foreground outline-none transition-shadow focus:ring-2 focus:ring-primary/60">
-          <option value="mesero">Camarero — comandas</option>
+          className="h-12 w-full rounded-lg bg-secondary px-4 font-semibold text-foreground outline-none transition-shadow focus:ring-2 focus:ring-primary/60">
+          <option value="mesero">Barra — comandas</option>
           <option value="puerta">Puerta — entradas</option>
         </select>
         <Button className="mt-4 w-full" onClick={async () => {
@@ -208,13 +208,13 @@ function Equipo() {
           try {
             const r = await api('/papi/staff', form);
             setForm({ name: '', phone: '', role: 'mesero' }); load();
-            setShare({ title: 'Alta completada', text: 'Tu acceso a la caseta: ' + r.loginUrl, url: r.loginUrl, phone: form.phone, note: 'Envíale su enlace: le abre directamente su herramienta, sin instalar nada.' });
+            setShare({ title: 'Alta completada', text: 'Tu acceso al club: ' + r.loginUrl, url: r.loginUrl, phone: form.phone, note: 'Envíale su enlace: le abre directamente su herramienta, sin instalar nada.' });
           } catch (e: any) { setErr(e.message); }
         }}>Dar de alta</Button>
         <Err>{err}</Err>
       </CardBody></Card>
-      <SectionTitle className="mt-5">Equipo · {staff.length}</SectionTitle>
       <Card><CardBody>
+        <Kick>Equipo · {staff.length}</Kick>
         {staff.length === 0 && <Empty>Nadie todavía.</Empty>}
         {staff.map((s: any) => {
           const susp = s.status === 'suspendido';
@@ -222,14 +222,15 @@ function Equipo() {
             <div key={s.id} className="flex items-center gap-2.5 border-b border-border py-3 last:border-0">
               <Avatar name={s.name} />
               <div className="min-w-0 flex-1">
-                <b className="block truncate text-[14.5px]">{s.name}</b>
-                <small className="block truncate text-muted-foreground">
-                  {susp && <span className="font-bold text-destructive">suspendido · </span>}
-                  {s.role === 'puerta' ? 'Puerta' : 'Camarero'} · {fmtPhone(s.phone)}
+                <b className="block truncate text-[14px] font-extrabold">{s.name}</b>
+                <small className="block truncate text-[11.5px] text-muted-foreground">
+                  {susp && <span className="font-bold text-destructive">sin acceso · </span>}
+                  {s.role === 'puerta' ? 'Puerta' : 'Barra'} · {fmtPhone(s.phone)}
                 </small>
               </div>
-              {s.loginUrl && <Button variant="secondary" size="sm" className="px-3.5" onClick={() => setShare({ title: `Acceso de ${s.name}`, text: 'Tu acceso a la caseta: ' + s.loginUrl, url: s.loginUrl, phone: s.phone })}>Acceso</Button>}
-              <Button variant="ghost" size="sm" className="px-3" onClick={async () => { await api(`/papi/socios/${s.id}/suspender`, {}); load(); }}>{susp ? 'Activar' : 'Baja'}</Button>
+              <Chip tone={susp ? 'soft' : 'ok'}>{susp ? 'Sin acceso' : 'Acceso'}</Chip>
+              {s.loginUrl && !susp && <LinkBtn onClick={() => setShare({ title: `Acceso de ${s.name}`, text: 'Tu acceso al club: ' + s.loginUrl, url: s.loginUrl, phone: s.phone })}>Enviar ›</LinkBtn>}
+              <Button variant="ghost" size="sm" className="px-3" onClick={async () => { await api(`/papi/socios/${s.id}/suspender`, {}); load(); }}>{susp ? 'Dar' : 'Quitar'}</Button>
             </div>
           );
         })}
@@ -239,7 +240,7 @@ function Equipo() {
   );
 }
 
-/** Login/registro del dueño (email o Google) + alta autoservicio del equipo. */
+/** Acceso: login del responsable + alta del equipo + demo, como módulos. */
 export function LoginView({ onDone }: { onDone: () => void }) {
   const [mode, setMode] = useState<'login' | 'register' | 'gcaseta' | 'staff'>('login');
   const [staffRole, setStaffRole] = useState<'mesero' | 'puerta'>('mesero');
@@ -289,23 +290,23 @@ export function LoginView({ onDone }: { onDone: () => void }) {
   if (mode === 'staff') return (
     <>
       <TopBar />
-      <Page className="pt-10">
+      <Page className="pt-8">
         <div className="mb-6 text-center">
-          <h1 className="text-2xl font-black tracking-tight">Únete a tu caseta</h1>
+          <h1 className="text-2xl font-black tracking-tight">Únete a tu club</h1>
           <p className="mt-1.5 text-sm text-muted-foreground">Teclea el código de 6 dígitos que te ha dado el responsable.</p>
         </div>
         <Card><CardBody className="p-5">
-          <Label>Tu puesto</Label>
+          <Label className="mt-0">Tu puesto</Label>
           <div className="grid grid-cols-2 gap-2.5">
-            {([['mesero', 'Camarero', 'Comandas y pedidos'], ['puerta', 'Puerta', 'Control de entrada']] as const).map(([id, b, s]) => (
+            {([['mesero', 'Barra', 'Comandas y pedidos'], ['puerta', 'Puerta', 'Control de entrada']] as const).map(([id, b, s]) => (
               <button key={id} type="button" onClick={() => setStaffRole(id)}
-                className={id === staffRole ? 'rounded-xl bg-primary/15 p-3.5 text-left ring-2 ring-primary' : 'rounded-xl bg-secondary p-3.5 text-left'}>
+                className={cn('rounded-lg p-3.5 text-left transition-all', id === staffRole ? 'bg-primary/[.16] ring-2 ring-primary' : 'bg-secondary')}>
                 <b className="block text-sm font-extrabold">{b}</b>
-                <small className="mt-1 block leading-snug text-muted-foreground">{s}</small>
+                <small className="mt-1 block text-[11.5px] leading-snug text-muted-foreground">{s}</small>
               </button>
             ))}
           </div>
-          <Label>Código de la caseta</Label>
+          <Label>Código del club</Label>
           <Input value={staff.code} onChange={(e: any) => setStaff({ ...staff, code: e.target.value })}
             placeholder="000 000" inputMode="numeric" autoComplete="one-time-code"
             className="text-center text-[22px] font-black tracking-[.3em] tabular-nums" />
@@ -325,49 +326,60 @@ export function LoginView({ onDone }: { onDone: () => void }) {
 
   return (
     <>
-      <TopBar />
-      <Page className="pt-10">
-        <div className="mb-6 text-center">
-          <h1 className="text-2xl font-extrabold tracking-tight">{mode === 'register' ? 'Crea tu caseta' : mode === 'gcaseta' ? 'Ya casi está' : 'Entra en tu caseta'}</h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">
-            {mode === 'gcaseta' ? `Hola, ${gName}. Ponle nombre a tu caseta y listo.` : 'Socios, invitados con QR y comandas a cuenta. Todo desde el móvil.'}
+      <Page>
+        <div className="px-1 pb-6 pt-11 text-center">
+          <span className="text-[34px] font-black tracking-[-.03em]">micaseta<i className="not-italic text-primary">.</i></span>
+          <p className="mt-2.5 text-[13.5px] leading-relaxed text-muted-foreground">
+            {mode === 'gcaseta' ? `Hola, ${gName}. Ponle nombre a tu club y listo.` : <>Tu club, sin listas en papel.<br />Socios con pase QR y comandas a cuenta.</>}
           </p>
         </div>
-        <Card><CardBody className="p-5">
-          {mode !== 'gcaseta' && <div ref={gBtn} className="mb-1 flex justify-center" />}
+
+        {/* El pase asomando tras el módulo de login */}
+        <div className="relative z-0 mx-7 -mb-3.5 overflow-hidden rounded-t-xl border border-b-0 border-papel-borde bg-papel text-tinta shadow-[0_-10px_40px_rgba(61,90,245,.1)]">
+          <div className="banda h-2" />
+          <div className="flex items-baseline justify-between px-4 pb-5 pt-3">
+            <b className="text-[15px] font-black tracking-[-.03em]">{mode === 'register' || mode === 'gcaseta' ? 'Tu club' : 'Tu pase'}</b>
+            <small className="kick text-[10.5px] font-bold text-primary">micaseta</small>
+          </div>
+        </div>
+
+        <Card className="relative z-10"><CardBody className="p-5">
+          {mode !== 'gcaseta' && <div ref={gBtn} className="mb-1 flex justify-center empty:hidden" />}
           {mode === 'register' && (<>
-            <Label>Nombre de la caseta</Label><Input value={form.casetaName} onChange={(e: any) => setForm({ ...form, casetaName: e.target.value })} placeholder="Er Compás" />
+            <Label className="mt-0">Nombre del club</Label><Input value={form.casetaName} onChange={(e: any) => setForm({ ...form, casetaName: e.target.value })} placeholder="Club Vela" />
             <Label>Tu nombre</Label><Input value={form.ownerName} onChange={(e: any) => setForm({ ...form, ownerName: e.target.value })} placeholder="Álvaro García" />
           </>)}
           {mode === 'gcaseta' ? (<>
-            <Label>Nombre de tu caseta</Label><Input value={form.casetaName} onChange={(e: any) => setForm({ ...form, casetaName: e.target.value })} placeholder="Er Compás" />
+            <Label className="mt-0">Nombre de tu club</Label><Input value={form.casetaName} onChange={(e: any) => setForm({ ...form, casetaName: e.target.value })} placeholder="Club Vela" />
           </>) : (<>
-            <Label>Email</Label><Input type="email" value={form.email} onChange={(e: any) => setForm({ ...form, email: e.target.value })} autoComplete="email" placeholder="tu@email.com" />
+            <Label className="mt-0">Email</Label><Input type="email" value={form.email} onChange={(e: any) => setForm({ ...form, email: e.target.value })} autoComplete="email" placeholder="tu@email.com" />
             <Label>Contraseña</Label><Input type="password" value={form.password} onChange={(e: any) => setForm({ ...form, password: e.target.value })} autoComplete={mode === 'register' ? 'new-password' : 'current-password'} placeholder={mode === 'register' ? 'Mínimo 8 caracteres' : ''} />
           </>)}
-          <Button className="mt-5 w-full" size="lg" onClick={submit}>{mode === 'login' ? 'Entrar' : 'Crear caseta'}</Button>
-          <Err>{err}</Err>
-          {mode !== 'gcaseta' && (
+          <Button className="mt-[18px] w-full" size="lg" onClick={submit}>{mode === 'login' ? 'Entrar' : 'Crear club'}</Button>
+          {mode === 'login' && <Button variant="outline" className="mt-2.5 w-full" onClick={() => setMode('register')}>¿Primera vez? Registra tu club</Button>}
+          {mode === 'register' && (
             <p className="mt-4 text-center text-[13.5px] text-muted-foreground">
-              {mode === 'login' ? <>¿Primera vez? <button className="font-bold text-primary" onClick={() => setMode('register')}>Registra tu caseta</button></>
-                : <>¿Ya tienes cuenta? <button className="font-bold text-primary" onClick={() => setMode('login')}>Entra</button></>}
+              ¿Ya tienes cuenta? <button className="font-bold text-primary" onClick={() => setMode('login')}>Entra</button>
             </p>
           )}
+          <Err>{err}</Err>
         </CardBody></Card>
-        <Card className="mt-4"><CardBody className="flex items-center gap-3 py-4">
+
+        <Card className="mt-3"><CardBody className="flex items-center gap-3 py-4">
           <div className="min-w-0 flex-1">
-            <b className="block text-[14.5px] font-extrabold tracking-tight">¿Trabajas en una caseta?</b>
-            <small className="text-muted-foreground">Camareros y puerta entran con el código de su caseta.</small>
+            <b className="block text-[14px] font-extrabold tracking-tight">¿Trabajas en un club?</b>
+            <small className="text-[11.5px] leading-snug text-muted-foreground">Teclea el código de 6 dígitos de tu equipo y elige puesto.</small>
           </div>
-          <Button variant="secondary" size="sm" onClick={() => setMode('staff')}>Unirme</Button>
+          <LinkBtn onClick={() => setMode('staff')}>Unirme ›</LinkBtn>
         </CardBody></Card>
         {demo && (
-          <Card className="mt-4"><CardBody className="text-center">
-            <p className="mb-3 text-[13px] text-muted-foreground">¿Solo quieres verlo? Prueba la caseta demo sin registrarte.</p>
-            <div className="flex justify-center gap-2.5">
-              <a href="/demo/camarero"><Button variant="outline" size="sm">Como camarero</Button></a>
-              <a href="/demo/puerta"><Button variant="outline" size="sm">Como puerta</Button></a>
+          <Card className="mt-3"><CardBody className="flex items-center gap-3 py-4">
+            <div className="min-w-0 flex-1">
+              <b className="block text-[14px] font-extrabold tracking-tight">Club demo</b>
+              <small className="text-[11.5px] leading-snug text-muted-foreground">Pruébalo como camarero o como puerta, sin registro.</small>
             </div>
+            <a href="/demo/camarero" className="inline-flex min-h-[40px] items-center whitespace-nowrap rounded-lg bg-primary/[.14] px-3.5 text-[12.5px] font-bold text-primary">Barra ›</a>
+            <a href="/demo/puerta" className="inline-flex min-h-[40px] items-center whitespace-nowrap rounded-lg bg-primary/[.14] px-3.5 text-[12.5px] font-bold text-primary">Puerta ›</a>
           </CardBody></Card>
         )}
       </Page>

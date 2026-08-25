@@ -1,6 +1,6 @@
 import React from 'react';
 
-/** Set de iconos ORIGINAL de Micaseta — vocabulario de feria, dibujado a medida.
+/** Set de iconos ORIGINAL de Micaseta — vocabulario universal de club, dibujado a medida.
  *  24×24, stroke currentColor redondeado. Ningún set externo. */
 
 type IconProps = React.SVGProps<SVGSVGElement> & { size?: number | string; strokeWidth?: number | string };
@@ -12,18 +12,18 @@ const make = (glyph: React.ReactNode) => ({ size = 21, strokeWidth = 2, ...props
   </svg>
 );
 
-/* El carnet-QR: tres módulos redondeados + punto sólido */
+/* El pase-QR: tres módulos redondeados + punto sólido */
 export const QrCode = make(<><rect x="4" y="4" width="6" height="6" rx="1.8"/><rect x="14" y="4" width="6" height="6" rx="1.8"/><rect x="4" y="14" width="6" height="6" rx="1.8"/><path d="M14 14h2.5v2.5H14z"/><path d="M20 14.5V16"/><circle cx="18.8" cy="19" r="1.5" fill="currentColor" stroke="none"/></>);
-/* Pedir: jarra de rebujito con burbujas */
-export const Beer = make(<><path d="M7 8.5v9A2.5 2.5 0 0 0 9.5 20H13a2.5 2.5 0 0 0 2.5-2.5v-9"/><path d="M6.5 8.5h9.5"/><path d="M15.5 10.5H17a2.5 2.5 0 0 1 0 5h-1.5"/><circle cx="9.5" cy="4.8" r="1.1"/><circle cx="13" cy="3.6" r="1.1"/></>);
-/* Gastos: el recibo de la cuenta, con corte en zigzag */
-export const Wallet = make(<><path d="M7 3.5h10V20l-2.5-1.7L12 20l-2.5-1.7L7 20V3.5z"/><path d="M10 8h4.5"/><path d="M10 11.5h2.5"/></>);
-/* Invitar: farolillo de papel + más */
-export const UserPlus = make(<><ellipse cx="11" cy="12.5" rx="5.2" ry="5.8"/><path d="M11 6.7v11.6"/><path d="M8.4 7.6c-1.1 3.2-1.1 6.6 0 9.8"/><path d="M13.6 7.6c1.1 3.2 1.1 6.6 0 9.8"/><path d="M11 6.7V4.5"/><path d="M11 18.3v2"/><path d="M19 3.5v4"/><path d="M17 5.5h4"/></>);
-/* La caseta: toldo de ondas + mostrador */
-export const BarChart3 = make(<><path d="M4 4.5h16"/><path d="M4 4.5v3.5a2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0V4.5"/><path d="M5.5 11v9"/><path d="M18.5 11v9"/><path d="M5.5 20h13"/></>);
-/* Pedidos: la pizarra de la caseta */
-export const ClipboardList = make(<><rect x="4.5" y="6" width="15" height="13" rx="2"/><path d="m9 6 3-3 3 3"/><path d="M8.5 10.5h7"/><path d="M8.5 14h4.5"/></>);
+/* Pedir: vaso alto con burbujas */
+export const Beer = make(<><path d="M7 3.5h10l-1.2 15a2.5 2.5 0 0 1-2.5 2.3h-2.6a2.5 2.5 0 0 1-2.5-2.3L7 3.5z"/><path d="M8 9.5h8"/><circle cx="10.6" cy="13.4" r="1.05"/><circle cx="13.4" cy="16" r="1.05"/></>);
+/* Gastos: el recibo de la cuenta, con corte troquelado */
+export const Wallet = make(<><path d="M7 3.5h10v14.2l-1.7 1.8-1.6-1.8-1.7 1.8-1.7-1.8-1.6 1.8-1.7-1.8V3.5z"/><path d="M10 8h4.5"/><path d="M10 11.5h2.5"/></>);
+/* Invitar: persona + más */
+export const UserPlus = make(<><circle cx="10.5" cy="8" r="3.4"/><path d="M4.5 19.5a6 6 0 0 1 12 0"/><path d="M19 3.5v4"/><path d="M17 5.5h4"/></>);
+/* El club: fachada con marquesina recta */
+export const BarChart3 = make(<><path d="M5.5 3.5h13L20 8H4l1.5-4.5z"/><path d="M5 8v12"/><path d="M19 8v12"/><path d="M4.5 20h15"/><path d="M10 20v-4.6a2 2 0 0 1 4 0V20"/></>);
+/* Pedidos: portapapeles con pinza */
+export const ClipboardList = make(<><rect x="5" y="4.5" width="14" height="16" rx="2.2"/><rect x="9" y="2.5" width="6" height="3.6" rx="1.6"/><path d="M9 11h6.5"/><path d="M9 14.5h4"/></>);
 /* Comanda: visor de escaneo sobre módulo QR */
 export const ScanLine = make(<><path d="M4 8V6a2 2 0 0 1 2-2h2"/><path d="M16 4h2a2 2 0 0 1 2 2v2"/><path d="M20 16v2a2 2 0 0 1-2 2h-2"/><path d="M8 20H6a2 2 0 0 1-2-2v-2"/><rect x="9" y="9" width="6" height="6" rx="1.4"/></>);
 /* Selfie */

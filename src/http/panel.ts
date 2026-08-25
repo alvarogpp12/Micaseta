@@ -477,6 +477,13 @@ export function registerPanelRoutes(app: FastifyInstance, db: DB): void {
     const caseta = user.caseta_id ? await accounts.getCaseta(db, user.caseta_id) : null;
     const access = await invitations.checkAccess(db, user);
     const canOrder = access.ok && access.canOrder;
+    // Último check-in de puerta de HOY: dispara el estado "dentro del club" en la app.
+    const checkin = await one<{ t: string }>(
+      db,
+      `SELECT MAX(created_at)::text AS t FROM checkins
+       WHERE user_id = $1 AND created_at::date = current_date`,
+      [user.id],
+    );
 
     const payload: Record<string, unknown> = {
       role: user.role,
@@ -486,6 +493,7 @@ export function registerPanelRoutes(app: FastifyInstance, db: DB): void {
       accessOk: access.ok,
       accessReason: access.reason,
       canOrder,
+      checkinAt: checkin?.t ?? null,
       wallet: wallet.walletEnabled(),
       products: canOrder ? await orders.listProducts(db, user.caseta_id) : [],
     };
