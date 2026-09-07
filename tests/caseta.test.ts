@@ -321,3 +321,27 @@ describe('flujo completo de caseta (web)', () => {
     expect(await invitations.isGuestOf(db, otro.id, r.guest.id)).toBe(false);
   });
 });
+
+describe('días de feria', () => {
+  it('usa los de la caseta, si no los oficiales, y si no la semana que empieza hoy', async () => {
+    const { feriaFor } = await import('../src/services/feria.js');
+    const propia = feriaFor({ feria_start: '2026-04-20', feria_end: '2026-04-22' }, '2026-04-01');
+    expect(propia.source).toBe('caseta');
+    expect(propia.days).toEqual(['2026-04-20', '2026-04-21', '2026-04-22']);
+    const oficial = feriaFor(null, '2026-04-01');
+    expect(oficial.source).toBe('oficial');
+    expect(oficial.days).toHaveLength(7);
+    expect(oficial.days[0]).toBe('2026-04-19');
+    const pasada = feriaFor(null, '2026-06-01');
+    expect(pasada.source).toBe('semana');
+    expect(pasada.days).toHaveLength(7);
+    expect(pasada.days[0]).toBe('2026-06-01');
+    expect(pasada.days[6]).toBe('2026-06-07');
+    const reg = await accounts.registerCaseta(db, { casetaName: 'F', ownerName: 'F', email: 'f@f.es', password: '12345678' });
+    if (!reg.ok) throw new Error('registro falló');
+    const { setFeria } = await import('../src/services/feria.js');
+    await setFeria(db, reg.caseta.id, '2026-04-19', '2026-04-25');
+    const c = await accounts.getCaseta(db, reg.caseta.id);
+    expect(feriaFor(c, '2026-04-01').source).toBe('caseta');
+  });
+});

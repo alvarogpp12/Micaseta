@@ -424,7 +424,7 @@ function VistaInvitar({ me, token, reload }: any) {
         </div>
       )}
 
-      <CrearInvitacion open={crear} token={token} onClose={() => setCrear(false)}
+      <CrearInvitacion open={crear} token={token} feria={me.feria} onClose={() => setCrear(false)}
         onCreated={async (r: any, nombre: string) => {
           setCrear(false);
           await reload();
@@ -445,8 +445,43 @@ function VistaInvitar({ me, token, reload }: any) {
   );
 }
 
+/** Selector propio de día: "Cualquier día" o uno de los días de feria de la
+ *  caseta, como fichas grandes. Nada de calendarios del navegador. */
+const DIAS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+function DiasFeria({ feria, value, onChange }: { feria?: { days: string[]; source: string }; value: string; onChange: (d: string) => void }) {
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  const days: string[] = feria?.days ?? [];
+  const ficha = 'flex h-[68px] flex-shrink-0 flex-col items-center justify-center rounded-2xl px-3 transition-all';
+  return (
+    <div>
+      <div className="-mx-6 flex gap-2 overflow-x-auto px-6 pb-1 [scrollbar-width:none]">
+        <button type="button" onClick={() => onChange('')}
+          className={cn(ficha, 'min-w-[96px]', value === '' ? 'bg-primary/[.14] ring-2 ring-primary text-primary' : 'bg-secondary text-foreground')}>
+          <b className="text-[15px] font-extrabold leading-tight">Cualquier</b>
+          <span className="text-[13px] font-bold">día</span>
+        </button>
+        {days.map((d) => {
+          const dt = new Date(d + 'T12:00:00');
+          const pasado = dt < hoy;
+          const on = value === d;
+          return (
+            <button key={d} type="button" disabled={pasado} onClick={() => onChange(d)}
+              className={cn(ficha, 'min-w-[64px]', on ? 'bg-primary text-white shadow-glow' : 'bg-secondary text-foreground', pasado && 'opacity-35')}>
+              <span className={cn('text-[12px] font-bold uppercase', on ? 'text-white/80' : 'text-muted-foreground')}>{DIAS[dt.getDay()]}</span>
+              <b className="text-[22px] font-black leading-none tabular-nums">{dt.getDate()}</b>
+              <span className={cn('text-[11.5px] font-bold', on ? 'text-white/80' : 'text-muted-foreground')}>{MESES[dt.getMonth()]}</span>
+            </button>
+          );
+        })}
+      </div>
+      {feria?.source === 'semana' && <p className="mt-1.5 text-[13px] text-muted-foreground">El dueño no ha puesto los días de feria: te enseño esta semana.</p>}
+    </div>
+  );
+}
+
 /** Hoja de crear: nombre + tipo y listo. Límite, día y móvil, plegados. */
-function CrearInvitacion({ open, token, onClose, onCreated }: any) {
+function CrearInvitacion({ open, token, feria, onClose, onCreated }: any) {
   const [form, setForm] = useState({ guestName: '', guestPhone: '', limit: '', date: '' });
   const [type, setType] = useState<'barra' | 'entrada'>('barra');
   const [mas, setMas] = useState(false);
@@ -492,8 +527,8 @@ function CrearInvitacion({ open, token, onClose, onCreated }: any) {
             <Label className="mt-3">Límite de gasto (€)</Label>
             <Input value={form.limit} onChange={(e: any) => setForm({ ...form, limit: e.target.value })} placeholder="Sin límite" inputMode="decimal" />
           </>)}
-          <Label className="mt-3">Solo un día</Label>
-          <Input type="date" value={form.date} onChange={(e: any) => setForm({ ...form, date: e.target.value })} />
+          <Label className="mt-3">¿Qué día?</Label>
+          <DiasFeria feria={feria} value={form.date} onChange={(d) => setForm({ ...form, date: d })} />
           <Label className="mt-3">Su móvil <span className="font-normal text-muted-foreground">(para abrirle el WhatsApp)</span></Label>
           <Input value={form.guestPhone} onChange={(e: any) => setForm({ ...form, guestPhone: e.target.value })} placeholder="698 765 432" inputMode="tel" />
         </div>

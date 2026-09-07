@@ -145,6 +145,7 @@ export async function createServer({ db, mock, cloud }: ServerDeps) {
       hostName: access.hostName,
       ok: access.ok,
       reason: access.reason,
+      canOrder: access.canOrder,
       spendLimitCents: access.spendLimitCents,
       spentCents: access.spentCents,
       remainingCents: access.remainingCents,

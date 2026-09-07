@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import jsQR from 'jsqr';
-import { Bubble, Copy, Minus, Plus } from './components/icons';
+import { Bubble, CheckCircle2, Copy, Minus, Plus, ScanLine, X } from './components/icons';
 import { api, eur, waShare, CAT_LABELS, sortProducts } from './lib/api';
 import { Button, Card, CardBody, Chip, Input, Kick, Label, Modal, cn } from './ui';
 import { Cascade } from './components/fx';
@@ -111,6 +111,7 @@ export function Scanner({ onScan, hint }: { onScan: (qr: string) => void; hint?:
   const videoRef = useRef<HTMLVideoElement>(null);
   const [on, setOn] = useState(false);
   const [manual, setManual] = useState('');
+  const [manualOn, setManualOn] = useState(false);
   const [demos, setDemos] = useState<any[]>([]);
   const stop = useRef<() => void>(() => {});
 
@@ -147,19 +148,27 @@ export function Scanner({ onScan, hint }: { onScan: (qr: string) => void; hint?:
 
   return (
     <Card><CardBody>
-      {hint && <p className="mb-4 text-[13px] leading-relaxed text-muted-foreground">{hint}</p>}
+      {hint && <p className="mb-4 text-[16px] font-semibold leading-snug text-foreground/80">{hint}</p>}
       <video ref={videoRef} playsInline className={cn('w-full rounded-xl bg-black', !on && 'hidden')} />
-      {!on && <Button className="w-full" size="lg" onClick={start}>Escanear el pase</Button>}
-      <Label>O introduce el código manualmente</Label>
-      <div className="flex gap-2">
-        <Input value={manual} onChange={(e: any) => setManual(e.target.value)} placeholder="Código del QR" />
-        <Button variant="secondary" onClick={() => manual.trim() && onScan(manual.trim())}>Ir</Button>
-      </div>
+      {!on && <Button className="w-full" size="lg" onClick={start}><ScanLine size={24} /> Escanear el pase</Button>}
+      {!manualOn ? (
+        <button type="button" className="mt-3 flex min-h-[44px] w-full items-center justify-center gap-1 text-[15px] font-bold text-primary" onClick={() => setManualOn(true)}>
+          ¿La cámara no va? Teclea el código
+        </button>
+      ) : (
+        <>
+          <Label>Código del pase</Label>
+          <div className="flex gap-2">
+            <Input value={manual} onChange={(e: any) => setManual(e.target.value)} placeholder="Pega aquí el código" />
+            <Button variant="secondary" onClick={() => manual.trim() && onScan(manual.trim())}>Ir</Button>
+          </div>
+        </>
+      )}
       {demos.length > 0 && (
         <div className="mt-5">
           <Kick className="mb-2">Modo demo — simula un escaneo</Kick>
           <div className="flex flex-col gap-2">
-            {demos.map((d) => <Button key={d.label} variant="outline" size="sm" className="justify-start" onClick={() => onScan(d.token)}>{d.label}</Button>)}
+            {demos.map((d) => <Button key={d.label} variant="outline" className="justify-start" onClick={() => onScan(d.token)}>{d.label}</Button>)}
           </div>
         </div>
       )}
@@ -174,17 +183,19 @@ export function PersonCard({ info }: { info: any }) {
   return (
     <div className="flex items-center gap-4">
       {info.photoUrl ? (
-        <img src={info.photoUrl} alt="" className="h-[76px] w-[76px] flex-shrink-0 rounded-xl bg-secondary object-cover" />
+        <img src={info.photoUrl} alt="" className="h-[96px] w-[96px] flex-shrink-0 rounded-2xl bg-secondary object-cover" />
       ) : (
-        <div className="grid h-[76px] w-[76px] flex-shrink-0 place-items-center rounded-xl bg-primary/[.18] text-[26px] font-black tracking-tight text-primary">
-          {initials}
+        <div className={cn('grid h-[96px] w-[96px] flex-shrink-0 place-items-center rounded-2xl text-[32px] font-black tracking-tight', info.ok ? 'bg-primary/[.14] text-primary' : 'bg-destructive/[.14] text-destructive')}>
+          {info.ok ? initials : '?'}
         </div>
       )}
       <div className="min-w-0 flex-1">
-        <div className="truncate text-[17px] font-black tracking-tight">{info.name || 'Sin nombre'}{(info.role === 'socio' || info.role === 'admin') && ' · Socio'}</div>
-        {info.hostName && <div className="text-[12.5px] font-semibold text-muted-foreground">Invita: {info.hostName}</div>}
-        <div className="mt-2"><Chip tone={info.ok ? 'ok' : 'bad'}>{info.ok ? 'Acceso OK' : 'Sin acceso'}</Chip></div>
-        {info.reason && <div className="mt-1.5 text-[12.5px] text-muted-foreground">{info.reason}</div>}
+        <div className="text-[21px] font-black leading-tight tracking-tight">{info.name || 'Sin nombre'}</div>
+        <div className="mt-0.5 text-[14px] font-semibold text-muted-foreground">
+          {(info.role === 'socio' || info.role === 'admin') ? 'Socio titular' : info.hostName ? `Invita ${info.hostName}` : ''}
+        </div>
+        <div className="mt-2"><Chip tone={info.ok ? 'ok' : 'bad'} className="text-[14px]">{info.ok ? 'Acceso OK' : 'Sin acceso'}</Chip></div>
+        {info.reason && !info.ok && <div className="mt-1.5 text-[14px] font-semibold text-destructive">{info.reason}</div>}
       </div>
     </div>
   );
@@ -194,23 +205,24 @@ export function PersonCard({ info }: { info: any }) {
 export function Veredicto({ info }: { info: any }) {
   const initials = (info.name ?? '?').trim().split(/\s+/).slice(0, 2).map((w: string) => w[0]?.toUpperCase() ?? '').join('') || '?';
   return (
-    <div className="grid place-items-center pt-8 text-center">
+    <div className="grid place-items-center pt-6 text-center">
       {info.photoUrl ? (
-        <img src={info.photoUrl} alt="" className="h-[132px] w-[132px] rounded-xl bg-secondary object-cover" />
+        <img src={info.photoUrl} alt="" className={cn('h-[168px] w-[168px] rounded-[28px] bg-secondary object-cover ring-4', info.ok ? 'ring-success' : 'ring-destructive')} />
       ) : (
-        <span className={cn('grid h-[132px] w-[132px] place-items-center rounded-xl text-[40px] font-black',
-          info.ok ? 'bg-primary/[.18] text-primary' : 'bg-destructive/[.16] text-destructive')}>{info.ok ? initials : '?'}</span>
+        <span className={cn('grid h-[168px] w-[168px] place-items-center rounded-[28px] text-[52px] font-black',
+          info.ok ? 'bg-primary/[.14] text-primary' : 'bg-destructive/[.14] text-destructive')}>{info.ok ? initials : '?'}</span>
       )}
-      <h3 className="mt-3.5 text-[27px] font-black tracking-[-.03em]">{info.name || 'Sin nombre'}</h3>
-      <small className="mt-1 block text-[12.5px] text-muted-foreground">
-        {info.reason ?? (info.role === 'socio' || info.role === 'admin' ? 'Socio titular'
-          : info.hostName ? `${info.role === 'invitado' ? 'Invitado' : 'Invitada'} de ${info.hostName}${info.canOrder ? ' · con consumo' : ' · solo entrada'}` : '')}
-      </small>
-      <span className={cn('mt-3 inline-flex items-center gap-2 rounded-full px-[18px] py-2.5 text-[14px] font-extrabold',
-        info.ok ? 'bg-success/[.12] text-success' : 'bg-destructive/[.15] text-destructive')}>
-        <i className={cn('h-2 w-2 rounded-full', info.ok ? 'bg-success' : 'bg-destructive')} />
-        {info.ok ? 'Acceso OK · válido hoy' : 'Sin acceso'}
+      <h3 className="mt-4 text-[30px] font-black leading-tight tracking-[-.03em]">{info.name || 'Sin nombre'}</h3>
+      <p className="mt-1 text-[15px] font-semibold text-muted-foreground">
+        {info.role === 'socio' || info.role === 'admin' ? 'Socio titular'
+          : info.hostName ? `Invita ${info.hostName}${info.canOrder === false ? ' · solo entrada' : info.canOrder ? ' · con barra' : ''}` : ''}
+      </p>
+      <span className={cn('mt-4 inline-flex items-center gap-2.5 rounded-full px-6 py-3.5 text-[19px] font-black',
+        info.ok ? 'bg-success text-white' : 'bg-destructive text-white')}>
+        {info.ok ? <CheckCircle2 size={24} /> : <X size={24} />}
+        {info.ok ? 'Puede pasar' : 'No puede pasar'}
       </span>
+      {!info.ok && info.reason && <p className="mt-3 text-[15px] font-bold text-destructive">{info.reason}</p>}
     </div>
   );
 }

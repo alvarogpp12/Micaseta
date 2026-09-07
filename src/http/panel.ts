@@ -11,6 +11,7 @@ import { signQrToken, verifyQrToken, qrPng } from '../services/qr.js';
 import * as wallet from '../services/wallet.js';
 import * as email from '../services/email.js';
 import * as aforoSvc from '../services/aforo.js';
+import * as feria from '../services/feria.js';
 import { staffLoginUrl } from '../bot/flows/staff.js';
 import { SEVILLA_MENU } from '../services/demo.js';
 import { parseEuros, todayStr } from '../domain/types.js';
@@ -123,7 +124,23 @@ export function registerPanelRoutes(app: FastifyInstance, db: DB): void {
       qrToken: signQrToken(socio),
       staffCode: accounts.staffCode(account.caseta_id),
       sensorCode: await accounts.ensureJoinCode(db, account.caseta_id),
+      feria: feria.feriaFor(caseta),
     };
+  });
+
+  /** Días de feria de la caseta (los que ofrece el selector al invitar). */
+  app.post('/papi/caseta/feria', async (req, reply) => {
+    const account = await auth(req, reply);
+    if (!account) return;
+    const body = req.body as any;
+    const ok = (v: unknown) => v == null || v === '' || /^\d{4}-\d{2}-\d{2}$/.test(String(v));
+    if (!ok(body?.start) || !ok(body?.end)) return reply.code(422).send({ error: 'Fecha no válida' });
+    const start = body?.start ? String(body.start) : null;
+    const end = body?.end ? String(body.end) : null;
+    if ((start && !end) || (!start && end)) return reply.code(422).send({ error: 'Pon el primer y el último día' });
+    if (start && end && start > end) return reply.code(422).send({ error: 'El último día es anterior al primero' });
+    await feria.setFeria(db, account.caseta_id, start, end);
+    return { ok: true, feria: feria.feriaFor(await accounts.getCaseta(db, account.caseta_id)) };
   });
 
   /**
@@ -507,6 +524,7 @@ export function registerPanelRoutes(app: FastifyInstance, db: DB): void {
 
     if (user.role === 'socio') {
       payload.gastos = await orders.gastosSocio(db, user.id);
+      payload.feria = feria.feriaFor(caseta);
       const base = requestBaseUrl(req);
       payload.invitaciones = (await invitations.listBySocio(db, user.id)).map((inv) => {
         const lastIn = inv.last_checkin_at ? new Date(inv.last_checkin_at) : null;

@@ -27,6 +27,7 @@ function Gestion() {
       <Titulo sub="Cuánta gente hay, la caja de hoy y las cuentas de los socios.">Mi caseta</Titulo>
       <Resumen />
       <div className="mt-8"><Socios /></div>
+      <div className="mt-8"><DiasFeriaCaseta /></div>
       <div className="mt-8"><Equipo /></div>
     </>
   );
@@ -132,28 +133,62 @@ function Socios() {
           const susp = s.status === 'suspendido';
           const url = s.qrToken ? location.origin + '/app/?t=' + encodeURIComponent(s.qrToken) : null;
           return (
-            <div key={s.id} className="flex items-center gap-2.5 border-b border-border py-3 last:border-0">
-              <Avatar name={s.name} />
-              <div className="min-w-0 flex-1">
-                <b className="block truncate text-[14px] font-extrabold">{s.name}</b>
-                <small className="block truncate text-[11.5px] text-muted-foreground">
-                  {susp && <span className="font-bold text-destructive">suspendido · </span>}
-                  {String(s.phone).startsWith('admin-') ? 'Administrador' : fmtPhone(s.phone)}
-                </small>
+            <div key={s.id} className="border-b border-border py-3.5 last:border-0">
+              <div className="flex items-center gap-3">
+                <Avatar name={s.name} />
+                <div className="min-w-0 flex-1">
+                  <b className="block truncate text-[17px] font-extrabold tracking-tight">{s.name}</b>
+                  <small className="block truncate text-[14px] text-muted-foreground">
+                    {String(s.phone).startsWith('admin-') ? 'Administrador' : fmtPhone(s.phone)}
+                  </small>
+                </div>
+                <Chip tone={susp ? 'bad' : 'ok'}>{susp ? 'Suspendido' : 'Activo'}</Chip>
               </div>
-              {url && !String(s.phone).startsWith('admin-') && <LinkBtn onClick={() => setShare({
-                title: `Pase de ${s.name}`, url,
-                text: 'Tu acceso de socio al club. Dentro tienes tu pase, pedir desde el móvil, tus gastos y tus invitaciones: ' + url,
-                phone: s.phone,
-                note: 'Su app personal: pase, pedir, gastos e invitar. Envíasela una sola vez.',
-              })}>Enviar ›</LinkBtn>}
-              <Button variant="ghost" size="sm" className="px-3" onClick={async () => { await api(`/papi/socios/${s.id}/suspender`, {}); load(); }}>{susp ? 'Activar' : 'Baja'}</Button>
+              <div className="mt-2.5 flex gap-2 pl-[56px]">
+                {url && !String(s.phone).startsWith('admin-') && <LinkBtn onClick={() => setShare({
+                  title: `Pase de ${s.name}`, url,
+                  text: 'Tu acceso de socio a la caseta. Dentro tienes tu pase, pedir desde el móvil, tu cuenta y tus invitaciones: ' + url,
+                  phone: s.phone,
+                  note: 'Su app personal: pase, pedir, cuenta e invitar. Envíasela una sola vez.',
+                })}>Enviar su pase ›</LinkBtn>}
+                <Button variant="ghost" size="sm" className="px-3" onClick={async () => { await api(`/papi/socios/${s.id}/suspender`, {}); load(); }}>{susp ? 'Activar' : 'Dar de baja'}</Button>
+              </div>
             </div>
           );
         })}
       </CardBody></Card>
       <ShareModal open={!!share} onClose={() => setShare(null)} {...(share ?? {})} />
     </>
+  );
+}
+
+/** Los días de feria: los que ofrece el selector al invitar "solo un día". */
+function DiasFeriaCaseta() {
+  const [feria, setFeria] = useState<any>(null);
+  const [form, setForm] = useState({ start: '', end: '' });
+  const [err, setErr] = useState('');
+  const fmt = (d: string) => d.split('-').reverse().slice(0, 2).join('/');
+  useEffect(() => { api('/papi/me', undefined, 'GET').then((m) => setFeria(m.feria)).catch(() => {}); }, []);
+  if (!feria) return null;
+  return (
+    <Card><CardBody>
+      <Kick>Días de feria</Kick>
+      <b className="block text-[18px] font-extrabold tracking-tight">Del {fmt(feria.start)} al {fmt(feria.end)}</b>
+      <small className="mt-1 block text-[14px] leading-snug text-muted-foreground">
+        {feria.source === 'caseta' ? 'Los has puesto tú.' : feria.source === 'oficial' ? 'Fechas oficiales de la Feria de Abril; puedes cambiarlas.' : 'No hay fechas para este año: se ofrece la semana en curso. Ponlas aquí.'}
+        {' '}Son los días que ve un socio al invitar "solo un día".
+      </small>
+      <div className="grid grid-cols-2 gap-2.5">
+        <div><Label>Primer día</Label><Input type="date" value={form.start} onChange={(e: any) => setForm({ ...form, start: e.target.value })} /></div>
+        <div><Label>Último día</Label><Input type="date" value={form.end} onChange={(e: any) => setForm({ ...form, end: e.target.value })} /></div>
+      </div>
+      <Button className="mt-4 w-full" disabled={!form.start || !form.end} onClick={async () => {
+        setErr('');
+        try { const r = await api('/papi/caseta/feria', form); setFeria(r.feria); setForm({ start: '', end: '' }); toast('Días de feria guardados'); }
+        catch (e: any) { setErr(e.message); }
+      }}>Guardar los días</Button>
+      <Err>{err}</Err>
+    </CardBody></Card>
   );
 }
 
@@ -216,18 +251,19 @@ function Equipo() {
         {staff.map((s: any) => {
           const susp = s.status === 'suspendido';
           return (
-            <div key={s.id} className="flex items-center gap-2.5 border-b border-border py-3 last:border-0">
-              <Avatar name={s.name} />
-              <div className="min-w-0 flex-1">
-                <b className="block truncate text-[14px] font-extrabold">{s.name}</b>
-                <small className="block truncate text-[11.5px] text-muted-foreground">
-                  {susp && <span className="font-bold text-destructive">sin acceso · </span>}
-                  {s.role === 'puerta' ? 'Puerta' : 'Barra'} · {fmtPhone(s.phone)}
-                </small>
+            <div key={s.id} className="border-b border-border py-3.5 last:border-0">
+              <div className="flex items-center gap-3">
+                <Avatar name={s.name} />
+                <div className="min-w-0 flex-1">
+                  <b className="block truncate text-[17px] font-extrabold tracking-tight">{s.name}</b>
+                  <small className="block truncate text-[14px] text-muted-foreground">{s.role === 'puerta' ? 'Puerta' : 'Barra'} · {fmtPhone(s.phone)}</small>
+                </div>
+                <Chip tone={susp ? 'bad' : 'ok'}>{susp ? 'Sin acceso' : 'Con acceso'}</Chip>
               </div>
-              <Chip tone={susp ? 'soft' : 'ok'}>{susp ? 'Sin acceso' : 'Acceso'}</Chip>
-              {s.loginUrl && !susp && <LinkBtn onClick={() => setShare({ title: `Acceso de ${s.name}`, text: 'Tu acceso al club: ' + s.loginUrl, url: s.loginUrl, phone: s.phone })}>Enviar ›</LinkBtn>}
-              <Button variant="ghost" size="sm" className="px-3" onClick={async () => { await api(`/papi/socios/${s.id}/suspender`, {}); load(); }}>{susp ? 'Dar' : 'Quitar'}</Button>
+              <div className="mt-2.5 flex gap-2 pl-[56px]">
+                {s.loginUrl && !susp && <LinkBtn onClick={() => setShare({ title: `Acceso de ${s.name}`, text: 'Tu acceso a la caseta: ' + s.loginUrl, url: s.loginUrl, phone: s.phone })}>Enviar acceso ›</LinkBtn>}
+                <Button variant="ghost" size="sm" className="px-3" onClick={async () => { await api(`/papi/socios/${s.id}/suspender`, {}); load(); }}>{susp ? 'Dar acceso' : 'Quitar acceso'}</Button>
+              </div>
             </div>
           );
         })}

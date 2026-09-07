@@ -6,6 +6,8 @@ export interface Caseta {
   id: number;
   name: string;
   join_code: string | null;
+  feria_start: string | Date | null;
+  feria_end: string | Date | null;
   created_at: string | Date;
 }
 

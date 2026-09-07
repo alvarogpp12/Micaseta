@@ -125,6 +125,8 @@ ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_status_check;
 ALTER TABLE orders ADD CONSTRAINT orders_status_check CHECK (status IN ('pendiente','lista','servida'));
 ALTER TABLE invitations ADD COLUMN IF NOT EXISTS can_order BOOLEAN NOT NULL DEFAULT true;
 ALTER TABLE casetas ADD COLUMN IF NOT EXISTS join_code TEXT UNIQUE;
+ALTER TABLE casetas ADD COLUMN IF NOT EXISTS feria_start DATE;
+ALTER TABLE casetas ADD COLUMN IF NOT EXISTS feria_end DATE;
 ALTER TABLE accounts ADD COLUMN IF NOT EXISTS google_sub TEXT UNIQUE;
 ALTER TABLE accounts ALTER COLUMN password_hash DROP NOT NULL;
 
