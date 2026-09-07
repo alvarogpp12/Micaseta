@@ -1,16 +1,26 @@
 {
   "name": "Micaseta",
   "short_name": "Micaseta",
-  "description": "Tu caseta en el bolsillo: carnet QR, pedidos, invitaciones y cuentas.",
+  "description": "Tu club en el bolsillo: pase QR, pedidos, invitaciones y cuentas.",
   "start_url": "/app/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#06110B",
-  "theme_color": "#06110B",
+  "background_color": "#FFFFFF",
+  "theme_color": "#FFFFFF",
   "lang": "es",
   "icons": [
-    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
   ]
 }
