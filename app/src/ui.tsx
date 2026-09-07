@@ -88,11 +88,19 @@ export function KPI({ label, value }: { label: string; value: React.ReactNode })
   );
 }
 
-export function Avatar({ name }: { name?: string | null }) {
+/** Persona: su selfie si la hay, si no sus iniciales. `dot` = punto "dentro ahora". */
+export function Avatar({ name, src, size = 40, dot, className = '' }: { name?: string | null; src?: string | null; size?: number; dot?: boolean; className?: string }) {
   const initials = (name ?? '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('') || '?';
   return (
-    <div className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-full bg-primary/15 text-[12px] font-extrabold text-primary">
-      {initials}
+    <div className={cn('relative flex-shrink-0', className)} style={{ width: size, height: size }}>
+      {src ? (
+        <img src={src} alt="" className="h-full w-full rounded-full bg-secondary object-cover" />
+      ) : (
+        <div className="grid h-full w-full place-items-center rounded-full bg-primary/15 font-extrabold text-primary" style={{ fontSize: Math.round(size * 0.3) }}>
+          {initials}
+        </div>
+      )}
+      {dot && <span className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-primary ring-[3px] ring-background shadow-glow" />}
     </div>
   );
 }

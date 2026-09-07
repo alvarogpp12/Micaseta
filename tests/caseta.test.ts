@@ -276,4 +276,48 @@ describe('flujo completo de caseta (web)', () => {
     await invitations.cancel(db, inv.id);
     expect((await invitations.checkAccess(db, r.guest)).ok).toBe(false);
   });
+
+  it('la lista de invitados del socio trae selfie, gasto y última entrada (estilo Partiful)', async () => {
+    const reg = await accounts.registerCaseta(db, {
+      casetaName: 'C', ownerName: 'Y', email: 'z@z.es', password: '12345678',
+    });
+    if (!reg.ok) throw new Error('registro falló');
+    const casetaId = reg.caseta.id;
+    const socio = await users.upsertByAdmin(db, '34611111112', 'Socio', 'socio', casetaId);
+    const otro = await users.upsertByAdmin(db, '34611111113', 'Otro', 'socio', casetaId);
+    const puerta = await users.upsertByAdmin(db, '34611111114', 'Puerta', 'puerta', casetaId);
+    const waiter = await users.upsertByAdmin(db, '34611111115', 'Pepe', 'mesero', casetaId);
+
+    const pendiente = await invitations.createInvitation(db, {
+      socioId: socio.id, casetaId, guestLabel: 'Carmen', accessMode: 'siempre',
+    });
+    const aceptada = await invitations.createInvitation(db, {
+      socioId: socio.id, casetaId, guestLabel: 'Bea', accessMode: 'siempre', spendLimitCents: 5000,
+    });
+    const r = await invitations.registerGuestFromLink(db, aceptada, {
+      name: 'Bea', phone: '34600000002', photo: Buffer.from('selfie'),
+    });
+    if (!r.ok) throw new Error('registro invitada falló');
+    const cerveza = await orders.addProduct(db, 'Cerveza', 250, 'cerveza', casetaId);
+    await orders.createOrder(db, r.guest, waiter, [{ productId: cerveza.id, qty: 3 }]);
+    await db.query('INSERT INTO checkins (user_id, invitation_id, door_user_id) VALUES ($1, $2, $3)', [
+      r.guest.id, aceptada.id, puerta.id,
+    ]);
+
+    const lista = await invitations.listBySocio(db, socio.id);
+    expect(lista.map((i) => i.id).sort()).toEqual([pendiente.id, aceptada.id].sort());
+    const bea = lista.find((i) => i.id === aceptada.id)!;
+    expect(bea.guest_name).toBe('Bea');
+    expect(bea.has_photo).toBe(true);
+    expect(bea.spent_cents).toBe(750);
+    expect(bea.last_checkin_at).not.toBeNull();
+    const carmen = lista.find((i) => i.id === pendiente.id)!;
+    expect(carmen.has_photo).toBeFalsy();
+    expect(carmen.spent_cents).toBe(0);
+    expect(carmen.last_checkin_at).toBeNull();
+
+    // La selfie solo la ve el socio que invitó
+    expect(await invitations.isGuestOf(db, socio.id, r.guest.id)).toBe(true);
+    expect(await invitations.isGuestOf(db, otro.id, r.guest.id)).toBe(false);
+  });
 });

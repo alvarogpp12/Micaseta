@@ -175,10 +175,13 @@ export async function listActiveBySocio(db: DB, socioId: number): Promise<Invita
   return rows;
 }
 
-/** Invitaciones vivas de un socio, con el nombre del invitado si ya se registró. */
+/** Invitaciones vivas de un socio como "personas": nombre, si hay selfie,
+ *  lo que llevan gastado y su última entrada por la puerta. */
 export async function listBySocio(db: DB, socioId: number): Promise<any[]> {
   const { rows } = await db.query(
-    `SELECT i.*, g.name AS guest_name
+    `SELECT i.*, g.name AS guest_name, (g.photo IS NOT NULL) AS has_photo,
+       COALESCE((SELECT SUM(o.total_cents) FROM orders o WHERE o.invitation_id = i.id), 0)::int AS spent_cents,
+       (SELECT MAX(c.created_at) FROM checkins c WHERE c.user_id = i.guest_id) AS last_checkin_at
      FROM invitations i
      LEFT JOIN users g ON g.id = i.guest_id
      WHERE i.socio_id = $1 AND i.parent_id IS NULL AND i.status IN ('pendiente','aceptada')
@@ -186,6 +189,16 @@ export async function listBySocio(db: DB, socioId: number): Promise<any[]> {
     [socioId],
   );
   return rows;
+}
+
+/** ¿Es este invitado de alguna invitación del socio? (para enseñarle su selfie) */
+export async function isGuestOf(db: DB, socioId: number, guestId: number): Promise<boolean> {
+  const row = await one<{ n: number }>(
+    db,
+    `SELECT COUNT(*)::int AS n FROM invitations WHERE socio_id = $1 AND guest_id = $2`,
+    [socioId, guestId],
+  );
+  return (row?.n ?? 0) > 0;
 }
 
 export async function listByCaseta(db: DB, casetaId: number): Promise<any[]> {

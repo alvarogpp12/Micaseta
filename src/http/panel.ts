@@ -16,6 +16,8 @@ import { SEVILLA_MENU } from '../services/demo.js';
 import { parseEuros, todayStr } from '../domain/types.js';
 
 const COOKIE = 'panel';
+/** Sin escáner de salida, un invitado que pasó la puerta hace menos de esto sigue "dentro". */
+const INSIDE_WINDOW_MS = 4 * 60 * 60 * 1000;
 
 /**
  * API del panel web de la caseta (dueño/gestor) + endpoints públicos del
@@ -434,6 +436,10 @@ export function registerPanelRoutes(app: FastifyInstance, db: DB): void {
       socio: socio?.name ?? 'Un socio',
       status: inv.status,
       conditions: invitations.describeInvitation(inv),
+      accessMode: inv.access_mode,
+      validDate: inv.valid_date,
+      canOrder: inv.can_order,
+      spendLimitCents: inv.spend_limit_cents,
       needsPhone: !inv.guest_phone && !guest,
       registered: !!(guest && guest.name && guest.status === 'activo'),
       guestName: guest?.name ?? inv.guest_label ?? null,
@@ -493,16 +499,26 @@ export function registerPanelRoutes(app: FastifyInstance, db: DB): void {
     if (user.role === 'socio') {
       payload.gastos = await orders.gastosSocio(db, user.id);
       const base = requestBaseUrl(req);
-      payload.invitaciones = (await invitations.listBySocio(db, user.id)).map((inv) => ({
-        id: inv.id,
-        status: inv.status,
-        guestName: inv.guest_name ?? inv.guest_label ?? null,
-        canOrder: inv.can_order,
-        spendLimitCents: inv.spend_limit_cents,
-        validDate: inv.valid_date,
-        shareUrl: invitations.inviteUrl(inv.id, base),
-        shareText: invitations.inviteShareText(inv, caseta?.name ?? 'la caseta', user.name ?? 'Un socio', base),
-      }));
+      payload.invitaciones = (await invitations.listBySocio(db, user.id)).map((inv) => {
+        const lastIn = inv.last_checkin_at ? new Date(inv.last_checkin_at) : null;
+        return {
+          id: inv.id,
+          status: inv.status,
+          guestId: inv.guest_id,
+          guestName: inv.guest_name ?? inv.guest_label ?? null,
+          photoUrl: inv.has_photo ? `/gapi/mi/foto/${inv.guest_id}?t=${encodeURIComponent(t)}` : null,
+          canOrder: inv.can_order,
+          spendLimitCents: inv.spend_limit_cents,
+          spentCents: inv.spent_cents ?? 0,
+          validDate: inv.valid_date,
+          // Sin escáner de salida, "dentro" = ha pasado la puerta en las últimas horas
+          dentro: !!lastIn && Date.now() - lastIn.getTime() < INSIDE_WINDOW_MS,
+          lastCheckinAt: lastIn?.toISOString() ?? null,
+          createdAt: inv.created_at,
+          shareUrl: invitations.inviteUrl(inv.id, base),
+          shareText: invitations.inviteShareText(inv, caseta?.name ?? 'la caseta', user.name ?? 'Un socio', base),
+        };
+      });
     } else {
       payload.hostName = access.hostName;
       payload.spendLimitCents = access.spendLimitCents;
@@ -602,6 +618,20 @@ export function registerPanelRoutes(app: FastifyInstance, db: DB): void {
       shareText: invitations.inviteShareText(inv, caseta?.name ?? 'la caseta', user.name ?? 'Un socio', base),
       guestPhone: guestPhone ? formatPhone(guestPhone) : null,
     };
+  });
+
+  /** Selfie de un invitado, solo para el socio que lo invitó. */
+  app.get('/gapi/mi/foto/:guestId', async (req, reply) => {
+    const user = await clientFromToken(String((req.query as any).t ?? ''));
+    if (!user || user.role !== 'socio') return reply.code(403).send({ error: 'Solo los socios' });
+    const guestId = Number((req.params as any).guestId);
+    if (!Number.isInteger(guestId) || !(await invitations.isGuestOf(db, user.id, guestId))) {
+      return reply.code(404).send({ error: 'No existe' });
+    }
+    const photo = await users.getPhoto(db, guestId);
+    if (!photo) return reply.code(404).send({ error: 'sin foto' });
+    reply.type('image/jpeg').header('Cache-Control', 'private, max-age=300');
+    return photo;
   });
 
   /** El socio cancela una invitación suya. */
