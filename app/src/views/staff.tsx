@@ -1,13 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { CheckCircle2 } from '../components/icons';
 import { api, eur } from '../lib/api';
-import { Button, Card, CardBody, Chip, Empty, Kick, Page, Spinner, TopBar, cn } from '../ui';
+import { Button, Card, CardBody, Chip, Empty, Kick, Page, SalirBtn, Spinner, TopBar, cn } from '../ui';
 import { Carta, CartBar, PersonCard, Scanner, Veredicto } from '../components';
 import { FadeView } from '../components/fx';
 
-const Salir = ({ onClick }: { onClick: () => void }) => (
-  <button className="rounded-full bg-secondary px-3.5 py-1.5 text-[12px] font-bold text-muted-foreground" onClick={onClick}>Salir</button>
-);
 
 /** Camarero: cola de turnos + comanda en barra, con tabs superiores propias. */
 export function WaiterApp({ me, onLogout }: { me: any; onLogout: () => void }) {
@@ -15,7 +12,7 @@ export function WaiterApp({ me, onLogout }: { me: any; onLogout: () => void }) {
   const [n, setN] = useState<number | null>(null);
   return (
     <>
-      <TopBar title={`${me.name} · Barra`} right={<Salir onClick={onLogout} />} />
+      <TopBar title={`${me.name} · Barra`} right={<SalirBtn onClick={onLogout} />} />
       <Page className="pb-10">
         <div className="mb-3.5 flex rounded-lg bg-secondary p-[3px]">
           {([['pedidos', `Pedidos${n ? ` · ${n}` : ''}`], ['comanda', 'Comanda']] as const).map(([id, label]) => (
@@ -157,7 +154,7 @@ export function DoorApp({ me, onLogout }: { me: any; onLogout: () => void }) {
   return (
     <>
       {tint && <div className="pointer-events-none fixed inset-0 z-0" style={{ background: tint }} />}
-      <TopBar title={`${me.name} · Puerta`} right={<Salir onClick={onLogout} />} />
+      <TopBar title={`${me.name} · Puerta`} right={<SalirBtn onClick={onLogout} />} />
       <Page className="pb-10">
         {!current && <>
           <Scanner onScan={onScan} hint="Escanea el pase, comprueba la foto y registra la entrada." />

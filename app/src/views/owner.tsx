@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api, eur, fmtFecha, fmtPhone } from '../lib/api';
-import { Avatar, Button, Card, CardBody, Chip, Empty, Err, Input, Kick, Label, LinkBtn, Modal, Page, Spinner, Stats, TopBar, cn } from '../ui';
+import { Avatar, Button, Card, CardBody, Chip, Empty, Err, Input, Kick, Label, LinkBtn, Modal, Page, Spinner, Stats, Titulo, TopBar, cn } from '../ui';
 import { ShareModal } from '../components';
 import { toast } from 'sonner';
 import { ClientApp } from './client';
@@ -15,7 +15,7 @@ export function OwnerApp({ me, onLogout }: { me: any; onLogout: () => void }) {
     <ClientApp
       token={me.qrToken}
       onExit={onLogout}
-      extra={{ id: 'club', label: 'Tu club', content: <Gestion /> }}
+      extra={{ id: 'club', label: 'Mi caseta', content: <Gestion /> }}
     />
   );
 }
@@ -24,10 +24,7 @@ export function OwnerApp({ me, onLogout }: { me: any; onLogout: () => void }) {
 function Gestion() {
   return (
     <>
-      <div className="px-1.5 pb-3 pt-1">
-        <b className="text-[24px] font-black tracking-[-.03em]">Tu club, ahora</b>
-        <small className="mt-1 block text-[12.5px] text-muted-foreground">La noche va así</small>
-      </div>
+      <Titulo sub="Cuánta gente hay, la caja de hoy y las cuentas de los socios.">Mi caseta</Titulo>
       <Resumen />
       <div className="mt-8"><Socios /></div>
       <div className="mt-8"><Equipo /></div>
@@ -62,7 +59,7 @@ function Resumen() {
 
       <Card><CardBody>
         <Kick>Cuentas por socio</Kick>
-        {o.cuentas.length === 0 && <Empty>Aún no hay consumo registrado. Da de alta socios y comparte su pase.</Empty>}
+        {o.cuentas.length === 0 && <Empty>Aún no hay consumo registrado. Da de alta socios y envíales su pase.</Empty>}
         {o.cuentas.map((c: any) => (
           <button key={c.socio_id} className="flex w-full items-center gap-3 border-b border-border py-3 text-left last:border-0"
             onClick={async () => setDetalle({ id: c.socio_id, name: c.socio_name, pending: c.pending_cents, rows: await api(`/papi/cuentas/${c.socio_id}`, undefined, 'GET') })}>

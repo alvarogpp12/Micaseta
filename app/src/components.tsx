@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import jsQR from 'jsqr';
-import { Copy, Minus, Plus } from './components/icons';
+import { Bubble, Copy, Minus, Plus } from './components/icons';
 import { api, eur, waShare, CAT_LABELS, sortProducts } from './lib/api';
 import { Button, Card, CardBody, Chip, Input, Kick, Label, Modal, cn } from './ui';
 import { Cascade } from './components/fx';
@@ -14,11 +14,12 @@ export function Carta({ products, qty, setQty }: any) {
   const active = cats.includes(cat as string) ? cat : cats[0];
   return (
     <div>
-      <div className="-mx-1 flex items-baseline gap-4 overflow-x-auto whitespace-nowrap px-1 pb-1.5 pt-2 [scrollbar-width:none] [mask-image:linear-gradient(90deg,#000_82%,transparent)]">
+      {/* Categorías como botones grandes y legibles, no titulares en gris */}
+      <div className="-mx-[18px] flex gap-2 overflow-x-auto px-[18px] pb-2 pt-2 [scrollbar-width:none]">
         {cats.map((c) => (
           <button key={c} onClick={() => setCat(c)}
-            className={cn('flex-shrink-0 text-[24px] font-black tracking-[-.04em] transition-colors',
-              c === active ? 'text-foreground' : 'text-foreground/[.16]')}>
+            className={cn('h-11 flex-shrink-0 whitespace-nowrap rounded-full px-[18px] text-[15px] font-extrabold transition-colors',
+              c === active ? 'bg-foreground text-white' : 'bg-secondary text-foreground')}>
             {CAT_LABELS[c] ?? c}
           </button>
         ))}
@@ -29,17 +30,19 @@ export function Carta({ products, qty, setQty }: any) {
           const add = () => setQty({ ...qty, [p.id]: n + 1 });
           return (
             <Cascade key={p.id} i={idx}>
-            <div className="flex select-none items-center gap-2.5 border-b border-border py-[13px] last:border-0">
-              <b className="min-w-0 flex-1 text-[15.5px] font-extrabold tracking-tight">{p.name}</b>
-              <span className="text-[15px] font-black tabular-nums">{eur(p.price_cents)}</span>
+            <div className="flex min-h-[64px] select-none items-center gap-3 border-b border-border py-2.5 last:border-0">
+              <span className="min-w-0 flex-1">
+                <b className="block text-[17px] font-extrabold tracking-tight">{p.name}</b>
+                <small className="block text-[14px] font-bold tabular-nums text-muted-foreground">{eur(p.price_cents)}</small>
+              </span>
               {n > 0 ? (
-                <span className="flex items-center rounded-full bg-primary p-[3px] text-primary-foreground">
-                  <button className="grid h-[30px] w-[30px] place-items-center" onClick={() => setQty({ ...qty, [p.id]: n - 1 })}><Minus size={15} /></button>
-                  <b className="min-w-4 text-center text-[13.5px] font-black">{n}</b>
-                  <button className="grid h-[30px] w-[30px] place-items-center" onClick={add}><Plus size={15} /></button>
+                <span className="flex items-center rounded-full bg-primary p-1 text-primary-foreground">
+                  <button className="grid h-10 w-10 place-items-center" onClick={() => setQty({ ...qty, [p.id]: n - 1 })} aria-label={`Quitar ${p.name}`}><Minus size={20} /></button>
+                  <b className="min-w-6 text-center text-[17px] font-black tabular-nums">{n}</b>
+                  <button className="grid h-10 w-10 place-items-center" onClick={add} aria-label={`Añadir ${p.name}`}><Plus size={20} /></button>
                 </span>
               ) : (
-                <button className="grid h-[34px] w-[34px] place-items-center rounded-full bg-primary/[.16] text-primary" onClick={add} aria-label={`Añadir ${p.name}`}><Plus size={17} /></button>
+                <button className="inline-flex h-11 items-center gap-1 rounded-full bg-primary/[.14] px-4 text-[15px] font-extrabold text-primary" onClick={add} aria-label={`Añadir ${p.name}`}><Plus size={18} /> Añadir</button>
               )}
             </div>
             </Cascade>
@@ -57,12 +60,12 @@ export function CartBar({ products, qty, label, onSend, err, busy }: any) {
   for (const p of products) total += (qty[p.id] || 0) * p.price_cents;
   if (n === 0 && !err) return null;
   return (
-    <div className="fixed inset-x-[18px] z-30 mx-auto max-w-md" style={{ bottom: 'calc(5.9rem + env(safe-area-inset-bottom))' }}>
-      {err && <p className="mb-2 text-center text-[13px] font-bold text-destructive">{err}</p>}
+    <div className="fixed inset-x-[18px] z-30 mx-auto max-w-md" style={{ bottom: 'calc(5.6rem + env(safe-area-inset-bottom))' }}>
+      {err && <p className="mb-2 rounded-xl bg-white/90 p-2 text-center text-[15px] font-bold text-destructive">{err}</p>}
       <button onClick={onSend} disabled={busy || n === 0}
-        className="flex w-full items-center justify-between rounded-xl bg-primary px-[22px] py-[17px] text-primary-foreground shadow-glow-cta transition-transform active:scale-[.98] disabled:opacity-50">
-        <span className="text-[15px] font-extrabold tracking-tight">{label}</span>
-        <i className="not-italic text-[15px] font-black tabular-nums">{eur(total)}</i>
+        className="flex h-16 w-full items-center justify-between rounded-2xl bg-primary px-[22px] text-primary-foreground shadow-glow-cta transition-transform active:scale-[.98] disabled:opacity-50">
+        <span className="text-[18px] font-extrabold tracking-tight">{label}</span>
+        <i className="not-italic text-[18px] font-black tabular-nums">{n} · {eur(total)}</i>
       </button>
     </div>
   );
@@ -88,7 +91,7 @@ export function LiveOrder({ token, orderId, pickupNumber, totalCents, onDone }: 
   const listo = status === 'lista';
   const servido = status === 'servida';
   return (
-    <div className={cn('fixed left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full border px-4 py-[9px] pl-3 text-[12px] font-extrabold shadow-[0_12px_30px_rgba(0,0,0,.5)]',
+    <div className={cn('fixed left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full border px-5 py-3 pl-4 text-[15px] font-extrabold shadow-[0_12px_30px_rgba(0,0,0,.5)]',
       servido ? 'border-success/20 bg-success text-success-foreground' : 'border-white/10 bg-[rgba(5,6,10,.94)] text-[#F2F2EF]')}
       style={{ top: 'calc(.75rem + env(safe-area-inset-top))' }}>
       {!servido && <i className={cn('h-2 w-2 rounded-full bg-[#9DB0FF]', !listo && 'animate-pulse-dot')} />}
@@ -218,15 +221,15 @@ export function ShareModal({ open, onClose, title, text, url, phone, note }: any
   const [copied, setCopied] = useState(false);
   return (
     <Modal open={open} onClose={onClose}>
-      <h2 className="text-lg font-black tracking-tight">{title}</h2>
-      {note && <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">{note}</p>}
+      <h2 className="text-[24px] font-black tracking-tight">{title}</h2>
+      {note && <p className="mt-1.5 text-[15px] leading-relaxed text-muted-foreground">{note}</p>}
       <a href={waShare(text, phone)} target="_blank" rel="noreferrer" className="mt-5 block">
-        <Button className="w-full">Enviar por WhatsApp</Button>
+        <Button className="w-full" size="lg"><Bubble size={20} /> Enviar por WhatsApp</Button>
       </a>
       <Button variant="secondary" className="mt-2.5 w-full" onClick={() => { navigator.clipboard.writeText(url); setCopied(true); toast('Enlace copiado'); }}>
         <Copy size={15} /> {copied ? 'Copiado' : 'Copiar enlace'}
       </Button>
-      <div className="mt-3 break-all rounded-lg bg-secondary p-3 text-xs text-muted-foreground">{url}</div>
+      <div className="mt-3 break-all rounded-lg bg-secondary p-3 text-[13px] text-muted-foreground">{url}</div>
       <Button variant="ghost" className="mt-3 w-full" onClick={onClose}>Cerrar</Button>
     </Modal>
   );

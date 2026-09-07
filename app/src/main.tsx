@@ -14,7 +14,7 @@ createRoot(document.getElementById('root')!).render(
     <MotionConfig reducedMotion="user">
       <App />
       <Toaster position="top-center" toastOptions={{
-        style: { background: '#122B1C', color: '#EFF5EE', border: '1px solid rgba(239,245,238,.12)', borderRadius: '999px', fontWeight: 700, padding: '12px 20px' },
+        style: { background: '#14161D', color: '#FFFFFF', border: 0, borderRadius: '16px', fontWeight: 700, fontSize: '16px', padding: '14px 20px' },
       }} />
     </MotionConfig>
   </React.StrictMode>,

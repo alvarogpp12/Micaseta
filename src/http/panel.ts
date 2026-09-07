@@ -499,7 +499,8 @@ export function registerPanelRoutes(app: FastifyInstance, db: DB): void {
       accessOk: access.ok,
       accessReason: access.reason,
       canOrder,
-      checkinAt: checkin?.t ?? null,
+      // Postgres devuelve '2026-05-04 22:14:03.12+00'; el móvil quiere ISO
+      checkinAt: checkin?.t ? new Date(checkin.t.replace(' ', 'T').replace(/([+-]\d\d)$/, '$1:00')).toISOString() : null,
       wallet: wallet.walletEnabled(),
       products: canOrder ? await orders.listProducts(db, user.caseta_id) : [],
     };
