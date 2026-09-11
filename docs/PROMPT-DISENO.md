@@ -256,20 +256,26 @@ cuenta.
 
 ---
 
-## Lo que me parece un error del sistema actual (dicho antes de tocar nada)
+## Lo que me parecía un error del sistema actual
 
-1. **La landing es carbón y la app es blanca.** Son dos marcas. Quien viene de
+Dicho antes de tocarlo. Los tres últimos ya están aplicados en el código; el
+primero sigue esperando decisión.
+
+1. **La landing es carbón y la app es blanca.** Son dos marcas: quien viene de
    la landing y entra, cambia de producto. Propongo llevar la landing al blanco
    de la app y dejar el carbón solo para el pase animado del hero, que es donde
-   el contraste trabaja. No lo cambio hasta que se diga.
-2. **Liquid Glass sobre una app blanca casi no tiene nada que refractar.** Por
-   eso el cristal aquí se limita a donde de verdad pasa contenido por debajo:
-   dock, barra superior con scroll, CTA del carrito, overlays de cámara y
-   cabecera de la landing. Ponerlo en los módulos sería niebla decorativa.
-3. **La sombra `glow` del botón primario** (`0 10px 30px rgba(61,90,245,.35)`)
-   es de landing oscura, no de app clara: sobre blanco ensucia el borde. En la
-   app la rebajaría a `0 6px 18px rgba(61,90,245,.22)` y la dejaría entera solo
-   en el CTA del carrito.
-4. **El escáner vive dentro de una tarjeta.** En la puerta, con prisa y de
-   noche, la cámara tiene que ser la pantalla entera y los controles flotar
-   encima en cristal. Es el cambio con más efecto de toda la lista.
+   el contraste trabaja. **Sin hacer, a la espera de que se decida.**
+2. **Liquid Glass sobre una app blanca casi no tiene nada que refractar.** Hecho:
+   las tres recetas viven en `app/src/index.css` y solo se usan donde de verdad
+   pasa contenido por debajo — dock, barra superior (y solo a partir de 8 px de
+   scroll), aviso del carrito, visor de la cámara y velo de las hojas.
+3. **La sombra `glow` del botón primario** era de landing oscura y sobre blanco
+   ensuciaba el borde. Hecho: `glow` baja a `0 6px 18px rgba(61,90,245,.22)`;
+   la original queda como `glow-fuerte`, y la sombra entera solo se conserva en
+   el CTA del carrito (`glow-cta`), que es el único sitio donde trabaja.
+4. **El escáner vivía dentro de una tarjeta.** Hecho: con la cámara abierta, el
+   visor es la pantalla entera (`Visor` en `app/src/components.tsx`) — vídeo a
+   sangre, encuadre con esquinas y barrido, barra superior y botón inferior en
+   vidrio receta 2, la página de detrás bloqueada, y la cámara se apaga sola al
+   cerrar. La tarjeta clara se queda para el estado en reposo, el código a mano
+   y el modo demo.

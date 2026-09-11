@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Drawer } from 'vaul';
 import { Home, Beer, Wallet, UserPlus, Store, LogOut, ChevronLeft, ChevronRight } from './components/icons';
 
@@ -169,7 +169,7 @@ export function Modal({ open, onClose, children }: any) {
   return (
     <Drawer.Root open={open} onOpenChange={(o: boolean) => { if (!o) onClose(); }}>
       <Drawer.Portal>
-        <Drawer.Overlay className="fixed inset-0 z-40 bg-black/40" />
+        <Drawer.Overlay className="velo fixed inset-0 z-40" />
         <Drawer.Content className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md rounded-t-[26px] bg-card text-foreground outline-none">
           <div className="mx-auto mt-3 h-1.5 w-12 rounded-full bg-foreground/10" />
           <div className="max-h-[85vh] overflow-y-auto p-6 pb-[calc(1.75rem+env(safe-area-inset-bottom))]">{children}</div>
@@ -184,7 +184,7 @@ export function Modal({ open, onClose, children }: any) {
 export function Dock({ tabs, tab, onTab }: { tabs: { id: string; label: string; icon: React.ReactNode }[]; tab: string; onTab: (id: string) => void }) {
   if (tabs.length < 2) return null;
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-white/95 backdrop-blur" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+    <nav className="vidrio fixed inset-x-0 bottom-0 z-40" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       <div className="mx-auto flex max-w-md px-1.5 pb-2 pt-1.5">
         {tabs.map((t) => {
           const on = tab === t.id;
@@ -211,10 +211,25 @@ export const CLIENT_TABS = [
 ];
 export const CASETA_TAB = { id: 'club', label: 'Mi caseta', icon: <Store size={26} /> };
 
+/** ¿Ha pasado contenido por debajo de la cabecera? Es lo que enciende el vidrio:
+ *  sin nada detrás, el cristal sobre blanco es niebla. */
+function useScrolled(px = 8) {
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    const f = () => setOn(window.scrollY > px);
+    f();
+    window.addEventListener('scroll', f, { passive: true });
+    return () => window.removeEventListener('scroll', f);
+  }, [px]);
+  return on;
+}
+
 /** Cabecera de pantalla: wordmark (raíz) o "‹ Inicio" grande (subpantalla) + contexto. */
 export function TopBar({ back, onBack, title, right }: { back?: string; onBack?: () => void; title?: React.ReactNode; right?: React.ReactNode }) {
+  const scrolled = useScrolled();
   return (
-    <header className="relative z-30">
+    <header className={cn('sticky top-0 z-30 transition-[box-shadow,background-color] duration-200', scrolled && 'vidrio')}
+      style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       <div className="mx-auto flex max-w-md items-center justify-between px-5 pb-2 pt-3">
         {back != null ? (
           <button className="-ml-2 inline-flex h-11 items-center gap-0.5 pr-2 text-[16px] font-extrabold text-primary" onClick={onBack}><ChevronLeft size={22} /> {back}</button>

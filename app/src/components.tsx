@@ -61,7 +61,7 @@ export function CartBar({ products, qty, label, onSend, err, busy }: any) {
   if (n === 0 && !err) return null;
   return (
     <div className="fixed inset-x-[18px] z-30 mx-auto max-w-md" style={{ bottom: 'calc(5.6rem + env(safe-area-inset-bottom))' }}>
-      {err && <p className="mb-2 rounded-xl bg-white/90 p-2 text-center text-[15px] font-bold text-destructive">{err}</p>}
+      {err && <p className="vidrio mb-2 rounded-xl p-2.5 text-center text-[15px] font-bold text-destructive">{err}</p>}
       <button onClick={onSend} disabled={busy || n === 0}
         className="flex h-16 w-full items-center justify-between rounded-2xl bg-primary px-[22px] text-primary-foreground shadow-glow-cta transition-transform active:scale-[.98] disabled:opacity-50">
         <span className="text-[18px] font-extrabold tracking-tight">{label}</span>
@@ -92,7 +92,7 @@ export function LiveOrder({ token, orderId, pickupNumber, totalCents, onDone }: 
   const servido = status === 'servida';
   return (
     <div className={cn('fixed left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full border px-5 py-3 pl-4 text-[15px] font-extrabold shadow-[0_12px_30px_rgba(0,0,0,.5)]',
-      servido ? 'border-success/20 bg-success text-success-foreground' : 'border-white/10 bg-[rgba(5,6,10,.94)] text-[#F2F2EF]')}
+      servido ? 'border-success/20 bg-success text-success-foreground' : 'vidrio-oscuro border-transparent')}
       style={{ top: 'calc(.75rem + env(safe-area-inset-top))' }}>
       {!servido && <i className={cn('h-2 w-2 rounded-full bg-[#9DB0FF]', !listo && 'animate-pulse-dot')} />}
       <span>
@@ -105,52 +105,102 @@ export function LiveOrder({ token, orderId, pickupNumber, totalCents, onDone }: 
   );
 }
 
-// ── Escáner QR (cámara + código manual + botones demo) ──
+// ── Escáner QR: la cámara es la pantalla entera, los controles flotan en vidrio ──
+
+const ESQUINAS = [
+  'left-0 top-0 border-l-[3px] border-t-[3px] rounded-tl-[26px]',
+  'right-0 top-0 border-r-[3px] border-t-[3px] rounded-tr-[26px]',
+  'left-0 bottom-0 border-l-[3px] border-b-[3px] rounded-bl-[26px]',
+  'right-0 bottom-0 border-r-[3px] border-b-[3px] rounded-br-[26px]',
+];
+
+/** El visor a pantalla completa: vídeo de fondo, encuadre recortado y dos barras
+ *  de vidrio (receta 2). De noche y con prisa, la cámara no cabe en una tarjeta. */
+function Visor({ videoRef, onClose, onTeclear }: any) {
+  // Con el visor abierto la página de detrás no se mueve.
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+  return (
+    <div className="fixed inset-0 z-50 overflow-hidden bg-black">
+      <video ref={videoRef} playsInline muted className="absolute inset-0 h-full w-full object-cover" />
+      <div className="absolute inset-0 grid place-items-center">
+        <div className="relative h-[66vw] max-h-[300px] w-[66vw] max-w-[300px] rounded-[26px] shadow-[0_0_0_100vmax_rgba(12,14,19,.45)]">
+          {ESQUINAS.map((c) => <span key={c} className={cn('absolute h-12 w-12 border-white/85', c)} />)}
+          <span className="animate-barrido absolute inset-x-4 top-1/2 h-[2px] rounded-full bg-white/70" />
+        </div>
+      </div>
+      <div className="vidrio-oscuro absolute inset-x-0 top-0 flex items-center gap-3 px-4 pb-3 pt-3" style={{ paddingTop: 'calc(.75rem + env(safe-area-inset-top))' }}>
+        <p className="min-w-0 flex-1 text-[16px] font-extrabold tracking-tight">Apunta al código del pase</p>
+        <button onClick={onClose} aria-label="Cerrar el escáner"
+          className="grid h-[56px] w-[56px] flex-shrink-0 place-items-center rounded-full bg-white/15 active:scale-95"><X size={26} /></button>
+      </div>
+      <div className="absolute inset-x-0 bottom-0 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3">
+        <button onClick={onTeclear}
+          className="vidrio-oscuro flex h-[56px] w-full items-center justify-center rounded-2xl text-[16px] font-extrabold active:scale-[.98]">
+          ¿La cámara no va? Teclea el código
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export function Scanner({ onScan, hint }: { onScan: (qr: string) => void; hint?: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [on, setOn] = useState(false);
+  const [stream, setStream] = useState<MediaStream | null>(null);
   const [manual, setManual] = useState('');
   const [manualOn, setManualOn] = useState(false);
+  const [err, setErr] = useState('');
   const [demos, setDemos] = useState<any[]>([]);
-  const stop = useRef<() => void>(() => {});
 
-  useEffect(() => {
-    api('/api/demo-qrs', undefined, 'GET').then((d) => Array.isArray(d) && setDemos(d)).catch(() => {});
-    return () => stop.current();
-  }, []);
+  useEffect(() => { api('/api/demo-qrs', undefined, 'GET').then((d) => Array.isArray(d) && setDemos(d)).catch(() => {}); }, []);
 
   const start = async () => {
+    setErr('');
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      const video = videoRef.current!;
-      video.srcObject = stream;
-      await video.play();
-      setOn(true);
-      let live = true;
-      stop.current = () => { live = false; stream.getTracks().forEach((t) => t.stop()); setOn(false); };
-      const canvas = document.createElement('canvas');
-      const tick = () => {
-        if (!live) return;
-        if (video.readyState === video.HAVE_ENOUGH_DATA) {
-          canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-          const c = canvas.getContext('2d')!;
-          c.drawImage(video, 0, 0);
-          const img = c.getImageData(0, 0, canvas.width, canvas.height);
-          const code = jsQR(img.data, img.width, img.height);
-          if (code?.data) { stop.current(); onScan(code.data); return; }
-        }
-        requestAnimationFrame(tick);
-      };
-      tick();
-    } catch { alert('No se pudo abrir la cámara. Usa el campo manual.'); }
+      setStream(await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }));
+    } catch {
+      setErr('No se pudo abrir la cámara. Teclea el código del pase.');
+      setManualOn(true);
+    }
   };
+
+  // La lectura vive mientras vive el stream: al cerrarlo se apaga la cámara sola.
+  useEffect(() => {
+    if (!stream) return;
+    const video = videoRef.current!;
+    video.srcObject = stream;
+    let live = true;
+    const canvas = document.createElement('canvas');
+    const tick = () => {
+      if (!live) return;
+      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+        const c = canvas.getContext('2d')!;
+        c.drawImage(video, 0, 0);
+        const img = c.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(img.data, img.width, img.height);
+        if (code?.data) { live = false; setStream(null); onScan(code.data); return; }
+      }
+      requestAnimationFrame(tick);
+    };
+    video.play().then(tick).catch(() => tick());
+    return () => { live = false; stream.getTracks().forEach((t) => t.stop()); };
+  }, [stream]);
+
+  if (stream) return (
+    <Visor videoRef={videoRef}
+      onClose={() => setStream(null)}
+      onTeclear={() => { setStream(null); setManualOn(true); }} />
+  );
 
   return (
     <Card><CardBody>
       {hint && <p className="mb-4 text-[16px] font-semibold leading-snug text-foreground/80">{hint}</p>}
-      <video ref={videoRef} playsInline className={cn('w-full rounded-xl bg-black', !on && 'hidden')} />
-      {!on && <Button className="w-full" size="lg" onClick={start}><ScanLine size={24} /> Escanear el pase</Button>}
+      <Button className="w-full" size="lg" onClick={start}><ScanLine size={24} /> Escanear el pase</Button>
+      {err && <p className="mt-3 text-[15px] font-bold text-destructive">{err}</p>}
       {!manualOn ? (
         <button type="button" className="mt-3 flex min-h-[44px] w-full items-center justify-center gap-1 text-[15px] font-bold text-primary" onClick={() => setManualOn(true)}>
           ¿La cámara no va? Teclea el código
@@ -159,7 +209,7 @@ export function Scanner({ onScan, hint }: { onScan: (qr: string) => void; hint?:
         <>
           <Label>Código del pase</Label>
           <div className="flex gap-2">
-            <Input value={manual} onChange={(e: any) => setManual(e.target.value)} placeholder="Pega aquí el código" />
+            <Input value={manual} onChange={(e: any) => setManual(e.target.value)} placeholder="Pega aquí el código" autoFocus />
             <Button variant="secondary" onClick={() => manual.trim() && onScan(manual.trim())}>Ir</Button>
           </div>
         </>

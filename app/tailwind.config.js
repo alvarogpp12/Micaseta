@@ -33,7 +33,8 @@ export default {
       },
       boxShadow: {
         mod: '0 8px 24px rgba(20,22,29,.05)',
-        glow: '0 10px 30px rgba(61,90,245,.35)',
+        glow: '0 6px 18px rgba(61,90,245,.22)',        // en app clara la sombra cobalto ensucia: suave
+        'glow-fuerte': '0 10px 30px rgba(61,90,245,.35)',
         'glow-cta': '0 14px 34px rgba(61,90,245,.45)',
         'glow-exito': '0 8px 30px rgba(15,163,107,.3)',
         dock: '0 18px 44px rgba(0,0,0,.5)',
