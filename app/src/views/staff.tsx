@@ -10,8 +10,8 @@ function Cabecera({ titulo, sub, onLogout }: { titulo: string; sub: string; onLo
   return (
     <div className="flex items-start justify-between gap-3 px-1 pt-4">
       <div className="min-w-0">
-        <h1 className="text-[28px] font-black leading-[1.05] tracking-[-.035em]">{titulo}</h1>
-        <p className="mt-1 truncate text-[15px] font-semibold text-muted-foreground">{sub}</p>
+        <h1 className="text-[28px] font-extrabold leading-[1.05] tracking-[-.028em]">{titulo}</h1>
+        <p className="mt-1 truncate text-[15px] font-medium text-muted-foreground">{sub}</p>
       </div>
       <SalirBtn onClick={onLogout} />
     </div>
@@ -59,11 +59,11 @@ function Pedidos({ onCount }: { onCount: (n: number) => void }) {
         return (
           <Card key={o.id} className={cn(lista && 'ring-2 ring-success')}>
             <CardBody className="flex items-center gap-4 p-4">
-              <span className={cn('grid h-16 min-w-16 flex-shrink-0 place-items-center rounded-2xl px-2 text-[28px] font-black tabular-nums',
+              <span className={cn('grid h-16 min-w-16 flex-shrink-0 place-items-center rounded-2xl px-2 text-[28px] font-extrabold tabular-nums',
                 lista ? 'bg-success text-white' : 'bg-foreground text-white')}>{o.pickup_number ?? '·'}</span>
               <div className="min-w-0 flex-1">
                 <b className="block truncate text-[18px] font-extrabold tracking-tight">{o.customer_name ?? 'Cliente'}</b>
-                <span className="mt-0.5 block text-[15px] font-semibold leading-snug">{o.items}</span>
+                <span className="mt-0.5 block text-[15px] font-medium leading-snug">{o.items}</span>
                 <small className="mt-0.5 block text-[14px] text-muted-foreground">
                   {eur(o.total_cents)}{o.socio_name && o.socio_name !== o.customer_name ? ` · a cuenta de ${o.socio_name}` : ''}
                   {lista ? ' · en pantalla' : ''}
@@ -116,8 +116,8 @@ function Comanda() {
   if (done) return (
     <Card><CardBody className="py-10 text-center">
       <CheckCircle2 size={64} className="mx-auto text-success" />
-      <div className="mt-4 text-[40px] font-black leading-none tracking-tight tabular-nums">{eur(done.totalCents)}</div>
-      <p className="mt-3 text-[16px] font-semibold text-muted-foreground">Apuntado a la cuenta de <b className="text-foreground">{done.socioName ?? 'socio'}</b></p>
+      <div className="mt-4 text-[40px] font-extrabold leading-none tracking-tight tabular-nums">{eur(done.totalCents)}</div>
+      <p className="mt-3 text-[16px] font-medium text-muted-foreground">Apuntado a la cuenta de <b className="text-foreground">{done.socioName ?? 'socio'}</b></p>
       <Button className="mt-8 w-full" size="lg" onClick={() => setDone(null)}>Siguiente cliente</Button>
     </CardBody></Card>
   );
@@ -132,7 +132,7 @@ function Comanda() {
         {info.remainingCents !== null && info.remainingCents !== undefined && info.ok && (
           <div className="mt-4 flex items-baseline justify-between rounded-xl bg-secondary/70 px-4 py-3">
             <span className="text-[15px] font-bold text-muted-foreground">Le queda</span>
-            <b className="text-[20px] font-black tabular-nums">{eur(info.remainingCents)} <span className="text-[14px] font-bold text-muted-foreground">de {eur(info.spendLimitCents)}</span></b>
+            <b className="text-[20px] font-extrabold tabular-nums">{eur(info.remainingCents)} <span className="text-[14px] font-bold text-muted-foreground">de {eur(info.spendLimitCents)}</span></b>
           </div>
         )}
         <Button variant="outline" className="mt-4 w-full" onClick={() => setCurrent(null)}>Escanear otro</Button>

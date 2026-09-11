@@ -20,8 +20,8 @@ input, select { font-size: 16px; } /* evita el zoom de iOS al enfocar */
 /* Vertical, para cantos (dock, chip del pase) */
 .banda-v { background: repeating-linear-gradient(180deg, #3D5AF5 0 6px, #2E45D8 6px 10px); }
 
-/* Kicker ensanchado: el sello tipográfico de la casa (Archivo variable) */
-.kick { font-stretch: 125%; }
+/* Kicker: Onest no tiene eje de anchura, así que el sello pasa a ser el tracking */
+.kick { letter-spacing: .05em; }
 
 .glow-turno { text-shadow: 0 0 90px rgba(61, 90, 245, .35); }
 

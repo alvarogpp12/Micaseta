@@ -38,7 +38,7 @@ export function Carta({ products, qty, setQty }: any) {
               {n > 0 ? (
                 <span className="flex items-center rounded-full bg-primary p-1 text-primary-foreground">
                   <button className="grid h-10 w-10 place-items-center" onClick={() => setQty({ ...qty, [p.id]: n - 1 })} aria-label={`Quitar ${p.name}`}><Minus size={20} /></button>
-                  <b className="min-w-6 text-center text-[17px] font-black tabular-nums">{n}</b>
+                  <b className="min-w-6 text-center text-[17px] font-extrabold tabular-nums">{n}</b>
                   <button className="grid h-10 w-10 place-items-center" onClick={add} aria-label={`Añadir ${p.name}`}><Plus size={20} /></button>
                 </span>
               ) : (
@@ -65,7 +65,7 @@ export function CartBar({ products, qty, label, onSend, err, busy }: any) {
       <button onClick={onSend} disabled={busy || n === 0}
         className="flex h-16 w-full items-center justify-between rounded-2xl bg-primary px-[22px] text-primary-foreground shadow-glow-cta transition-transform active:scale-[.98] disabled:opacity-50">
         <span className="text-[18px] font-extrabold tracking-tight">{label}</span>
-        <i className="not-italic text-[18px] font-black tabular-nums">{n} · {eur(total)}</i>
+        <i className="not-italic text-[18px] font-extrabold tabular-nums">{n} · {eur(total)}</i>
       </button>
     </div>
   );
@@ -198,7 +198,7 @@ export function Scanner({ onScan, hint }: { onScan: (qr: string) => void; hint?:
 
   return (
     <Card><CardBody>
-      {hint && <p className="mb-4 text-[16px] font-semibold leading-snug text-foreground/80">{hint}</p>}
+      {hint && <p className="mb-4 text-[16px] font-medium leading-snug text-foreground/80">{hint}</p>}
       <Button className="w-full" size="lg" onClick={start}><ScanLine size={24} /> Escanear el pase</Button>
       {err && <p className="mt-3 text-[15px] font-bold text-destructive">{err}</p>}
       {!manualOn ? (
@@ -235,17 +235,17 @@ export function PersonCard({ info }: { info: any }) {
       {info.photoUrl ? (
         <img src={info.photoUrl} alt="" className="h-[96px] w-[96px] flex-shrink-0 rounded-2xl bg-secondary object-cover" />
       ) : (
-        <div className={cn('grid h-[96px] w-[96px] flex-shrink-0 place-items-center rounded-2xl text-[32px] font-black tracking-tight', info.ok ? 'bg-primary/[.14] text-primary' : 'bg-destructive/[.14] text-destructive')}>
+        <div className={cn('grid h-[96px] w-[96px] flex-shrink-0 place-items-center rounded-2xl text-[32px] font-extrabold tracking-tight', info.ok ? 'bg-primary/[.14] text-primary' : 'bg-destructive/[.14] text-destructive')}>
           {info.ok ? initials : '?'}
         </div>
       )}
       <div className="min-w-0 flex-1">
-        <div className="text-[21px] font-black leading-tight tracking-tight">{info.name || 'Sin nombre'}</div>
-        <div className="mt-0.5 text-[14px] font-semibold text-muted-foreground">
+        <div className="text-[21px] font-extrabold leading-tight tracking-tight">{info.name || 'Sin nombre'}</div>
+        <div className="mt-0.5 text-[14px] font-medium text-muted-foreground">
           {(info.role === 'socio' || info.role === 'admin') ? 'Socio titular' : info.hostName ? `Invita ${info.hostName}` : ''}
         </div>
         <div className="mt-2"><Chip tone={info.ok ? 'ok' : 'bad'} className="text-[14px]">{info.ok ? 'Acceso OK' : 'Sin acceso'}</Chip></div>
-        {info.reason && !info.ok && <div className="mt-1.5 text-[14px] font-semibold text-destructive">{info.reason}</div>}
+        {info.reason && !info.ok && <div className="mt-1.5 text-[14px] font-medium text-destructive">{info.reason}</div>}
       </div>
     </div>
   );
@@ -259,15 +259,15 @@ export function Veredicto({ info }: { info: any }) {
       {info.photoUrl ? (
         <img src={info.photoUrl} alt="" className={cn('h-[168px] w-[168px] rounded-[28px] bg-secondary object-cover ring-4', info.ok ? 'ring-success' : 'ring-destructive')} />
       ) : (
-        <span className={cn('grid h-[168px] w-[168px] place-items-center rounded-[28px] text-[52px] font-black',
+        <span className={cn('grid h-[168px] w-[168px] place-items-center rounded-[28px] text-[52px] font-extrabold',
           info.ok ? 'bg-primary/[.14] text-primary' : 'bg-destructive/[.14] text-destructive')}>{info.ok ? initials : '?'}</span>
       )}
-      <h3 className="mt-4 text-[30px] font-black leading-tight tracking-[-.03em]">{info.name || 'Sin nombre'}</h3>
-      <p className="mt-1 text-[15px] font-semibold text-muted-foreground">
+      <h3 className="mt-4 text-[30px] font-extrabold leading-tight tracking-[-.03em]">{info.name || 'Sin nombre'}</h3>
+      <p className="mt-1 text-[15px] font-medium text-muted-foreground">
         {info.role === 'socio' || info.role === 'admin' ? 'Socio titular'
           : info.hostName ? `Invita ${info.hostName}${info.canOrder === false ? ' · solo entrada' : info.canOrder ? ' · con barra' : ''}` : ''}
       </p>
-      <span className={cn('mt-4 inline-flex items-center gap-2.5 rounded-full px-6 py-3.5 text-[19px] font-black',
+      <span className={cn('mt-4 inline-flex items-center gap-2.5 rounded-full px-6 py-3.5 text-[19px] font-extrabold',
         info.ok ? 'bg-success text-white' : 'bg-destructive text-white')}>
         {info.ok ? <CheckCircle2 size={24} /> : <X size={24} />}
         {info.ok ? 'Puede pasar' : 'No puede pasar'}
@@ -283,7 +283,7 @@ export function ShareModal({ open, onClose, title, text, url, phone, note }: any
   const [copied, setCopied] = useState(false);
   return (
     <Modal open={open} onClose={onClose}>
-      <h2 className="text-[24px] font-black tracking-tight">{title}</h2>
+      <h2 className="text-[24px] font-extrabold tracking-tight">{title}</h2>
       {note && <p className="mt-1.5 text-[15px] leading-relaxed text-muted-foreground">{note}</p>}
       <a href={waShare(text, phone)} target="_blank" rel="noreferrer" className="mt-5 block">
         <Button className="w-full" size="lg"><Bubble size={20} /> Enviar por WhatsApp</Button>

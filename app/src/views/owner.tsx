@@ -47,14 +47,14 @@ function Resumen() {
           {o.aforo?.exacto && <Chip tone="ok">Puerta activa</Chip>}
         </div>
         <div className="mt-2 flex items-baseline gap-3">
-          <span className="text-[44px] font-black leading-none tracking-[-.04em] tabular-nums">{o.aforo?.exacto ? '' : '~'}{o.aforo?.n ?? 0}</span>
+          <span className="text-[44px] font-extrabold leading-none tracking-[-.03em] tabular-nums">{o.aforo?.exacto ? '' : '~'}{o.aforo?.n ?? 0}</span>
           <span className="text-[13px] font-bold text-muted-foreground">personas</span>
         </div>
       </CardBody></Card>
 
       <Card className="mb-3"><div className="banda h-1" /><CardBody>
         <Kick>Caja de hoy</Kick>
-        <span className="text-[36px] font-black leading-none tracking-[-.04em] tabular-nums">{eur(o.hoy.total)}</span>
+        <span className="text-[36px] font-extrabold leading-none tracking-[-.03em] tabular-nums">{eur(o.hoy.total)}</span>
         <Stats items={[[o.entradas, 'Entradas'], [eur(o.pendienteCents), 'Pendiente']]} />
       </CardBody></Card>
 
@@ -75,7 +75,7 @@ function Resumen() {
       </CardBody></Card>
 
       <Modal open={!!detalle} onClose={() => setDetalle(null)}>
-        <h2 className="text-lg font-black tracking-tight">Cuenta de {detalle?.name}</h2>
+        <h2 className="text-lg font-extrabold tracking-tight">Cuenta de {detalle?.name}</h2>
         <div className="mt-2 max-h-[55vh] overflow-y-auto">
           {detalle?.rows.length === 0 && <Empty>Sin comandas.</Empty>}
           {detalle?.rows.map((d: any) => (
@@ -218,7 +218,7 @@ function Equipo() {
             </small>
           </div>
           <button onClick={() => { navigator.clipboard.writeText(codigo.code); toast('Código copiado'); }}
-            className="rounded-lg bg-primary/[.14] px-4 py-2.5 text-[20px] font-black tabular-nums tracking-[.18em] text-primary">
+            className="rounded-lg bg-primary/[.14] px-4 py-2.5 text-[20px] font-extrabold tabular-nums tracking-[.18em] text-primary">
             {codigo.code.slice(0, 3)} {codigo.code.slice(3)}
           </button>
         </CardBody></Card>
@@ -231,7 +231,7 @@ function Equipo() {
         </div>
         <Label>Puesto</Label>
         <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}
-          className="h-12 w-full rounded-lg bg-secondary px-4 font-semibold text-foreground outline-none transition-shadow focus:ring-2 focus:ring-primary/60">
+          className="h-12 w-full rounded-lg bg-secondary px-4 font-medium text-foreground outline-none transition-shadow focus:ring-2 focus:ring-primary/60">
           <option value="mesero">Barra — comandas</option>
           <option value="puerta">Puerta — entradas</option>
         </select>
@@ -325,7 +325,7 @@ export function LoginView({ onDone }: { onDone: () => void }) {
       <TopBar />
       <Page className="pt-8">
         <div className="mb-6 text-center">
-          <h1 className="text-2xl font-black tracking-tight">Únete a tu club</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight">Únete a tu club</h1>
           <p className="mt-1.5 text-sm text-muted-foreground">Teclea el código de 6 dígitos que te ha dado el responsable.</p>
         </div>
         <Card><CardBody className="p-5">
@@ -342,7 +342,7 @@ export function LoginView({ onDone }: { onDone: () => void }) {
           <Label>Código del club</Label>
           <Input value={staff.code} onChange={(e: any) => setStaff({ ...staff, code: e.target.value })}
             placeholder="000 000" inputMode="numeric" autoComplete="one-time-code"
-            className="text-center text-[22px] font-black tracking-[.3em] tabular-nums" />
+            className="text-center text-[22px] font-extrabold tracking-[.3em] tabular-nums" />
           <Label>Tu nombre</Label>
           <Input value={staff.name} onChange={(e: any) => setStaff({ ...staff, name: e.target.value })} placeholder="Pepe Ruiz" />
           <Label>Tu móvil</Label>
@@ -361,7 +361,7 @@ export function LoginView({ onDone }: { onDone: () => void }) {
     <>
       <Page>
         <div className="px-1 pb-6 pt-11 text-center">
-          <span className="text-[34px] font-black tracking-[-.03em]">micaseta<i className="not-italic text-primary">.</i></span>
+          <span className="text-[34px] font-extrabold tracking-[-.03em]">micaseta<i className="not-italic text-primary">.</i></span>
           <p className="mt-2.5 text-[13.5px] leading-relaxed text-muted-foreground">
             {mode === 'gcaseta' ? `Hola, ${gName}. Ponle nombre a tu club y listo.` : <>Tu club, sin listas en papel.<br />Socios con pase QR y comandas a cuenta.</>}
           </p>
@@ -371,7 +371,7 @@ export function LoginView({ onDone }: { onDone: () => void }) {
         <div className="relative z-0 mx-7 -mb-3.5 overflow-hidden rounded-t-xl border border-b-0 border-papel-borde bg-papel text-tinta shadow-[0_-10px_40px_rgba(61,90,245,.1)]">
           <div className="banda h-2" />
           <div className="flex items-baseline justify-between px-4 pb-5 pt-3">
-            <b className="text-[15px] font-black tracking-[-.03em]">{mode === 'register' || mode === 'gcaseta' ? 'Tu club' : 'Tu pase'}</b>
+            <b className="text-[15px] font-extrabold tracking-[-.03em]">{mode === 'register' || mode === 'gcaseta' ? 'Tu club' : 'Tu pase'}</b>
             <small className="kick text-[10.5px] font-bold text-primary">micaseta</small>
           </div>
         </div>

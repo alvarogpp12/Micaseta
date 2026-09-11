@@ -5,7 +5,7 @@ export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
-      fontFamily: { sans: ['Archivo', '-apple-system', 'system-ui', 'sans-serif'] },
+      fontFamily: { sans: ['Onest', '-apple-system', 'system-ui', 'sans-serif'] },
       colors: {
         background: '#FFFFFF',
         foreground: '#14161D',                                    // tinta

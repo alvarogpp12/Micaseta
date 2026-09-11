@@ -43,7 +43,7 @@ export const CardBody = ({ className = '', ...p }: any) => <div className={cn('p
 export const Input = ({ className = '', ...p }: any) => (
   <input
     className={cn(
-      'flex h-[52px] w-full rounded-xl bg-secondary px-4 py-2 text-[17px] font-semibold text-foreground outline-none transition-shadow placeholder:text-[#8B92A5] focus:ring-2 focus:ring-primary/60',
+      'flex h-[52px] w-full rounded-xl bg-secondary px-4 py-2 text-[17px] font-medium text-foreground outline-none transition-shadow placeholder:text-[#8B92A5] focus:ring-2 focus:ring-primary/60',
       className,
     )}
     {...p}
@@ -61,15 +61,15 @@ export const Kick = ({ className = '', ...p }: any) => (
 
 /** Título de sección tipográfica (sin caja): "Tu gente", "Esta noche". */
 export const SectionTitle = ({ className = '', ...p }: any) => (
-  <h3 className={cn('mb-1 mt-7 text-[21px] font-black tracking-[-.03em] text-foreground', className)} {...p} />
+  <h3 className={cn('mb-1 mt-7 text-[21px] font-extrabold tracking-[-.03em] text-foreground', className)} {...p} />
 );
 
 /** Título de pantalla + una frase que explica qué es esto. */
 export function Titulo({ children, sub, className = '' }: { children: React.ReactNode; sub?: React.ReactNode; className?: string }) {
   return (
     <div className={cn('px-1 pb-3 pt-1', className)}>
-      <h1 className="text-[28px] font-black leading-[1.05] tracking-[-.035em]">{children}</h1>
-      {sub && <p className="mt-1.5 text-[15px] font-semibold leading-snug text-muted-foreground">{sub}</p>}
+      <h1 className="text-[28px] font-extrabold leading-[1.05] tracking-[-.028em]">{children}</h1>
+      {sub && <p className="mt-1.5 text-[15px] font-medium leading-snug text-muted-foreground">{sub}</p>}
     </div>
   );
 }
@@ -109,7 +109,7 @@ export function Stats({ items }: { items: [React.ReactNode, string][] }) {
     <div className="mt-4 flex gap-4 border-t border-border">
       {items.map(([v, l]) => (
         <div key={l} className="flex-1 pt-3.5">
-          <b className="block text-[21px] font-black tabular-nums tracking-tight">{v}</b>
+          <b className="block text-[21px] font-extrabold tabular-nums tracking-tight">{v}</b>
           <small className="mt-0.5 block text-[13px] font-bold text-muted-foreground">{l}</small>
         </div>
       ))}
@@ -121,7 +121,7 @@ export function KPI({ label, value }: { label: string; value: React.ReactNode })
   return (
     <Card><CardBody className="px-4 py-4">
       <div className="mb-1 text-[13px] font-bold text-muted-foreground">{label}</div>
-      <div className="truncate text-[24px] font-black tracking-tight tabular-nums">{value}</div>
+      <div className="truncate text-[24px] font-extrabold tracking-tight tabular-nums">{value}</div>
     </CardBody></Card>
   );
 }
@@ -150,7 +150,7 @@ export function Row({ icon, title, sub, right, onClick, tone = 'primary' }: { ic
       <span className={cn('grid h-[46px] w-[46px] flex-shrink-0 place-items-center rounded-[14px]', tone === 'ok' ? 'bg-success/[.12] text-success' : 'bg-primary/[.12] text-primary')}>{icon}</span>
       <span className="min-w-0 flex-1">
         <b className="block truncate text-[18px] font-extrabold tracking-[-.02em]">{title}</b>
-        {sub && <small className="mt-0.5 line-clamp-2 text-[14px] font-semibold leading-snug text-muted-foreground">{sub}</small>}
+        {sub && <small className="mt-0.5 line-clamp-2 text-[14px] font-medium leading-snug text-muted-foreground">{sub}</small>}
       </span>
       {right ?? <ChevronRight size={22} className="flex-shrink-0 text-[#B4BAC8]" />}
     </button>
@@ -236,7 +236,7 @@ export function TopBar({ back, onBack, title, right }: { back?: string; onBack?:
         {back != null ? (
           <button className="-ml-2 inline-flex h-11 items-center gap-0.5 pr-2 text-[16px] font-extrabold text-primary" onClick={onBack}><ChevronLeft size={22} /> {back}</button>
         ) : (
-          <span className="text-[18px] font-black tracking-[-.03em]">
+          <span className="text-[18px] font-extrabold tracking-[-.03em]">
             micaseta<i className="not-italic text-primary">.</i>
           </span>
         )}

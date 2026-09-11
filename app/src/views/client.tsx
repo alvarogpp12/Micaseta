@@ -62,7 +62,7 @@ export function ClientApp({ token, extra, onExit }: { token: string; extra?: { i
 }
 
 const Dead = ({ msg }: { msg: string }) => (
-  <><TopBar /><Page><div className="rounded-xl bg-destructive/10 p-4 text-center text-[16px] font-semibold text-destructive">{msg}</div></Page></>
+  <><TopBar /><Page><div className="rounded-xl bg-destructive/10 p-4 text-center text-[16px] font-medium text-destructive">{msg}</div></Page></>
 );
 
 const saludo = () => {
@@ -83,7 +83,7 @@ function Pase({ me }: any) {
           <span className="text-primary">{kicker}</span>
           <span className="text-tinta-humo tabular-nums">{new Date().getFullYear()}</span>
         </div>
-        <h2 className="mt-3 break-words text-[34px] font-black leading-[1] tracking-[-.04em]">{me.name}</h2>
+        <h2 className="mt-3 break-words text-[34px] font-extrabold leading-[1] tracking-[-.03em]">{me.name}</h2>
         <div className="mt-2 flex items-baseline justify-between">
           <span className="text-[15px] font-bold text-tinta-suave">{me.caseta}</span>
           {!esSocio && me.hostName && <span className="kick text-[13px] font-extrabold tracking-[.01em] text-primary">Invita {me.hostName}</span>}
@@ -99,7 +99,7 @@ function Pase({ me }: any) {
         </div>
         <div className="min-w-0">
           <b className="block text-[17px] font-extrabold leading-tight tracking-tight">Enseña este código</b>
-          <span className="mt-2 block text-[14px] font-semibold leading-snug text-tinta-humo">
+          <span className="mt-2 block text-[14px] font-medium leading-snug text-tinta-humo">
             {me.canOrder ? 'En la puerta para entrar y en la barra para pedir a tu cuenta.' : 'En la puerta para entrar.'}
           </span>
           <em className={cn('kick mt-3 flex items-center gap-1.5 text-[13px] font-extrabold not-italic tracking-[.01em]',
@@ -146,8 +146,8 @@ function VistaInicio({ me, token, dentro, onSalir, onTab, onSent, extra }: any) 
     <>
       <div className="flex items-start justify-between gap-3 px-1 pt-4">
         <div className="min-w-0">
-          <h1 className="text-[28px] font-black leading-[1.05] tracking-[-.035em]">{saludo()},<br />{String(me.name).split(' ')[0]}</h1>
-          <p className="mt-1.5 text-[15px] font-semibold text-muted-foreground">{me.caseta}</p>
+          <h1 className="text-[28px] font-extrabold leading-[1.05] tracking-[-.028em]">{saludo()},<br />{String(me.name).split(' ')[0]}</h1>
+          <p className="mt-1.5 text-[15px] font-medium text-muted-foreground">{me.caseta}</p>
         </div>
         <SalirBtn onClick={onSalir} />
       </div>
@@ -219,8 +219,8 @@ function Dentro({ me, token, onSent, onTab, onSalir, extra }: any) {
     <>
       <div className="flex items-center justify-between gap-3 px-1 pt-4">
         <div className="min-w-0">
-          <h1 className="text-[28px] font-black leading-[1.05] tracking-[-.035em]">Estás dentro</h1>
-          <p className="mt-1 text-[15px] font-semibold text-muted-foreground">{me.caseta}</p>
+          <h1 className="text-[28px] font-extrabold leading-[1.05] tracking-[-.028em]">Estás dentro</h1>
+          <p className="mt-1 text-[15px] font-medium text-muted-foreground">{me.caseta}</p>
         </div>
         <SalirBtn onClick={onSalir} />
       </div>
@@ -228,7 +228,7 @@ function Dentro({ me, token, onSent, onTab, onSalir, extra }: any) {
       {me.canOrder ? (
         <div className="mt-6 px-1">
           <SectionTitle className="mt-0">Pide desde aquí</SectionTitle>
-          <p className="text-[15px] font-semibold text-muted-foreground">
+          <p className="text-[15px] font-medium text-muted-foreground">
             {esSocio ? 'Todo va a tu cuenta.' : `A cuenta de ${me.hostName ?? 'tu socio'}${me.remainingCents !== null ? ` · te quedan ${eur(me.remainingCents)}` : ''}.`}
           </p>
           <Carta products={me.products} qty={qty} setQty={setQty} />
@@ -253,7 +253,7 @@ function Dentro({ me, token, onSent, onTab, onSalir, extra }: any) {
           {estaNoche.length > 0 && (
             <div className="flex items-center justify-between py-3.5">
               <b className="text-[16px] font-extrabold tracking-tight">Cuenta de la noche</b>
-              <span className="text-[18px] font-black tabular-nums">{eur(totalNoche)}</span>
+              <span className="text-[18px] font-extrabold tabular-nums">{eur(totalNoche)}</span>
             </div>
           )}
         </div>
@@ -295,7 +295,7 @@ function VistaGastos({ me }: any) {
         <Titulo sub={`Todo va a la cuenta de ${me.hostName ?? 'tu socio'}: tú no pagas nada.`}>Mi cuenta</Titulo>
         <Card><CardBody>
           <Kick className="mb-1.5">Has consumido</Kick>
-          <span className="text-[44px] font-black leading-none tracking-[-.04em] tabular-nums">{eur(me.spentCents)}</span>
+          <span className="text-[44px] font-extrabold leading-none tracking-[-.03em] tabular-nums">{eur(me.spentCents)}</span>
           <Stats items={[[me.remainingCents === null ? 'Sin límite' : eur(me.remainingCents), 'Te queda'], [me.spendLimitCents ? eur(me.spendLimitCents) : '—', 'Límite']]} />
         </CardBody></Card>
       </>
@@ -309,7 +309,7 @@ function VistaGastos({ me }: any) {
       <Titulo sub="Lo tuyo y lo de tus invitados. Se paga al final de la feria.">Mi cuenta</Titulo>
       <Card className="mb-3"><div className="banda h-1" /><CardBody>
         <Kick className="mb-1.5">Pendiente de pagar</Kick>
-        <span className="text-[44px] font-black leading-none tracking-[-.04em] tabular-nums">{eur(pend)}</span>
+        <span className="text-[44px] font-extrabold leading-none tracking-[-.03em] tabular-nums">{eur(pend)}</span>
         <Stats items={[[nPend, 'Comandas'], [me.gastos.people.length, 'Personas'], [eur(total), 'Total feria']]} />
       </CardBody></Card>
       <Card><CardBody>
@@ -404,12 +404,12 @@ function VistaInvitar({ me, token, reload }: any) {
                   <div className="flex items-baseline justify-between gap-3">
                     <b className="truncate text-[17px] font-extrabold tracking-tight">{i.guestName ?? 'Invitado'}</b>
                     {i.canOrder && i.status === 'aceptada' && (
-                      <span className="flex-shrink-0 text-[16px] font-black tabular-nums tracking-tight">{eur(i.spentCents)}</span>
+                      <span className="flex-shrink-0 text-[16px] font-extrabold tabular-nums tracking-tight">{eur(i.spentCents)}</span>
                     )}
                   </div>
                   <span className={cn('mt-0.5 block text-[14px] font-bold',
                     st.tone === 'ok' ? 'text-success' : st.tone === 'soft' ? 'text-primary' : 'text-muted-foreground')}>{st.label}</span>
-                  <span className="block text-[14px] font-semibold text-muted-foreground first-letter:uppercase">{st.detalle}</span>
+                  <span className="block text-[14px] font-medium text-muted-foreground first-letter:uppercase">{st.detalle}</span>
                   {pct !== null && i.status === 'aceptada' && (
                     <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-secondary">
                       <div className={cn('h-full rounded-full', pct >= 100 ? 'bg-destructive' : 'bg-primary')} style={{ width: pct + '%' }} />
@@ -469,7 +469,7 @@ function DiasFeria({ feria, value, onChange }: { feria?: { days: string[]; sourc
             <button key={d} type="button" disabled={pasado} onClick={() => onChange(d)}
               className={cn(ficha, 'min-w-[64px]', on ? 'bg-primary text-white shadow-glow' : 'bg-secondary text-foreground', pasado && 'opacity-35')}>
               <span className={cn('text-[12px] font-bold uppercase', on ? 'text-white/80' : 'text-muted-foreground')}>{DIAS[dt.getDay()]}</span>
-              <b className="text-[22px] font-black leading-none tabular-nums">{dt.getDate()}</b>
+              <b className="text-[22px] font-extrabold leading-none tabular-nums">{dt.getDate()}</b>
               <span className={cn('text-[11.5px] font-bold', on ? 'text-white/80' : 'text-muted-foreground')}>{MESES[dt.getMonth()]}</span>
             </button>
           );
@@ -501,7 +501,7 @@ function CrearInvitacion({ open, token, feria, onClose, onCreated }: any) {
 
   return (
     <Modal open={open} onClose={onClose}>
-      <h2 className="text-[24px] font-black tracking-tight">Invitar a alguien</h2>
+      <h2 className="text-[24px] font-extrabold tracking-tight">Invitar a alguien</h2>
       <Label className="mt-4">¿Cómo se llama?</Label>
       <Input autoFocus className="h-14 text-[18px] font-bold" value={form.guestName} placeholder="Nombre de tu invitado"
         onChange={(e: any) => setForm({ ...form, guestName: e.target.value })} onKeyDown={(e: any) => e.key === 'Enter' && crear()} />
@@ -519,7 +519,7 @@ function CrearInvitacion({ open, token, feria, onClose, onCreated }: any) {
 
       <button type="button" className="mt-4 flex min-h-[44px] w-full items-center gap-1 text-left text-[15px] font-bold text-primary" onClick={() => setMas(!mas)}>
         <ChevronRight size={18} className={cn('flex-shrink-0 transition-transform', mas && 'rotate-90')} />
-        <span>{mas ? 'Menos opciones' : 'Más opciones'}{!mas && <span className="block text-[13.5px] font-semibold text-muted-foreground">Ahora: sin límite de gasto, cualquier día</span>}</span>
+        <span>{mas ? 'Menos opciones' : 'Más opciones'}{!mas && <span className="block text-[13.5px] font-medium text-muted-foreground">Ahora: sin límite de gasto, cualquier día</span>}</span>
       </button>
       {mas && (
         <div className="mt-1">
@@ -551,17 +551,17 @@ function FichaInvitado({ inv, onClose, onShare, onCancel }: any) {
           <div className="flex items-center gap-4">
             <Avatar name={i.guestName} src={i.photoUrl} size={76} dot={i.dentro} />
             <div className="min-w-0">
-              <h2 className="truncate text-[24px] font-black leading-tight tracking-tight">{i.guestName ?? 'Invitado'}</h2>
+              <h2 className="truncate text-[24px] font-extrabold leading-tight tracking-tight">{i.guestName ?? 'Invitado'}</h2>
               <Chip tone={st.tone} className="mt-1.5">{st.label}</Chip>
             </div>
           </div>
 
           <div className="mt-6 space-y-4">
-            <div className="flex items-center gap-3 text-[16px] font-semibold">
+            <div className="flex items-center gap-3 text-[16px] font-medium">
               {i.canOrder ? <Beer size={24} className="flex-shrink-0 text-primary" /> : <Ticket size={24} className="flex-shrink-0 text-primary" />}
               <span>{i.canOrder ? (i.spendLimitCents === null ? 'Con barra, sin límite: todo a tu cuenta' : `Con barra hasta ${eurCorto(i.spendLimitCents)}, a tu cuenta`) : 'Solo entrada: su pase abre la puerta, no pide'}</span>
             </div>
-            <div className="flex items-center gap-3 text-[16px] font-semibold">
+            <div className="flex items-center gap-3 text-[16px] font-medium">
               <Calendar size={24} className="flex-shrink-0 text-primary" />
               <span>{i.validDate ? `Vale solo el ${fmtDia(i.validDate)}` : 'Vale cualquier día de feria'}</span>
             </div>
@@ -569,20 +569,20 @@ function FichaInvitado({ inv, onClose, onShare, onCancel }: any) {
               <div className="rounded-2xl bg-secondary/70 p-4">
                 <div className="flex items-baseline justify-between">
                   <span className="text-[14px] font-bold text-muted-foreground">Lleva gastado</span>
-                  <b className="text-[24px] font-black tabular-nums tracking-tight">{eur(i.spentCents)}</b>
+                  <b className="text-[24px] font-extrabold tabular-nums tracking-tight">{eur(i.spentCents)}</b>
                 </div>
                 {i.spendLimitCents !== null && (
                   <>
                     <div className="mt-2.5 h-2 overflow-hidden rounded-full bg-white">
                       <div className="h-full rounded-full bg-primary" style={{ width: Math.min(100, Math.round((i.spentCents / i.spendLimitCents) * 100)) + '%' }} />
                     </div>
-                    <span className="mt-1.5 block text-[14px] font-semibold text-muted-foreground">le quedan {eur(Math.max(0, i.spendLimitCents - i.spentCents))} de {eurCorto(i.spendLimitCents)}</span>
+                    <span className="mt-1.5 block text-[14px] font-medium text-muted-foreground">le quedan {eur(Math.max(0, i.spendLimitCents - i.spentCents))} de {eurCorto(i.spendLimitCents)}</span>
                   </>
                 )}
               </div>
             )}
             {i.status === 'aceptada' && i.lastCheckinAt && (
-              <div className="flex items-center gap-3 text-[15px] font-semibold text-muted-foreground">
+              <div className="flex items-center gap-3 text-[15px] font-medium text-muted-foreground">
                 <Clock size={22} className="flex-shrink-0" /><span>Última entrada por la puerta: {fmtFecha(i.lastCheckinAt)}</span>
               </div>
             )}
@@ -669,7 +669,7 @@ export function GuestRegister({ token }: { token: string }) {
           <div className="p-5 pb-4">
             <div className="kick text-[13px] font-bold tracking-[.02em] text-primary">Invitación</div>
             <p className="mt-3 text-[16px] font-bold text-tinta-suave">{inv.socio} te invita a</p>
-            <h1 className="mt-1 break-words text-[38px] font-black leading-[1] tracking-[-.04em]">{inv.caseta}</h1>
+            <h1 className="mt-1 break-words text-[38px] font-extrabold leading-[1] tracking-[-.03em]">{inv.caseta}</h1>
           </div>
           <div className="relative border-t-2 border-dashed border-papel-borde">
             <span className="absolute -top-3.5 left-[-16px] h-7 w-7 rounded-full bg-white" />
