@@ -179,13 +179,15 @@ export function Modal({ open, onClose, children }: any) {
   );
 }
 
-/** Barra de pestañas fija, blanca, con el nombre debajo de cada icono (como la
- *  de Apple): iconos de 26 px, texto de 12,5 px y píldora azul en la activa. */
+/** Barra de pestañas flotante, de vidrio: una cápsula despegada del borde por la
+ *  que pasa el contenido al hacer scroll. Iconos de 26 px, nombre debajo y
+ *  píldora azul en la activa. */
 export function Dock({ tabs, tab, onTab }: { tabs: { id: string; label: string; icon: React.ReactNode }[]; tab: string; onTab: (id: string) => void }) {
   if (tabs.length < 2) return null;
   return (
-    <nav className="vidrio fixed inset-x-0 bottom-0 z-40" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-      <div className="mx-auto flex max-w-md px-1.5 pb-2 pt-1.5">
+    <nav className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-4"
+      style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' }}>
+      <div className="vidrio vidrio-flotante pointer-events-auto mx-auto flex max-w-[420px] rounded-[26px] px-1.5 pb-1.5 pt-1.5">
         {tabs.map((t) => {
           const on = tab === t.id;
           return (

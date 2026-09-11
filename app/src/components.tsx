@@ -60,8 +60,8 @@ export function CartBar({ products, qty, label, onSend, err, busy }: any) {
   for (const p of products) total += (qty[p.id] || 0) * p.price_cents;
   if (n === 0 && !err) return null;
   return (
-    <div className="fixed inset-x-[18px] z-30 mx-auto max-w-md" style={{ bottom: 'calc(5.6rem + env(safe-area-inset-bottom))' }}>
-      {err && <p className="vidrio mb-2 rounded-xl p-2.5 text-center text-[15px] font-bold text-destructive">{err}</p>}
+    <div className="fixed inset-x-[18px] z-30 mx-auto max-w-md" style={{ bottom: 'calc(7rem + env(safe-area-inset-bottom))' }}>
+      {err && <p className="vidrio vidrio-flotante mb-2 rounded-2xl p-2.5 text-center text-[15px] font-bold text-destructive">{err}</p>}
       <button onClick={onSend} disabled={busy || n === 0}
         className="flex h-16 w-full items-center justify-between rounded-2xl bg-primary px-[22px] text-primary-foreground shadow-glow-cta transition-transform active:scale-[.98] disabled:opacity-50">
         <span className="text-[18px] font-extrabold tracking-tight">{label}</span>
